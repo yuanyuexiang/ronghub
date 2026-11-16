@@ -1,0 +1,36 @@
+{
+  "name": "ronghub-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "api:generate": "uv run --directory ../server python -m app.export_contract && openapi-typescript ../../docs/api/openapi.json -o ../../packages/api-client/schema.d.ts --empty-objects-unknown",
+    "api:check": "uv run --directory ../server python -m app.export_contract --check && openapi-typescript ../../docs/api/openapi.json -o ../../packages/api-client/schema.d.ts --empty-objects-unknown --check"
+  },
+  "dependencies": {
+    "@tiptap/core": "3.34.0",
+    "@tiptap/extension-table": "^3.34.0",
+    "@tiptap/pm": "^3.34.0",
+    "@tiptap/react": "^3.34.0",
+    "@tiptap/starter-kit": "^3.34.0",
+    "leaflet": "1.9.4",
+    "lucide-react": "^0.468.0",
+    "next": "^16.0.0",
+    "openapi-fetch": "^0.17.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/leaflet": "1.9.21",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "openapi-typescript": "^7.13.0",
+    "prettier": "^3.10.1",
+    "typescript": "^5.7.0"
+  }
+}
