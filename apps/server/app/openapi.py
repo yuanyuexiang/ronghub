@@ -12,8 +12,8 @@ from app.authorization import (
     SUBSIDY_ACTIONS,
     request_capability,
 )
-from app.dependencies import current_user
-from app.enrollment import applicant
+from app.dependencies import current_user, snapshot_user
+from app.enrollment import applicant, snapshot_applicant
 from app.staff_applications import applicant as staff_applicant
 
 
@@ -33,6 +33,7 @@ def build_schema(app):
         },
         "BusinessCookie": {"type": "apiKey", "in": "cookie", "name": "ronghub_session"},
         "EnrollmentCookie": {"type": "apiKey", "in": "cookie", "name": "ronghub_enrollment"},
+        "EnrollmentCsrfHeader": {"type": "apiKey", "in": "header", "name": "x-enrollment-csrf"},
         "CsrfHeader": {"type": "apiKey", "in": "header", "name": "x-csrf-token"},
     }
     for route in iter_route_contexts(app.routes):
@@ -50,7 +51,9 @@ def build_schema(app):
                 "Retry-After": {"schema": {"type": "string"}, "description": "Seconds before retry"}
             }
             cookie = None
-            if depends_on(route.dependant, current_user):
+            if depends_on(route.dependant, current_user) or depends_on(
+                route.dependant, snapshot_user
+            ):
                 cookie = "BusinessCookie"
                 request = Request(
                     {
@@ -80,16 +83,22 @@ def build_schema(app):
                     }
                 if route.path_format.startswith("/api/v1/content"):
                     operation["x-authorization-note"] = (
-                        "manage=true requires global content.manage; writes require content.read and the specific action grant; management writes also require content.manage. CSV exports require global regulator content.read + content.manage + content.export. Batch actions commit atomically after all versions match. Audience and reply scope checks apply."
+                        "manage=true requires global content.manage; writes require content.read and the specific action grant; management writes also require content.manage. CSV exports require global regulator content.read + content.manage + content.export. Batch actions commit atomically after all versions match. Audience and reply scope checks apply. Anonymous portal publication additionally requires content.public and explicit opt-in; all-authenticated audience is not internet-public."
                     )
-            elif depends_on(route.dependant, applicant):
+            elif depends_on(route.dependant, applicant) or depends_on(
+                route.dependant, snapshot_applicant
+            ):
                 cookie = "EnrollmentCookie"
             elif depends_on(route.dependant, staff_applicant):
                 cookie = "StaffApplicantCookie"
+            if route.path_format.startswith("/api/v1/public/"):
+                operation["x-authorization-note"] = "Anonymous projection only: explicit portal_public consent, published and due, all audience, no company targets, allowed public kinds; same gate for frozen attachments. Existing authenticated-all content stays private."
             if cookie:
                 requirement = {cookie: []}
                 if method not in {"GET", "HEAD", "OPTIONS"}:
-                    requirement["CsrfHeader"] = []
+                    requirement[
+                        "EnrollmentCsrfHeader" if cookie == "EnrollmentCookie" else "CsrfHeader"
+                    ] = []
                 operation["security"] = [requirement]
             else:
                 operation["security"] = []

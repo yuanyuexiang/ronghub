@@ -7,10 +7,35 @@ from sqlalchemy import delete, select
 
 from app import inspection
 from app.db import SessionLocal
-from app.models import Audit, InspectionAction, InspectionTask, User, now
+from app.inspection_documents import ExecutionContact
+from app.models import Audit, InspectionAction, InspectionAttachment, InspectionTask, User, now
 
 
-def test_task_isolation_reply_review_and_overdue(accounts):
+def test_task_isolation_reply_review_and_overdue(accounts, tmp_path, monkeypatch):
+    from io import BytesIO
+
+    from starlette.datastructures import UploadFile
+
+    from app.config import settings
+    from app.storage import store_upload
+
+    monkeypatch.setattr(settings, "storage_path", str(tmp_path))
+
+    def submit(db, owner, task, version, comment):
+        values, _ = store_upload(UploadFile(BytesIO(b"%PDF-1.4 Synthetic"), filename="proof.pdf"))
+        db.add(InspectionAttachment(task_id=task.id, uploaded_by=owner.id, **values))
+        db.flush()
+        return inspection.act(
+            db,
+            owner,
+            task.id,
+            version,
+            "reply",
+            comment,
+            contact=ExecutionContact(name="Executor", phone="13800000001"),
+            performed_at=now() - timedelta(days=1),
+        )
+
     names, _, stations = accounts
     task_id = None
     try:
@@ -29,14 +54,14 @@ def test_task_isolation_reply_review_and_overdue(accounts):
             with pytest.raises(HTTPException) as e:
                 inspection.act(db, owner, task.id, 1, "close", "越权")
             assert e.value.status_code == 403
-            inspection.act(db, owner, task.id, 1, "reply", "已整改")
+            submit(db, owner, task, 1, "已整改")
             with pytest.raises(HTTPException) as e:
                 inspection.act(db, reg, task.id, 1, "close", "旧版本")
             assert e.value.status_code == 409
             inspection.act(db, reg, task.id, 2, "return", "请补充证据")
             task.due_at = now() - timedelta(seconds=1)
             assert inspection.output(task)["overdue"]
-            inspection.act(db, owner, task.id, 3, "reply", "补充说明")
+            submit(db, owner, task, 3, "补充说明")
             inspection.act(db, reg, task.id, 4, "close", "演示核验完成")
             assert not inspection.output(task)["overdue"]
             db.flush()
@@ -53,6 +78,9 @@ def test_task_isolation_reply_review_and_overdue(accounts):
     finally:
         if task_id:
             with SessionLocal.begin() as db:
+                db.execute(
+                    delete(InspectionAttachment).where(InspectionAttachment.task_id == task_id)
+                )
                 db.execute(delete(InspectionAction).where(InspectionAction.task_id == task_id))
                 db.execute(delete(InspectionTask).where(InspectionTask.id == task_id))
 
@@ -142,7 +170,13 @@ def test_private_material_freeze_and_reply_binding(accounts, tmp_path, monkeypat
                 op.post(
                     f"/api/v1/inspections/{task_id}/actions",
                     headers=headers,
-                    json={"version": 1, "action": "reply", "comment": "已上传照片"},
+                    json={
+                        "version": 1,
+                        "action": "reply",
+                        "comment": "已上传照片",
+                        "contact": {"name": "Executor", "phone": "13800000001"},
+                        "performed_at": (now() - timedelta(days=1)).isoformat(),
+                    },
                 ).status_code
                 == 200
             )

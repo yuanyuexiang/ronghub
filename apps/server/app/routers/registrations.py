@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -9,7 +9,14 @@ from sqlalchemy.exc import IntegrityError
 from app import enrollment
 from app.authorization import permissions, require
 from app.config import settings
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
+from app.enrollment_contracts import (
+    EnrollmentRecord,
+    RegistrationDetail,
+    RegistrationOptions,
+    RegistrationPage,
+)
+from app.material_contracts import binary_responses
 from app.models import (
     Audit,
     Operator,
@@ -19,6 +26,7 @@ from app.models import (
     RoleProfile,
     User,
 )
+from app.reporting import SnapshotDB
 from app.routers.accounts import mutation_admin, validate_grant
 from app.routers.attachments import metadata
 
@@ -38,12 +46,19 @@ def regulator(user):
         raise HTTPException(403, "仅监管人员可审核企业注册")
 
 
-@router.get("")
-def listing(user: Actor, db: DB, page: int = Query(1, ge=1), q: str = Query("", max_length=150)):
+@router.get("", response_model=RegistrationPage)
+def listing(
+    user: SnapshotActor,
+    db: SnapshotDB,
+    response: Response,
+    page: int = Query(1, ge=1, le=2147483647),
+    q: str = Query("", max_length=150),
+):
     regulator(user)
+    response.headers["Cache-Control"] = "no-store"
     stmt = select(Registration).where(Registration.status != "draft")
     if q:
-        stmt = stmt.where(Registration.company_name.ilike("%" + q + "%"))
+        stmt = stmt.where(Registration.company_name.icontains(q, autoescape=True))
     return {
         "items": [
             enrollment.output(r)
@@ -55,8 +70,9 @@ def listing(user: Actor, db: DB, page: int = Query(1, ge=1), q: str = Query("", 
     }
 
 
-@router.get("/options")
-def options(user: Actor, db: DB):
+@router.get("/options", response_model=RegistrationOptions)
+def options(user: SnapshotActor, db: SnapshotDB, response: Response):
+    response.headers["Cache-Control"] = "no-store"
     regulator(user)
     require(db, user, "registrations.review")
     own = permissions(db, user)
@@ -73,8 +89,9 @@ def options(user: Actor, db: DB):
     }
 
 
-@router.get("/{registration_id}")
-def detail(registration_id: int, user: Actor, db: DB):
+@router.get("/{registration_id}", response_model=RegistrationDetail)
+def detail(registration_id: int, user: SnapshotActor, db: SnapshotDB, response: Response):
+    response.headers["Cache-Control"] = "no-store"
     regulator(user)
     r = db.get(Registration, registration_id)
     if not r or r.status == "draft":
@@ -98,8 +115,8 @@ def detail(registration_id: int, user: Actor, db: DB):
     }
 
 
-@router.post("/{registration_id}/review")
-def review(registration_id: int, body: ReviewInput, user: Actor, db: DB):
+@router.post("/{registration_id}/review", response_model=EnrollmentRecord)
+def review(registration_id: int, body: ReviewInput, user: Actor, db: DB, response: Response):
     enrollment.demo_only()
     mutation_admin(user, db, "registrations.review")
     r = db.scalar(select(Registration).where(Registration.id == registration_id).with_for_update())
@@ -170,12 +187,18 @@ def review(registration_id: int, body: ReviewInput, user: Actor, db: DB):
             },
         )
     )
+    result = EnrollmentRecord.model_validate(enrollment.output(r))
     db.commit()
-    return enrollment.output(r)
+    response.headers["Cache-Control"] = "no-store"
+    return result
 
 
-@router.get("/{registration_id}/attachments/{material_id}/download")
-def download(registration_id: int, material_id: int, user: Actor, db: DB):
+@router.get(
+    "/{registration_id}/attachments/{material_id}/download",
+    response_class=FileResponse,
+    responses=binary_responses("application/pdf", "image/png", "image/jpeg"),
+)
+def download(registration_id: int, material_id: int, user: SnapshotActor, db: SnapshotDB):
     regulator(user)
     parent = db.get(Registration, registration_id)
     a = db.get(RegistrationAttachment, material_id)
@@ -188,5 +211,9 @@ def download(registration_id: int, material_id: int, user: Actor, db: DB):
         path,
         filename=a.filename,
         media_type=a.content_type,
-        headers={"Content-Security-Policy": "sandbox", "X-Content-Type-Options": "nosniff"},
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Security-Policy": "sandbox",
+            "X-Content-Type-Options": "nosniff",
+        },
     )

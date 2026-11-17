@@ -18,6 +18,7 @@ from app.models import (
     User,
     now,
 )
+from app.reporting import SnapshotDB
 
 COOKIE = "ronghub_enrollment"
 
@@ -50,6 +51,13 @@ def applicant(request: Request, db: DB):
 
 
 Applicant = Annotated[Registration, Depends(applicant)]
+
+
+def snapshot_applicant(request: Request, db: SnapshotDB):
+    return applicant(request, db)
+
+
+SnapshotApplicant = Annotated[Registration, Depends(snapshot_applicant)]
 
 
 def establish(db, response, registration):

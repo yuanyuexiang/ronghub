@@ -9,6 +9,7 @@ LABELS = {
     "registrations.read": "企业注册查看",
     "registrations.review": "企业注册审核",
     "stations.read": "场站查看",
+    "stations.export": "场站地图列表导出",
     "applications.read": "场站申请查看",
     "applications.create": "场站申请建草稿",
     "applications.edit": "场站申请编辑",
@@ -19,7 +20,7 @@ LABELS = {
     "sync.read": "数据同步查看",
     "sync.write": "发起数据同步",
     "subsidy.read": "补贴查看",
-    "subsidy.export": "补贴申报与办理过程导出",
+    "subsidy.export": "补贴清单、办理过程与统计导出",
     "subsidy.create": "补贴核算草稿",
     "subsidy.edit": "补贴草稿说明维护",
     "subsidy.materials": "补贴申报ZIP材料维护",
@@ -40,6 +41,12 @@ LABELS = {
     "ratings.publish": "评星公示",
     "ratings.delist": "评星摘牌",
     "ratings.standards": "评价标准管理",
+    "hazards.read": "隐患督办查看",
+    "hazards.create": "隐患登记发布",
+    "hazards.materials": "隐患证明材料维护",
+    "hazards.reply": "隐患整改开始/反馈",
+    "hazards.close": "隐患跟踪关闭",
+    "hazards.export": "隐患督办导出",
     "inspections.read": "巡检查看",
     "inspections.assign": "巡检任务下发",
     "inspections.materials": "巡检整改材料维护",
@@ -48,6 +55,7 @@ LABELS = {
     "inspections.close": "巡检复核关闭",
     "alerts.read": "告警查看",
     "alerts.rules": "告警规则版本配置",
+    "alerts.notifications": "告警通知与接收人管理",
     "alerts.samples": "告警演示样本验证",
     "alerts.acknowledge": "告警人工确认",
     "content.read": "公告通知查看",
@@ -55,6 +63,7 @@ LABELS = {
     "content.create": "内容草稿创建",
     "content.edit": "内容草稿编辑",
     "content.publish": "内容发布/定时发布",
+    "content.public": "向匿名门户公开正文及全部附件",
     "content.withdraw": "内容撤下",
     "content.reply": "回复通知",
     "content.delete": "内容草稿删除",
@@ -74,6 +83,7 @@ BASE = {
     "regulator": set(LABELS),
     "association": {
         "stations.read",
+        "stations.export",
         "ratings.read",
         "ratings.export",
         "ratings.review",
@@ -85,6 +95,7 @@ BASE = {
     },
     "operator": {
         "stations.read",
+        "stations.export",
         "applications.read",
         "applications.create",
         "applications.edit",
@@ -105,6 +116,10 @@ BASE = {
         "ratings.materials",
         "ratings.submit",
         "ratings.withdraw",
+        "hazards.read",
+        "hazards.materials",
+        "hazards.reply",
+        "hazards.export",
         "inspections.read",
         "inspections.materials",
         "inspections.reply",
@@ -183,9 +198,10 @@ def normalize_grants(role, grants):
                 if cap.startswith(module + ".")
                 and cap not in {module + ".read", module + ".export"}
                 and not (module == "subsidy" and cap in {"subsidy.edit", "subsidy.materials"})
+                and not (module == "alerts" and cap == "alerts.notifications")
                 and not (
                     module == "content"
-                    and cap in {"content.reply", "content.delete", "content.export"}
+                    and cap in {"content.reply", "content.delete", "content.export", "content.public"}
                 )
             )
     return sorted(result)
@@ -237,11 +253,16 @@ def request_capability(request):
         "auth/phone",
         "auth/phone/challenges",
         "auth/phone/confirm",
+        "auth/phone/change/challenges",
+        "auth/phone/change/new-challenges",
+        "auth/phone/change/confirm",
     }:
         return None
     parts = path.split("/")
     head = parts[0]
     read = request.method in {"GET", "HEAD", "OPTIONS"}
+    if read and parts == ["map", "export"]:
+        return "stations.export"
     if head in {"stations", "operators", "dashboard", "map"}:
         return "stations.read"
     if head == "attachments":
@@ -253,6 +274,13 @@ def request_capability(request):
             return "applications.materials"
         if request.method == "POST" and len(parts) == 1:
             return "applications.create"
+        if (
+            request.method == "PATCH"
+            and len(parts) == 5
+            and parts[2] == "attachments"
+            and parts[-1] == "category"
+        ):
+            return "applications.materials"
         if request.method == "PATCH" and len(parts) == 2:
             return "applications.edit"
         if request.method == "POST" and len(parts) == 3 and parts[-1] == "actions":
@@ -349,7 +377,27 @@ def request_capability(request):
             # The route checks the parsed action before any mutation.
             return "subsidy.read"
         raise HTTPException(403, "该补贴接口尚未配置动作权限")
+    if head == "hazards":
+        if read:
+            if parts == ["hazards", "export"]:
+                return "hazards.export"
+            if parts == ["hazards", "stations"]:
+                return "hazards.create"
+            return "hazards.read"
+        if "attachments" in parts:
+            return "hazards.materials"
+        if request.method == "POST" and len(parts) == 1:
+            return "hazards.create"
+        if request.method == "POST" and len(parts) == 3 and parts[-1] == "actions":
+            return "hazards.read"
+        raise HTTPException(403, "隐患督办接口未配置动作权限")
+    if head == "protocols":
+        return "content.read"
+    if head == "inspection-plans":
+        return "inspections.assign"
     if head == "inspections":
+        if read and parts == ["inspections", "export"]:
+            return "statistics.export"
         if read:
             return "inspections.read"
         if "attachments" in parts:
@@ -360,11 +408,20 @@ def request_capability(request):
             return "inspections.read"
         raise HTTPException(403, "巡检接口未配置动作权限")
     if head == "alerts":
+        if read and parts == ["alerts", "export"]:
+            return "statistics.export"
+        if len(parts) >= 2 and parts[1] == "notifications":
+            return "alerts.notifications"
+        if len(parts) >= 2 and parts[1] == "configured-rules" and not read:
+            return "alerts.rules"
         if read:
             return "alerts.read"
         if request.method == "POST" and parts == ["alerts", "rules"]:
             return "alerts.rules"
-        if request.method == "POST" and parts == ["alerts", "samples"]:
+        if request.method == "POST" and parts in (
+            ["alerts", "samples"],
+            ["alerts", "configured-observations"],
+        ):
             return "alerts.samples"
         if request.method == "POST" and len(parts) == 3 and parts[-1] == "acknowledge":
             return "alerts.acknowledge"

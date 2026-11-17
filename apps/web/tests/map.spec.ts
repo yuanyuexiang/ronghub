@@ -83,7 +83,7 @@ test("three roles use scoped map, clustering, filters and unlocated station deta
       }),
     ).toBeVisible();
     await expect(
-      op.getByText("地图演示设备 · 60.00kW", { exact: true }),
+      op.getByRole("heading", { name: "地图演示设备 60.00 kW", exact: true }),
     ).toBeVisible();
     await expect(op.getByText(/已观察 1 \/ 台账 1 个接口/)).toBeVisible();
     await op.getByLabel("地图运行快照").selectOption("available");

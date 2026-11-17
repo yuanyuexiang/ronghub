@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, or_, select
 
 from app.authorization import APPLICATION_ACTIONS, authorize_business_write
 from app.contracts import StationApplicationDetail, StationApplicationPage, StationApplicationRecord
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.models import Operator, Station, StationApplication
+from app.reporting import SnapshotDB
 from app.scopes import records as scoped_records
 from app.workflows import KINDS
 
@@ -24,16 +25,25 @@ def named_output(db, application):
     }
 
 
+from app.application_evidence import ApplicationContact, normalize_payload
+
+
 class ApplicationInput(BaseModel):
     station_id: int
     kind: str
     payload: dict = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def contact_payload(self):
+        self.payload = normalize_payload(self.payload)
+        return self
 
 
 class ActionInput(BaseModel):
     action: str
     version: int
     comment: str = Field(default="", max_length=2000)
+    review_token: str | None = Field(None, pattern="^[a-f0-9]{64}$")
 
 
 @router.post("/api/v1/applications", status_code=201, response_model=StationApplicationRecord)
@@ -42,14 +52,15 @@ def create_application(body: ApplicationInput, user: Actor, db: DB, request: Req
     from app.workflows import create
 
     result = create(db, user, body.station_id, body.kind, body.payload)
+    response = StationApplicationRecord.model_validate(named_output(db, result))
     db.commit()
-    return named_output(db, result)
+    return response
 
 
 @router.get("/api/v1/applications", response_model=StationApplicationPage)
 def applications(
-    user: Actor,
-    db: DB,
+    user: SnapshotActor,
+    db: SnapshotDB,
     q: str = Query("", max_length=150),
     status: str = Query("", max_length=30),
     kind: str = Query("", max_length=30),
@@ -103,7 +114,7 @@ def applications(
 
 
 @router.get("/api/v1/applications/{application_id}", response_model=StationApplicationDetail)
-def application_detail(application_id: int, user: Actor, db: DB):
+def application_detail(application_id: int, user: SnapshotActor, db: SnapshotDB):
     from app.models import ApprovalAction, StationApplication
 
     a = db.scalar(
@@ -140,9 +151,12 @@ def application_action(
     authorize_business_write(db, user, request, capability)
     from app.workflows import act
 
-    result = act(db, user, application_id, body.action, body.version, body.comment)
+    result = act(
+        db, user, application_id, body.action, body.version, body.comment, body.review_token
+    )
+    response = StationApplicationRecord.model_validate(named_output(db, result))
     db.commit()
-    return named_output(db, result)
+    return response
 
 
 class DraftEditInput(BaseModel):
@@ -150,6 +164,18 @@ class DraftEditInput(BaseModel):
     note: str = Field(default="", max_length=2000)
     name: str | None = Field(default=None, max_length=150)
     address: str | None = Field(default=None, max_length=255)
+    contact_name: str | None = Field(None, max_length=100)
+    contact_phone: str | None = Field(None, max_length=80)
+
+    @model_validator(mode="after")
+    def contact_pair(self):
+        fields = {"contact_name", "contact_phone"}.intersection(self.model_fields_set)
+        if fields and len(fields) != 2:
+            raise ValueError("申请联系人和联系方式需同时提供或清空")
+        if fields:
+            value = ApplicationContact(name=self.contact_name, phone=self.contact_phone)
+            self.contact_name, self.contact_phone = value.name, value.phone
+        return self
 
 
 @router.patch("/api/v1/applications/{application_id}", response_model=StationApplicationRecord)
@@ -166,6 +192,7 @@ def edit_application(
         scoped_records(select(StationApplication), StationApplication, user)
         .where(StationApplication.id == application_id)
         .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if not a or (user.role == "operator" and a.operator_id != user.operator_id):
         raise HTTPException(404, "申请不存在或不可访问")
@@ -174,7 +201,13 @@ def edit_application(
     if a.status not in {"draft", "rejected"} or a.version != body.version:
         raise HTTPException(409, "申请已更新或不处于可编辑状态，请刷新")
     before = state(a)
+    before_payload = dict(a.payload)
+    previous_contact = a.payload.get("contact")
     a.payload = {"note": body.note}
+    if "contact_name" in body.model_fields_set:
+        a.payload["contact"] = {"name": body.contact_name, "phone": body.contact_phone}
+    elif "contact" in before_payload:
+        a.payload["contact"] = previous_contact
     if a.kind == "change":
         if body.name is not None:
             a.payload["name"] = body.name.strip()
@@ -186,5 +219,6 @@ def edit_application(
         ApprovalAction(application_id=a.id, actor_id=user.id, action="edit", comment="更新申请信息")
     )
     transition(db, user, "applications.edit", a.id, before, state(a), "station_application")
+    response = StationApplicationRecord.model_validate(named_output(db, a))
     db.commit()
-    return named_output(db, a)
+    return response

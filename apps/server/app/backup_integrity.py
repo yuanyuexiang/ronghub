@@ -14,6 +14,7 @@ from app.models import (
     ArticleReplyAttachment,
     Attachment,
     EnrollmentSession,
+    HazardAttachment,
     InspectionAttachment,
     LoginSession,
     RatingAttachment,
@@ -43,6 +44,7 @@ def main():
         for model in [
             Attachment,
             InspectionAttachment,
+            HazardAttachment,
             RatingAttachment,
             SubsidyAttachment,
             RegistrationAttachment,

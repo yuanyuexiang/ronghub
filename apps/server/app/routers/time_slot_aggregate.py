@@ -8,7 +8,7 @@ from fastapi.responses import Response
 
 from app import time_slot_aggregate
 from app.contracts import AggregateTimeSlotReport, MeterSourcePage
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.hourly_energy import aligned
 from app.models import Audit
 from app.reporting import SnapshotDB
@@ -62,7 +62,7 @@ def sources(
 
 
 @router.get("", response_model=AggregateTimeSlotReport)
-def report(user: Actor, db: SnapshotDB, params: Filters):
+def report(user: SnapshotActor, db: SnapshotDB, params: Filters):
     return time_slot_aggregate.report(db, user, params)
 
 
@@ -71,7 +71,7 @@ def report(user: Actor, db: SnapshotDB, params: Filters):
     response_class=Response,
     responses={200: {"content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}}}},
 )
-def export(user: Actor, db: SnapshotDB, params: Filters):
+def export(user: SnapshotActor, db: SnapshotDB, params: Filters):
     report = time_slot_aggregate.report(db, user, params)
     buffer = io.StringIO()
     writer = csv.writer(buffer)

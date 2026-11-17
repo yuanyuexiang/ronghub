@@ -17,10 +17,43 @@ import {
   editorDocument,
   type RichDocument,
 } from "./rich-document";
+type ReplyImage = { id: number; file: File; url: string };
+function replyImages(
+  document: RichDocument | null,
+  resolve: (id: number) => number | null,
+): RichDocument | null {
+  if (!document) return null;
+  type Node = RichDocument["content"][number];
+  function visit(node: Node): Node | null {
+    if (node.type === "privateImage") {
+      const id = resolve(Number(node.attrs?.attachment_id));
+      return id === null
+        ? null
+        : { ...node, attrs: { ...node.attrs, attachment_id: id } };
+    }
+    return {
+      ...node,
+      ...(node.content
+        ? {
+            content: node.content
+              .map(visit)
+              .filter((value): value is Node => value !== null),
+          }
+        : {}),
+    };
+  }
+  return {
+    type: "doc",
+    content: document.content
+      .map(visit)
+      .filter((value): value is Node => value !== null),
+  };
+}
 type Article = ApiSchemas["ContentArticle"];
 type Detail = ApiSchemas["ContentDetail"];
 const kinds: Record<string, string> = {
   announcement: "公告",
+  protocol: "监管协议",
   news: "资讯",
   contact: "联系方式",
   notice: "通知",
@@ -32,6 +65,7 @@ const statuses: Record<string, string> = {
   deleted: "已删除（保留历史）",
 };
 const empty = {
+  portal_public: false,
   kind: "announcement",
   title: "",
   body: "",
@@ -45,6 +79,7 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
   const canCreate = useCapability("content.create");
   const canEdit = useCapability("content.edit");
   const canPublish = useCapability("content.publish");
+  const canPublic = useCapability("content.public");
   const canWithdraw = useCapability("content.withdraw");
   const canDelete = useCapability("content.delete");
   const canExport = useCapability("content.export");
@@ -74,12 +109,29 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
       [],
     ),
     [reply, setReply] = useState(""),
+    [replyDocument, setReplyDocument] = useState<RichDocument | null>(null),
     [replyContact, setReplyContact] = useState(""),
     [replyPhone, setReplyPhone] = useState(""),
-    [replyFiles, setReplyFiles] = useState<File[]>([]),
+    [replyFiles, setReplyFiles] = useState<ReplyImage[]>([]),
     [publishAt, setPublishAt] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const replyImageSequence = useRef(1);
+  const replyObjectUrls = useRef(new Set<string>());
+  useEffect(() => {
+    const active = new Set(replyFiles.map((image) => image.url));
+    for (const url of replyObjectUrls.current)
+      if (!active.has(url)) {
+        URL.revokeObjectURL(url);
+        replyObjectUrls.current.delete(url);
+      }
+  }, [replyFiles]);
+  useEffect(
+    () => () => {
+      for (const url of replyObjectUrls.current) URL.revokeObjectURL(url);
+    },
+    [],
+  );
   const listSequence = useRef(0),
     listController = useRef<AbortController | null>(null);
   const preservedPage = useRef<{
@@ -162,6 +214,7 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
   async function open(id: number) {
     setDetail(await getDetail(id));
     setReply("");
+    setReplyDocument(null);
     setReplyContact("");
     setReplyPhone("");
     setReplyFiles([]);
@@ -250,21 +303,35 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
   }, [role, pageRefreshRevision]);
   async function sendReply() {
     if (!detail) return;
+    const document = replyImages(replyDocument, (id) => {
+      const index = replyFiles.findIndex((image) => image.id === id);
+      if (index < 0) throw new Error("回复引用的图片已移除，请检查正文");
+      return index + 1;
+    });
     if (replyFiles.length) {
       const body = new FormData();
       body.set("body", reply);
+      if (document) body.set("rich_document", JSON.stringify(document));
       body.set("contact_name", replyContact);
       body.set("contact_phone", replyPhone);
-      replyFiles.forEach((file) => body.append("files", file));
-      const response = await apiFetch(
-        `/api/v1/content/${detail.id}/replies/with-images`,
-        { method: "POST", headers: { "x-csrf-token": csrf }, body },
+      replyFiles.forEach((image) => body.append("files", image.file));
+      const result = await typedApi.POST(
+        "/api/v1/content/{article_id}/replies/with-images",
+        {
+          params: { path: { article_id: detail.id } },
+          headers: { "x-csrf-token": csrf },
+          body: {
+            body: reply,
+            contact_name: replyContact || null,
+            contact_phone: replyPhone || null,
+            files: replyFiles.map((image) => image.file.name),
+            rich_document: document ? JSON.stringify(document) : null,
+          },
+          bodySerializer: () => body,
+        },
       );
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(
-          typeof data.detail === "string" ? data.detail : "图文回复提交失败",
-        );
+      if (!result.data)
+        throw new Error(apiError(result.error, "图文回复提交失败"));
     } else {
       const { data, error } = await typedApi.POST(
         "/api/v1/content/{article_id}/replies",
@@ -272,6 +339,7 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
           params: { path: { article_id: detail.id } },
           body: {
             body: reply,
+            rich_document: document,
             contact_name: replyContact || null,
             contact_phone: replyPhone || null,
           },
@@ -396,6 +464,13 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                     setDraft({
                       ...draft,
                       kind: e.target.value,
+                      portal_public: [
+                        "announcement",
+                        "news",
+                        "contact",
+                      ].includes(e.target.value)
+                        ? draft.portal_public
+                        : false,
                       audience:
                         e.target.value === "notice"
                           ? "operator"
@@ -434,6 +509,8 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                     setDraft({
                       ...draft,
                       audience: e.target.value,
+                      portal_public:
+                        e.target.value === "all" ? draft.portal_public : false,
                       operator_id: "",
                     })
                   }
@@ -444,6 +521,29 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                   <option value="operator">运营商</option>
                 </select>
               </label>
+              {canPublic &&
+                ["announcement", "news", "contact"].includes(draft.kind) &&
+                draft.audience === "all" && (
+                  <label className="wide-field portal-consent">
+                    <span>
+                      <input
+                        type="checkbox"
+                        aria-label="向匿名门户公开"
+                        checked={draft.portal_public}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            portal_public: event.target.checked,
+                          })
+                        }
+                      />
+                      向匿名门户公开
+                    </span>
+                    <small>
+                      发布后，互联网上任何人均可阅读正文及全部附件。请核对内容与个人信息；不勾选则仅按登录受众可见。
+                    </small>
+                  </label>
+                )}
               {draft.kind === "notice" && (
                 <NoticeRecipients
                   value={draft.recipient_ids}
@@ -816,6 +916,11 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                   {kinds[detail.kind]} · {statuses[detail.status]} · V
                   {detail.version}
                 </p>
+                {detail.portal_public && (
+                  <p className="portal-consent">
+                    已选择门户公开：发布且到时后，正文及全部附件对匿名访客开放；撤下后停止访问。
+                  </p>
+                )}
               </div>
               <button
                 className="outline"
@@ -824,6 +929,7 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                   setDetail(null);
                   setReplyFiles([]);
                   setReply("");
+                  setReplyDocument(null);
                   setReplyContact("");
                   setReplyPhone("");
                 }}
@@ -952,7 +1058,17 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                           回复联系人：{r.contact_name ?? "未留存"} · 联系方式：
                           {r.contact_phone ?? "未留存"}
                         </small>
-                        <p className="article-body">{r.body}</p>
+                        <RichContent
+                          document={r.rich_document ?? null}
+                          body={r.body}
+                          articleId={detail.id}
+                          manage={manage}
+                          imageSource={(id) =>
+                            r.images.some((image) => image.id === id)
+                              ? `/api/v1/content/${detail.id}/replies/${r.id}/images/${id}?manage=${manage}`
+                              : undefined
+                          }
+                        />
                         {!!r.images?.length && (
                           <div className="reply-gallery">
                             {r.images.map((image) => {
@@ -988,16 +1104,32 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                       role === "operator" &&
                       detail.kind === "notice" && (
                         <>
-                          <label>
-                            通知回复
-                            <textarea
-                              aria-label="通知回复"
-                              value={reply}
-                              onChange={(e) => setReply(e.target.value)}
-                              maxLength={4000}
+                          <div>
+                            <p>通知回复</p>
+                            <RichEditor
+                              label="通知回复"
+                              document={replyDocument}
+                              body={reply}
+                              articleId={null}
                               disabled={busy}
+                              images={replyFiles.map((image) => ({
+                                id: image.id,
+                                url: image.url,
+                                label: image.file.name,
+                              }))}
+                              onChange={(document, plain) => {
+                                setReplyDocument(document);
+                                setReply(plain);
+                              }}
                             />
-                          </label>
+                            <small
+                              className={
+                                reply.length > 4000 ? "error" : "muted"
+                              }
+                            >
+                              {reply.length}/4000 字；提交后留档。
+                            </small>
+                          </div>
                           <label>
                             回复联系人（可选，与联系方式同时填写）
                             <input
@@ -1048,7 +1180,18 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                                   return;
                                 }
                                 setError("");
-                                setReplyFiles([...replyFiles, ...files]);
+                                setReplyFiles([
+                                  ...replyFiles,
+                                  ...files.map((file) => {
+                                    const url = URL.createObjectURL(file);
+                                    replyObjectUrls.current.add(url);
+                                    return {
+                                      id: replyImageSequence.current++,
+                                      file,
+                                      url,
+                                    };
+                                  }),
+                                ]);
                               }}
                             />
                           </label>
@@ -1056,19 +1199,27 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                             正文与图片一次提交，提交后留档；最多10张，每张5MiB，仅PNG/JPG。
                           </p>
                           {replyFiles.map((file, index) => (
-                            <div className="material-row" key={index}>
+                            <div className="material-row" key={file.id}>
                               <span>
-                                {file.name} · {Math.ceil(file.size / 1024)}
+                                {file.file.name} ·{" "}
+                                {Math.ceil(file.file.size / 1024)}
                                 KB（未提交）
                               </span>
                               <button
                                 className="outline"
                                 disabled={busy}
-                                onClick={() =>
+                                onClick={() => {
+                                  setReplyDocument(
+                                    replyImages(replyDocument, (id) =>
+                                      id === file.id ? null : id,
+                                    ),
+                                  );
                                   setReplyFiles(
-                                    replyFiles.filter((_, i) => i !== index),
-                                  )
-                                }
+                                    replyFiles.filter(
+                                      (image) => image.id !== file.id,
+                                    ),
+                                  );
+                                }}
                               >
                                 移除选图 {index + 1}
                               </button>
@@ -1076,7 +1227,9 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                           ))}
                           <button
                             className="outline"
-                            disabled={busy || !reply.trim()}
+                            disabled={
+                              busy || !reply.trim() || reply.length > 4000
+                            }
                             onClick={() => run(sendReply)}
                           >
                             提交通知回复
@@ -1119,6 +1272,7 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                             setEditing(detail);
                             setDraft({
                               kind: detail.kind,
+                              portal_public: detail.portal_public,
                               title: detail.title,
                               body: detail.body,
                               rich_document: detail.rich_document ?? null,
@@ -1142,7 +1296,7 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                           编辑草稿正文
                         </button>
                       )}
-                      {canPublish && (
+                      {canPublish && (!detail.portal_public || canPublic) && (
                         <>
                           <label>
                             发布时间（北京，留空立即发布）

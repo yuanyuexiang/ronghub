@@ -8,18 +8,35 @@ import json
 import os
 import secrets
 import subprocess
-from datetime import timedelta
+from datetime import date, timedelta
 from pathlib import Path
 from types import SimpleNamespace
+from uuid import uuid4
 
-from sqlalchemy import create_engine, inspect, select, text
+from sqlalchemy import create_engine, func, inspect, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 from sqlalchemy.schema import CreateSchema, DropSchema
 
 from app.config import settings
 from app.db import engine
-from app.models import Operator, RatingApplication, Station, now
+from app.device_metadata import CONNECTOR_FIELDS, EQUIPMENT_FIELDS
+from app.models import (
+    ApplicationSubmission,
+    Article,
+    Attachment,
+    Connector,
+    Equipment,
+    HazardCase,
+    InspectionAction,
+    InspectionPlan,
+    InspectionTask,
+    Operator,
+    RatingApplication,
+    Station,
+    now,
+)
+from app.station_facilities import FIELDS
 
 
 def main():
@@ -132,6 +149,49 @@ def main():
                     RETURNING id"""),
                     {"operator": op.id, "external": str(index), "synced": now()},
                 )
+                if index == 0:
+                    legacy_inspection_id = db.scalar(
+                        text(
+                            "INSERT INTO inspection_tasks (station_id,operator_id,title,description,severity,due_at,status,version,created_by,created_at,is_demo) VALUES (:sid,:oid,'Legacy inspection','Legacy plain requirement','major',:at,'replied',2,:uid,:at,true) RETURNING id"
+                        ),
+                        {"sid": station_id, "oid": op.id, "uid": actor.id, "at": now()},
+                    )
+                    legacy_inspection_action_id = db.scalar(
+                        text(
+                            "INSERT INTO inspection_actions (task_id,actor_id,action,comment,created_at) VALUES (:tid,:uid,'reply','Legacy plain feedback',:at) RETURNING id"
+                        ),
+                        {"tid": legacy_inspection_id, "uid": actor.id, "at": now()},
+                    )
+                    legacy_application_id = db.scalar(
+                        text(
+                            "INSERT INTO station_applications (station_id,operator_id,applicant_id,kind,status,payload,version,rule_version,created_at,updated_at) VALUES (:sid,:oid,:uid,'access','draft','{}',1,'demo-workflow-v1',:at,:at) RETURNING id"
+                        ),
+                        {"sid": station_id, "oid": op.id, "uid": actor.id, "at": now()},
+                    )
+                    legacy_attachment_id = db.scalar(
+                        text(
+                            "INSERT INTO attachments (application_id,uploaded_by,storage_key,filename,content_type,size,sha256,created_at) VALUES (:aid,:uid,:key,'migration.pdf','application/pdf',10,:digest,:at) RETURNING id"
+                        ),
+                        {
+                            "aid": legacy_application_id,
+                            "uid": actor.id,
+                            "key": "a" * 48,
+                            "digest": "b" * 64,
+                            "at": now(),
+                        },
+                    )
+                    legacy_device_id = db.scalar(
+                        text(
+                            "INSERT INTO equipment (station_id,external_id,name,power_kw) VALUES (:id,'old-device','Old device',60) RETURNING id"
+                        ),
+                        {"id": station_id},
+                    )
+                    legacy_connector_id = db.scalar(
+                        text(
+                            "INSERT INTO connectors (equipment_id,external_id,status) VALUES (:id,'old-terminal','unknown') RETURNING id"
+                        ),
+                        {"id": legacy_device_id},
+                    )
                 ids = []
                 # Station 0: older application was published later. Station 1: latest result delisted.
                 for position in range(2):
@@ -265,8 +325,30 @@ def main():
                 and station.site_state == "unknown"
                 and station.source_sync_state == "unknown"
                 and station.source_first_connected_at is None
+                and station.source_first_reported_at is None
+                and all(getattr(station, key) is None for key in FIELDS)
                 for station in db.scalars(select(Station))
             )
+            assert db.get(InspectionTask, legacy_inspection_id).rich_document is None
+            assert db.get(InspectionTask, legacy_inspection_id).plan_id is None
+            assert db.get(InspectionTask, legacy_inspection_id).due_at is not None
+            assert db.scalar(select(func.count()).select_from(InspectionPlan)) == 0
+            old_execution = db.get(InspectionAction, legacy_inspection_action_id)
+            assert all(
+                getattr(old_execution, key) is None
+                for key in ["rich_document", "contact_name", "contact_phone", "performed_at"]
+            )
+            legacy_material = db.get(Attachment, legacy_attachment_id)
+            assert (
+                legacy_material.active is True
+                and legacy_material.category is None
+                and legacy_material.revision == 1
+            )
+            assert db.scalar(select(func.count()).select_from(ApplicationSubmission)) == 0
+            legacy_device = db.get(Equipment, legacy_device_id)
+            legacy_connector = db.get(Connector, legacy_connector_id)
+            assert all(getattr(legacy_device, key) is None for key in EQUIPMENT_FIELDS)
+            assert all(getattr(legacy_connector, key) is None for key in CONNECTOR_FIELDS)
             constraints = {
                 constraint["name"]
                 for constraint in inspect(scratch).get_check_constraints("stations")
@@ -279,6 +361,12 @@ def main():
                 "ck_station_construction_site",
                 "ck_station_site_state",
                 "ck_station_source_sync_state",
+                "ck_station_facility_supply_type",
+                "ck_station_facility_electricity_tariff",
+                "ck_station_facility_capacity",
+                "ck_station_facility_parking_spaces",
+                "ck_station_facility_commissioned_on",
+                "ck_station_facility_parking_fee_type",
             }.issubset(constraints)
             runtime_constraint = db.scalar(
                 text(
@@ -327,6 +415,403 @@ def main():
                     == protected_head
                 )
                 assert "rating_standard_drafts" in inspect(connection).get_table_names()
+
+        with Session(scratch) as db, db.begin():
+            assert all(not row.portal_public for row in db.scalars(select(Article)))
+            public = Article(
+                kind="news",
+                title="Migration explicit public",
+                body="Preserve public consent",
+                portal_public=True,
+                created_by=actor.id,
+            )
+            db.add(public)
+            db.flush()
+            public_id = public.id
+        downgrade_refused()
+        with Session(scratch) as db, db.begin():
+            assert db.get(Article, public_id).portal_public is True
+            db.delete(db.get(Article, public_id))
+        print(
+            "Verified every legacy article remains private and explicit public consent blocks destructive downgrade."
+        )
+
+        with Session(scratch) as db, db.begin():
+            protocol = Article(
+                kind="protocol",
+                title="Migration customer protocol",
+                body="Preserve protocol",
+                created_by=actor.id,
+            )
+            db.add(protocol)
+            db.flush()
+            protocol_id = protocol.id
+        downgrade_refused()
+        with Session(scratch) as db, db.begin():
+            assert db.get(Article, protocol_id).kind == "protocol"
+            db.delete(db.get(Article, protocol_id))
+        print(
+            "Verified protocol content blocks downgrade to readers that do not recognize its type; no official protocol seeded."
+        )
+
+        with Session(scratch) as db, db.begin():
+            legacy = db.get(InspectionTask, legacy_inspection_id)
+            assert db.scalar(select(func.count()).select_from(HazardCase)) == 0
+            hazard = HazardCase(
+                station_id=legacy.station_id,
+                operator_id=legacy.operator_id,
+                station_name="Migration station",
+                operator_name="Migration operator",
+                title="Migration hazard",
+                description="Do not drop real supervision",
+                severity="major",
+                due_at=now() + timedelta(days=1),
+                created_by=actor.id,
+            )
+            db.add(hazard)
+            db.flush()
+            hazard_id = hazard.id
+        downgrade_refused()
+        with Session(scratch) as db, db.begin():
+            hazard = db.get(HazardCase, hazard_id)
+            assert hazard.status == "tracking" and hazard.progress == "not_started"
+            db.delete(hazard)
+        print(
+            "Verified ordinary legacy inspections are not reclassified and populated hazard supervision blocks destructive downgrade."
+        )
+
+        with Session(scratch) as db, db.begin():
+            draft = InspectionPlan(created_by=actor.id, request_key=str(uuid4()))
+            db.add(draft)
+            db.flush()
+            draft_id = draft.id
+        downgrade_refused()
+        with Session(scratch) as db, db.begin():
+            assert db.get(InspectionPlan, draft_id).status == "draft"
+            db.delete(db.get(InspectionPlan, draft_id))
+            legacy_task = db.get(InspectionTask, legacy_inspection_id)
+            original_due_at = legacy_task.due_at
+            legacy_task.due_at = None
+        downgrade_refused()
+        with Session(scratch) as db, db.begin():
+            legacy_task = db.get(InspectionTask, legacy_inspection_id)
+            assert legacy_task.due_at is None
+            legacy_task.due_at = original_due_at
+        print(
+            "Verified no fabricated legacy plan links/deadlines; private plans and unknown deadlines block destructive downgrade."
+        )
+
+        for model, identifier, changes, reset in [
+            (
+                InspectionTask,
+                legacy_inspection_id,
+                {
+                    "rich_document": {
+                        "type": "doc",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [{"type": "text", "text": "Protected requirement"}],
+                            }
+                        ],
+                    }
+                },
+                {"rich_document": None},
+            ),
+            (
+                InspectionAction,
+                legacy_inspection_action_id,
+                {
+                    "rich_document": {
+                        "type": "doc",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [{"type": "text", "text": "Protected reply"}],
+                            }
+                        ],
+                    }
+                },
+                {"rich_document": None},
+            ),
+            (
+                InspectionAction,
+                legacy_inspection_action_id,
+                {"contact_name": "Executor", "contact_phone": "13800000001"},
+                {"contact_name": None, "contact_phone": None},
+            ),
+            (
+                InspectionAction,
+                legacy_inspection_action_id,
+                {"performed_at": now()},
+                {"performed_at": None},
+            ),
+        ]:
+            with Session(scratch) as db, db.begin():
+                row = db.get(model, identifier)
+                for key, value in changes.items():
+                    setattr(row, key, value)
+            downgrade_refused()
+            with Session(scratch) as db, db.begin():
+                row = db.get(model, identifier)
+                for key, value in changes.items():
+                    assert getattr(row, key) == value
+                for key, value in reset.items():
+                    setattr(row, key, value)
+        print(
+            "Verified legacy inspection formatting/contact/execution time remain unknown and every new fact blocks destructive downgrade."
+        )
+
+        with Session(scratch) as db, db.begin():
+            proof = ApplicationSubmission(
+                application_id=legacy_application_id,
+                submitted_version=2,
+                actor_id=actor.id,
+                actor_username="migration-verification",
+                submitted_at=now(),
+                source_reviewed=False,
+                content_digest="0" * 64,
+                snapshot={
+                    "schema_version": 1,
+                    "source_profile": None,
+                    "payload": {},
+                    "materials": [],
+                },
+            )
+            db.add(proof)
+            db.flush()
+            proof_id = proof.id
+        downgrade_refused()
+        with Session(scratch) as db, db.begin():
+            assert db.get(ApplicationSubmission, proof_id).snapshot["schema_version"] == 1
+            db.delete(db.get(ApplicationSubmission, proof_id))
+        for field, value, restore in [
+            ("active", False, True),
+            ("category", "project_filing", None),
+            ("revision", 2, 1),
+        ]:
+            with Session(scratch) as db, db.begin():
+                setattr(db.get(Attachment, legacy_attachment_id), field, value)
+            downgrade_refused()
+            with Session(scratch) as db, db.begin():
+                row = db.get(Attachment, legacy_attachment_id)
+                assert getattr(row, field) == value
+                setattr(row, field, restore)
+        print(
+            "Verified no fabricated legacy submissions, active unclassified legacy files, and populated submission/archive/category/revision downgrade protection."
+        )
+
+        with Session(scratch) as db, db.begin():
+            first_report_station = db.scalar(select(Station).limit(1))
+            first_report_station_id = first_report_station.id
+            first_report_station.source_first_reported_at = now()
+        downgrade_refused()
+        with Session(scratch) as db, db.begin():
+            first_report_station = db.get(Station, first_report_station_id)
+            assert first_report_station.source_first_reported_at is not None
+            assert first_report_station.source_first_connected_at is None
+            first_report_station.source_first_reported_at = None
+        print(
+            "Verified historical unknown first reporting time and populated timestamp downgrade protection."
+        )
+
+        for model, object_id, key, value in [
+            (Equipment, legacy_device_id, "equipment_type", "v2g"),
+            (Equipment, legacy_device_id, "model_name", "Device downgrade proof"),
+            (Equipment, legacy_device_id, "source_unique_code", "SOURCE-ONLY"),
+            (Equipment, legacy_device_id, "manufactured_on", date(2024, 2, 29)),
+            (Connector, legacy_connector_id, "name", "Terminal proof"),
+            (Connector, legacy_connector_id, "interface_type", "Source interface"),
+        ]:
+            with Session(scratch) as db, db.begin():
+                setattr(db.get(model, object_id), key, value)
+            downgrade_refused()
+            with Session(scratch) as db, db.begin():
+                row = db.get(model, object_id)
+                assert getattr(row, key) == value
+                setattr(row, key, None)
+        for field, choices in [
+            ("usage_type", ["car_sharing", "community_shared", "workplace", "private_shared"]),
+            ("construction_site", ["scenic_area", "bus_depot", "fuel_station", "taxi_site"]),
+        ]:
+            for value in choices:
+                with Session(scratch) as db, db.begin():
+                    row = db.scalar(select(Station).limit(1))
+                    row_id = row.id
+                    setattr(row, field, value)
+                downgrade_refused()
+                with Session(scratch) as db, db.begin():
+                    row = db.get(Station, row_id)
+                    assert getattr(row, field) == value
+                    setattr(row, field, "unknown")
+        print(
+            "Verified legacy NULL device profiles and downgrade protection for every source field and expanded classification."
+        )
+
+        with Session(scratch) as db, db.begin():
+            facility_station = db.scalar(select(Station).limit(1))
+            facility_station_id = facility_station.id
+            facility_station.independent_connection = False
+            facility_station.parking_spaces = 0
+            facility_station.supply_capacity = "0.000"
+            facility_station.supply_capacity_unit = "unknown"
+        downgrade_refused()
+        with Session(scratch) as db, db.begin():
+            facility_station = db.get(Station, facility_station_id)
+            assert facility_station.independent_connection is False
+            assert facility_station.parking_spaces == 0
+            assert facility_station.supply_capacity == 0
+            for key in FIELDS:
+                setattr(facility_station, key, None)
+        print("Verified source facility false/zero preservation and populated downgrade refusal.")
+
+        from app.models import ArticleReply
+
+        with Session(scratch) as db, db.begin():
+            protected_article = Article(
+                kind="notice",
+                title="Reply downgrade guard",
+                body="Guard",
+                audience="operator",
+                created_by=actor.id,
+                is_demo=True,
+            )
+            db.add(protected_article)
+            db.flush()
+            protected_reply = ArticleReply(
+                article_id=protected_article.id,
+                operator_id=db.scalar(select(Operator.id).limit(1)),
+                actor_id=actor.id,
+                body="Guard reply",
+                rich_document={
+                    "type": "doc",
+                    "content": [
+                        {"type": "paragraph", "content": [{"type": "text", "text": "Guard reply"}]}
+                    ],
+                },
+            )
+            db.add(protected_reply)
+            db.flush()
+            guard_article_id, guard_reply_id = protected_article.id, protected_reply.id
+        downgrade_refused()
+        with Session(scratch) as db, db.begin():
+            assert db.get(ArticleReply, guard_reply_id).rich_document["type"] == "doc"
+            db.delete(db.get(ArticleReply, guard_reply_id))
+            db.flush()
+            db.delete(db.get(Article, guard_article_id))
+        print("Verified populated structured reply downgrade refusal without data loss.")
+
+        with scratch.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO alert_notification_preferences (category,in_app_enabled,sms_enabled,version,updated_by,updated_at) VALUES ('device_charging',false,true,1,:uid,now())"
+                ),
+                {"uid": actor.id},
+            )
+        downgrade_refused()
+        with scratch.begin() as connection:
+            connection.execute(
+                text("DELETE FROM alert_notification_preferences WHERE category='device_charging'")
+            )
+            protected_recipient = connection.scalar(
+                text(
+                    "INSERT INTO alert_recipients (name,phone,categories,enabled,deleted,version,created_by,updated_by,created_at,updated_at) VALUES ('Guard recipient','18800000000','[\"device_charging\"]',false,false,1,:uid,:uid,now(),now()) RETURNING id"
+                ),
+                {"uid": actor.id},
+            )
+        downgrade_refused()
+        with scratch.begin() as connection:
+            connection.execute(
+                text("DELETE FROM alert_recipients WHERE id=:id"), {"id": protected_recipient}
+            )
+            notification_profile = connection.scalar(
+                text(
+                    "INSERT INTO role_profiles (name,base_role,permissions,version) VALUES ('Guard notification grant','regulator','[\"alerts.read\",\"alerts.notifications\"]',1) RETURNING id"
+                )
+            )
+        downgrade_refused()
+        with scratch.begin() as connection:
+            connection.execute(
+                text("DELETE FROM role_profiles WHERE id=:id"), {"id": notification_profile}
+            )
+
+        with scratch.begin() as connection:
+            observation_rule = connection.scalar(
+                text(
+                    "INSERT INTO alert_rules (code,version,name,metric,unit,trigger_value,recover_value,notifications_enabled,is_demo,enabled) VALUES ('GUARD-OBS',1,'Guard observation','demo','C',60,50,true,true,true) RETURNING id"
+                )
+            )
+            protected_source = connection.scalar(
+                text(
+                    "INSERT INTO configured_alert_observations (namespace,request_key,fingerprint,station_id,operator_id,rule_id,created_at,evidence,result) SELECT 'guard','00000000-0000-0000-0000-000000000001',repeat('a',64),id,operator_id,:rid,now(),'{}','{}' FROM stations WHERE id=:sid RETURNING id"
+                ),
+                {"rid": observation_rule, "sid": station_id},
+            )
+        downgrade_refused()
+        with scratch.begin() as connection:
+            connection.execute(
+                text("DELETE FROM configured_alert_observations WHERE id=:id"),
+                {"id": protected_source},
+            )
+            protected_event = connection.scalar(
+                text(
+                    "INSERT INTO alert_events (rule_id,station_id,operator_id,target,status,opened_at,last_observed_at,occurrences,last_value,rule_snapshot,acknowledge_note,version,is_demo,configuration_evidence) SELECT :rid,id,operator_id,'guard','active',now(),now(),1,0,'{}','',1,true,'{}' FROM stations WHERE id=:sid RETURNING id"
+                ),
+                {"rid": observation_rule, "sid": station_id},
+            )
+        downgrade_refused()
+        with scratch.begin() as connection:
+            connection.execute(
+                text("DELETE FROM alert_events WHERE id=:id"), {"id": protected_event}
+            )
+            connection.execute(
+                text("DELETE FROM alert_rules WHERE id=:id"), {"id": observation_rule}
+            )
+
+        with scratch.begin() as connection:
+            protected_alert = connection.scalar(
+                text(
+                    "INSERT INTO alert_rules (code,version,name,metric,unit,trigger_value,recover_value,notifications_enabled,is_demo,enabled,configuration) VALUES ('GUARD-CONFIG',1,'Guard config','temperature','C',60,50,true,true,true,'{}') RETURNING id"
+                )
+            )
+        downgrade_refused()
+        with scratch.begin() as connection:
+            assert (
+                connection.scalar(
+                    text("SELECT configuration FROM alert_rules WHERE id=:id"),
+                    {"id": protected_alert},
+                )
+                == {}
+            )
+            connection.execute(
+                text("UPDATE alert_rules SET configuration=NULL,revision=2 WHERE id=:id"),
+                {"id": protected_alert},
+            )
+        downgrade_refused()
+        with scratch.begin() as connection:
+            connection.execute(
+                text("DELETE FROM alert_rules WHERE id=:id"), {"id": protected_alert}
+            )
+
+        with scratch.begin() as connection:
+            protected_scope = connection.scalar(
+                text(
+                    "INSERT INTO subsidy_device_scopes (station_id,operator_id,source,external_id,day,equipment_external_ids,complete,source_updated_at,synced_at,version,is_demo) SELECT id,operator_id,source,'protected-scope','2026-11-01','[]',true,now(),now(),1,true FROM stations WHERE id=:sid RETURNING id"
+                ),
+                {"sid": station_id},
+            )
+        downgrade_refused()
+        with scratch.begin() as connection:
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM subsidy_device_scopes WHERE id=:id"),
+                    {"id": protected_scope},
+                )
+                == 1
+            )
+            connection.execute(
+                text("DELETE FROM subsidy_device_scopes WHERE id=:id"), {"id": protected_scope}
+            )
 
         with scratch.begin() as connection:
             protected_equipment = connection.scalar(

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request, UploadFile
+from fastapi import APIRouter, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 
@@ -10,9 +10,10 @@ from app import inspection
 from app.authorization import authorize_business_write
 from app.config import settings
 from app.contracts import OkResponse
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.material_contracts import InspectionMaterialItem, InspectionMaterialList, binary_responses
 from app.models import InspectionAttachment
+from app.reporting import SnapshotDB
 from app.routers.attachments import metadata
 from app.storage import store_upload
 
@@ -28,7 +29,8 @@ def writable(db, user, task_id):
 
 
 @router.get("/{task_id}/attachments", response_model=InspectionMaterialList)
-def listing(task_id: int, user: Actor, db: DB):
+def listing(task_id: int, user: SnapshotActor, db: SnapshotDB, response: Response):
+    response.headers["Cache-Control"] = "no-store"
     inspection.access(db, user, task_id)
     return {
         "items": [
@@ -43,7 +45,9 @@ def listing(task_id: int, user: Actor, db: DB):
 
 
 @router.post("/{task_id}/attachments", status_code=201, response_model=InspectionMaterialItem)
-def upload(task_id: int, file: UploadFile, request: Request, user: Actor, db: DB):
+def upload(
+    task_id: int, file: UploadFile, request: Request, user: Actor, db: DB, response: Response
+):
     authorize_business_write(db, user, request, "inspections.materials")
     writable(db, user, task_id)
     if (
@@ -68,6 +72,7 @@ def upload(task_id: int, file: UploadFile, request: Request, user: Actor, db: DB
         db.rollback()
         path.unlink(missing_ok=True)
         raise
+    response.headers["Cache-Control"] = "no-store"
     return result
 
 
@@ -76,7 +81,7 @@ def upload(task_id: int, file: UploadFile, request: Request, user: Actor, db: DB
     response_class=FileResponse,
     responses=binary_responses("application/pdf", "image/png", "image/jpeg"),
 )
-def download(task_id: int, attachment_id: int, user: Actor, db: DB):
+def download(task_id: int, attachment_id: int, user: SnapshotActor, db: SnapshotDB):
     inspection.access(db, user, task_id)
     a = db.get(InspectionAttachment, attachment_id)
     if not a or a.task_id != task_id:
@@ -88,12 +93,18 @@ def download(task_id: int, attachment_id: int, user: Actor, db: DB):
         path,
         filename=a.filename,
         media_type=a.content_type,
-        headers={"Content-Security-Policy": "sandbox", "X-Content-Type-Options": "nosniff"},
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Security-Policy": "sandbox",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
 @router.delete("/{task_id}/attachments/{attachment_id}", response_model=OkResponse)
-def remove(task_id: int, attachment_id: int, request: Request, user: Actor, db: DB):
+def remove(
+    task_id: int, attachment_id: int, request: Request, user: Actor, db: DB, response: Response
+):
     authorize_business_write(db, user, request, "inspections.materials")
     writable(db, user, task_id)
     a = db.get(InspectionAttachment, attachment_id)
@@ -102,7 +113,9 @@ def remove(task_id: int, attachment_id: int, request: Request, user: Actor, db: 
     if a.action_id is not None:
         raise HTTPException(409, "已提交的历史证据不可删除")
     path = Path(settings.storage_path).resolve() / a.storage_key
+    result = OkResponse(ok=True)
     db.delete(a)
     db.commit()
     path.unlink(missing_ok=True)
-    return {"ok": True}
+    response.headers["Cache-Control"] = "no-store"
+    return result

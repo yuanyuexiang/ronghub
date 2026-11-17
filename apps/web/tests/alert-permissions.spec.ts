@@ -43,10 +43,15 @@ test("alert confirmation staff cannot configure rules or inject observations", a
     );
     await login(observer, staff[0].username);
     await login(confirmer, staff[1].username);
-    for (const page of [observer, confirmer])
+    for (const page of [observer, confirmer]) {
+      await page
+        .getByRole("navigation", { name: "告警工作区" })
+        .getByRole("button", { name: "规则配置", exact: true })
+        .click();
       await expect(
         page.getByRole("button", { name: "新增规则版本", exact: true }),
       ).toHaveCount(0);
+    }
     await expect(
       confirmer.getByRole("button", { name: "演示样本验证", exact: true }),
     ).toHaveCount(0);
@@ -57,7 +62,15 @@ test("alert confirmation staff cannot configure rules or inject observations", a
     await observer
       .getByLabel("告警监测对象")
       .fill("independent-target-" + station.station_id);
+    await confirmer
+      .getByRole("navigation", { name: "告警工作区" })
+      .getByRole("button", { name: "事件跟踪", exact: true })
+      .click();
     async function sample(value: string) {
+      await observer
+        .getByRole("navigation", { name: "告警工作区" })
+        .getByRole("button", { name: "规则配置", exact: true })
+        .click();
       await observer.getByLabel("告警样本值").fill(value);
       const response = observer.waitForResponse(
         (r) =>
@@ -69,19 +82,21 @@ test("alert confirmation staff cannot configure rules or inject observations", a
         .click();
       const done = await response;
       expect(done.status()).toBe(200);
+      await observer
+        .getByRole("navigation", { name: "告警工作区" })
+        .getByRole("button", { name: "事件跟踪", exact: true })
+        .click();
       return done.json();
     }
     const opened = await sample("40");
     expect(opened.outcome).toBe("opened");
     const row = (page: Page) =>
-      page
-        .getByRole("row")
-        .filter({
-          has: page.getByRole("cell", {
-            name: `ALERT-${opened.event_id}`,
-            exact: true,
-          }),
-        });
+      page.getByRole("row").filter({
+        has: page.getByRole("cell", {
+          name: `ALERT-${opened.event_id}`,
+          exact: true,
+        }),
+      });
     await row(observer)
       .getByRole("button", { name: "告警详情", exact: true })
       .click();

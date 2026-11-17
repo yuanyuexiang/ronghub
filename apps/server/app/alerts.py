@@ -5,8 +5,9 @@ from datetime import timedelta
 from fastapi import HTTPException
 from sqlalchemy import select
 
+from app.alert_notifications import emit
 from app.config import settings
-from app.models import AlertCursor, AlertEvent, AlertNotice, AlertRule, Station, now
+from app.models import AlertCursor, AlertEvent, AlertRule, Station, now
 from app.scopes import records as scoped_records
 from app.scopes import station_scope
 
@@ -28,8 +29,10 @@ def observe(db, user, station_id, rule_id, target, value, observed_at):
     if not station:
         raise HTTPException(404, "场站不存在")
     rule = db.get(AlertRule, rule_id)
-    if not rule or not rule.enabled or not rule.is_demo:
+    if not rule or not rule.enabled or not rule.is_demo or rule.archived:
         raise HTTPException(409, "示例规则不存在或已停用")
+    if rule.configuration is not None:
+        raise HTTPException(409, "多级规则须使用独立观测口径，不能套用旧单阈值算法")
     cursor = db.scalar(
         select(AlertCursor).where(
             AlertCursor.rule_id == rule_id,
@@ -81,13 +84,13 @@ def observe(db, user, station_id, rule_id, target, value, observed_at):
         db.flush()
         cursor.active_event_id = event.id
         phase = "opened"
-    if phase and rule.notifications_enabled:
-        db.add(
-            AlertNotice(
-                event_id=event.id,
-                phase=phase,
-                message=f"演示告警：{rule.name} · {'触发' if phase == 'opened' else '恢复'} · {target}",
-            )
+    if phase:
+        emit(
+            db,
+            event,
+            rule,
+            phase,
+            f"演示告警：{rule.name} · {'触发' if phase == 'opened' else '恢复'} · {target}",
         )
     return {
         "outcome": phase or ("merged" if event else "normal"),
@@ -110,6 +113,7 @@ def access(db, user, event_id, lock=False):
 def output(e):
     return {
         "id": e.id,
+        "configuration_evidence": e.configuration_evidence,
         "station_id": e.station_id,
         "target": e.target,
         "status": e.status,

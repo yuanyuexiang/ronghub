@@ -52,6 +52,7 @@ def output(a):
     return {
         "id": a.id,
         "kind": a.kind,
+        "portal_public": a.portal_public,
         "title": a.title,
         "body": a.body,
         "rich_document": a.rich_document,
@@ -149,6 +150,12 @@ def apply_action(db, user, article, action, version, published_at=None):
     if article.version != version:
         raise HTTPException(409, f"内容 #{article.id} 版本已更新，请刷新")
     if action == "publish" and article.status == "draft":
+        if article.portal_public:
+            from app.authorization import require
+            from app.scopes import require_global
+
+            require(db, user, "content.public")
+            require_global(user)
         stamp = published_at or now()
         if stamp.tzinfo is None:
             raise HTTPException(422, "发布时间必须包含时区")

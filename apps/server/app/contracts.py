@@ -4,7 +4,13 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, JsonValue
 
+from app.alert_configuration import Configuration
+from app.configured_alert_contracts import EventEvidence
+from app.device_metadata import EquipmentType
+from app.inspection_documents import ExecutionContact
 from app.richtext import RichDocument
+from app.station_facilities import Contact as StationContact
+from app.station_facilities import Facilities as StationFacilities
 
 
 class ValidationIssue(BaseModel):
@@ -57,6 +63,10 @@ class StationPage(BaseModel):
 
 
 class StationDetail(BaseModel):
+    source_first_reported_at: str | None
+    facilities: StationFacilities
+    contact_accessible: bool
+    contact: StationContact | None
     source: str
     external_id: str
     id: int
@@ -81,12 +91,19 @@ class StationDetail(BaseModel):
 
 
 class ConnectorItem(BaseModel):
+    name: str | None
+    interface_type: str | None
     id: int
     external_id: str
     status: str
 
 
 class EquipmentItem(BaseModel):
+    external_id: str
+    equipment_type: EquipmentType | None
+    model_name: str | None
+    source_unique_code: str | None
+    manufactured_on: str | None
     id: int
     name: str
     power_kw: str
@@ -223,21 +240,44 @@ class RatingQueuePage(BaseModel):
     page_size: int
 
 
-class InspectionQueueItem(BaseModel):
+class InspectionTaskResponse(BaseModel):
     id: int
     station_id: int
+    plan_id: int | None
     operator_id: int
-    station_name: str
-    operator_name: str
     title: str
     description: str
+    rich_document: RichDocument | None
     severity: str
-    due_at: str
+    due_at: str | None
     status: str
     version: int
     overdue: bool
     is_demo: bool
     created_at: str
+
+
+class InspectionHistoryItem(BaseModel):
+    id: int
+    action: str
+    comment: str
+    rich_document: RichDocument | None
+    contact: ExecutionContact | None
+    performed_at: str | None
+    created_at: str
+
+
+class InspectionDetailResponse(InspectionTaskResponse):
+    history: list[InspectionHistoryItem]
+
+
+class InspectionQueueItem(InspectionTaskResponse):
+    station_name: str
+    operator_name: str
+    execution_state: Literal["reported", "not_reported", "unknown"]
+    last_reply_id: int | None
+    last_reply_submitted_at: str | None
+    last_reported_performed_at: str | None
 
 
 class InspectionQueuePage(BaseModel):
@@ -249,6 +289,7 @@ class InspectionQueuePage(BaseModel):
 
 
 class AlertRuleSnapshot(BaseModel):
+    configuration: Configuration | None = None
     notifications_enabled: bool | None = None
     code: str
     version: int
@@ -258,13 +299,10 @@ class AlertRuleSnapshot(BaseModel):
     recover: str
 
 
-class AlertQueueItem(BaseModel):
+class AlertEventResponse(BaseModel):
+    configuration_evidence: EventEvidence | None = None
     id: int
     station_id: int
-    operator_id: int
-    rule_id: int
-    station_name: str
-    operator_name: str
     target: str
     status: str
     opened_at: str
@@ -277,6 +315,24 @@ class AlertQueueItem(BaseModel):
     acknowledge_note: str
     version: int
     is_demo: bool
+
+
+class AlertQueueItem(AlertEventResponse):
+    operator_id: int
+    rule_id: int
+    station_name: str
+    operator_name: str
+
+
+class AlertNoticeResponse(BaseModel):
+    phase: str
+    message: str
+    created_at: str
+    channel: str
+
+
+class AlertDetail(AlertEventResponse):
+    notices: list[AlertNoticeResponse]
 
 
 class AlertQueuePage(BaseModel):
@@ -596,6 +652,7 @@ class QualityGroup(BaseModel):
     key: str
     label: str
     station_count: int
+    inventory_equipment_count: int
     streams: list[QualityStream]
 
 
@@ -610,6 +667,7 @@ class QualityReport(BaseModel):
     end_at: str
     window_seconds: str
     selected_station_count: int
+    summary: QualityGroup
     items: list[QualityGroup]
     total: int
     page: int
@@ -634,7 +692,8 @@ class ContentAttachment(BaseModel):
 
 class ContentArticle(BaseModel):
     id: int
-    kind: Literal["announcement", "news", "contact", "notice"]
+    kind: Literal["announcement", "news", "contact", "notice", "protocol"]
+    portal_public: bool
     title: str
     body: str
     rich_document: RichDocument | None = None
@@ -662,6 +721,7 @@ class ContentReply(BaseModel):
     contact_name: str | None
     contact_phone: str | None
     body: str
+    rich_document: RichDocument | None = None
     created_at: str
     images: list[ContentAttachment]
 
@@ -782,6 +842,16 @@ class PasswordRecovered(BaseModel):
     reauthenticate: bool
 
 
+class PasswordChanged(PasswordRecovered):
+    pass
+
+
+class PasswordResetResult(OkResponse):
+    user_id: int
+    version: int = Field(ge=1)
+    must_change_password: bool
+
+
 class StaffEnrollmentOptions(BaseModel):
     enabled: bool
     demo_mode: bool
@@ -866,3 +936,8 @@ class DashboardSummary(BaseModel):
     subsidy_total: str | None = None
     energy_total: str | None = None
     staff_applications_pending: int | None = None
+
+
+class HealthResponse(BaseModel):
+    status: Literal["ok"]
+    demo_mode: bool

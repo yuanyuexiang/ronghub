@@ -1,15 +1,16 @@
 """Current authorized station cohorts; observed state composition is not a formal quality rate."""
 
 from collections import defaultdict
+from types import SimpleNamespace
 
 from fastapi import HTTPException
-from sqlalchemy import String, cast, distinct, func, or_, select
+from sqlalchemy import String, cast, distinct, func, literal, or_, select
 
 from app import runtime
-from app.models import FaultEvent, Operator, RuntimeInterval, Station
+from app.models import Equipment, FaultEvent, Operator, RuntimeInterval, Station
 from app.scopes import station_scope
 
-NOTICE = "按当前授权且来源相同的场站台账及当前区域/企业归属分组，包括未收到观测的场站，不反推历史营业集合。设备本级与单枪分别统计；对象数仅为窗口内有运行区间的源引用数，不是设备总数。对象×查询时长只用于该观测集合的已知/明确未知/未上送时长，不能代表全部设备覆盖。连接/业务轴及演示标识分开，状态占比仅以本轴已上送时长（含未知）为分母。故障独立统计本组所有层级、发生于窗口内的源事件；只对已恢复样本算完整恢复经过秒数，不是维修工时。未认证源完整性，不发布正式在线率、故障率或利用率。"
+NOTICE = "按当前授权且来源相同的场站台账及当前区域/企业归属分组，包括未收到观测的场站，不反推历史营业集合。设备本级与单枪分别统计；对象数仅为窗口内有运行区间的源引用数，不是设备总数。当前台账设备数仅计现有设备记录，不代表查询期间的历史或完整源设备规模。总计覆盖全部查询结果而非当前页，演示和源报分开；恢复均值按全部已恢复样本重新计算，不平均分组均值。对象×查询时长只用于该观测集合的已知/明确未知/未上送时长，不能代表全部设备覆盖。连接/业务轴及演示标识分开，状态占比仅以本轴已上送时长（含未知）为分母。故障独立统计本组所有层级、发生于窗口内的源事件；只对已恢复样本算完整恢复经过秒数，不是维修工时。未认证源完整性，不发布正式在线率、故障率或利用率。"
 
 
 def inventory(user, source=None, q="", district="", operator_id=None, group_by="district"):
@@ -85,6 +86,56 @@ def report(db, user, params, page, page_size, *, exporting=False):
     if not exporting:
         requested = requested.offset((page - 1) * page_size).limit(page_size)
     group_rows = list(db.execute(requested))
+    start, end = params["start_at"], params["end_at"]
+    items = group_items(db, selected, params, group_rows)
+    all_selected = select(
+        selected.c.id,
+        selected.c.operator_id,
+        selected.c.source,
+        literal("query_total").label("group_key"),
+        literal("查询总计").label("group_label"),
+    ).subquery()
+    summary = group_items(
+        db,
+        all_selected,
+        params,
+        [
+            SimpleNamespace(
+                group_key="query_total", group_label="查询总计", station_count=selected_count
+            )
+        ],
+    )[0]
+    if (
+        exporting
+        and (
+            sum(max(1, len(item["streams"])) for item in items)
+            + (max(1, len(summary["streams"])) if selected_count else 0)
+        )
+        > 10000
+    ):
+        raise HTTPException(422, "单次质量观测导出最多10000行（含总计），请缩小范围")
+    return {
+        "source": params["source"],
+        "group_by": params["group_by"],
+        "asset_scope": params["asset_scope"],
+        "q": params["q"],
+        "district": params["district"],
+        "operator_id": params["operator_id"],
+        "start_at": start.isoformat(),
+        "end_at": end.isoformat(),
+        "window_seconds": str(runtime.seconds(end - start)),
+        "selected_station_count": selected_count,
+        "summary": summary,
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "source_completeness_verified": False,
+        "notice": NOTICE,
+    }
+
+
+def group_items(db, selected, params, group_rows):
     keys = [row.group_key for row in group_rows]
     start, end = params["start_at"], params["end_at"]
     intervals = (
@@ -183,6 +234,14 @@ def report(db, user, params, page, page_size, *, exporting=False):
     for row in fault_rows:
         flags[row.group_key].add(row.is_demo)
     window = runtime.seconds(end - start)
+    equipment_counts = dict(
+        db.execute(
+            select(selected.c.group_key, func.count(Equipment.id))
+            .join(Equipment, Equipment.station_id == selected.c.id)
+            .where(selected.c.group_key.in_(keys))
+            .group_by(selected.c.group_key)
+        ).all()
+    )
     items = []
     for group in group_rows:
         streams = []
@@ -216,26 +275,8 @@ def report(db, user, params, page, page_size, *, exporting=False):
                 "key": group.group_key,
                 "label": group.group_label or "未标区域",
                 "station_count": group.station_count,
+                "inventory_equipment_count": equipment_counts.get(group.group_key, 0),
                 "streams": streams,
             }
         )
-    if exporting and sum(max(1, len(item["streams"])) for item in items) > 10000:
-        raise HTTPException(422, "单次质量观测导出最多10000行，请缩小范围")
-    return {
-        "source": params["source"],
-        "group_by": params["group_by"],
-        "asset_scope": params["asset_scope"],
-        "q": params["q"],
-        "district": params["district"],
-        "operator_id": params["operator_id"],
-        "start_at": start.isoformat(),
-        "end_at": end.isoformat(),
-        "window_seconds": str(window),
-        "selected_station_count": selected_count,
-        "items": items,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "source_completeness_verified": False,
-        "notice": NOTICE,
-    }
+    return items

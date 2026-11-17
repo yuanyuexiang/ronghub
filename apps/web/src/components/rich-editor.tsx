@@ -16,13 +16,22 @@ export function RichEditor({
   articleId,
   disabled,
   onChange,
+  label = "内容正文",
+  images,
+  imageHelp,
 }: {
   document: RichDocument | null;
   body: string;
   articleId: number | null;
   disabled: boolean;
+  label?: string;
+  images?: { id: number; url: string; label: string }[];
+  imageHelp?: string;
   onChange: (document: RichDocument, plain: string) => void;
 }) {
+  const imageOptions = useRef(images);
+  imageOptions.current = images;
+  const focusFrame = useRef<number | null>(null);
   const linkRange = useRef<{ from: number; to: number } | null>(null);
   const callback = useRef(onChange);
   callback.current = onChange;
@@ -51,9 +60,13 @@ export function RichEditor({
             "img",
             {
               "data-article-image": node.attrs.attachment_id,
-              src: articleId
-                ? imageUrl(articleId, Number(node.attrs.attachment_id), true)
-                : undefined,
+              src: imageOptions.current
+                ? imageOptions.current.find(
+                    (image) => image.id === Number(node.attrs.attachment_id),
+                  )?.url
+                : articleId
+                  ? imageUrl(articleId, Number(node.attrs.attachment_id), true)
+                  : undefined,
               alt: node.attrs.alt,
             },
           ];
@@ -66,7 +79,7 @@ export function RichEditor({
     editorProps: {
       attributes: {
         role: "textbox",
-        "aria-label": "内容正文",
+        "aria-label": label,
         "aria-multiline": "true",
         class: "rich-document rich-editor-content",
       },
@@ -81,8 +94,40 @@ export function RichEditor({
       }
     },
   });
+  function cancelFocus() {
+    if (focusFrame.current != null) cancelAnimationFrame(focusFrame.current);
+    focusFrame.current = null;
+  }
+  // Tiptap's focus command defers an unconditional view.focus() to the next
+  // frame. A user may already have moved into another form field by then.
+  // Keep React's deferred editor focus, but respect that newer focus choice.
+  function focusEditor() {
+    cancelFocus();
+    if (!editor || editor.isDestroyed || !editor.isEditable) return;
+    // Toolbar mouse actions already preserve editor focus. Do not queue a
+    // second selection synchronization across the user's next keystroke.
+    if (editor.view.hasFocus()) {
+      editor.commands.scrollIntoView();
+      return;
+    }
+    const origin = window.document.activeElement;
+    focusFrame.current = requestAnimationFrame(() => {
+      focusFrame.current = null;
+      if (!editor || editor.isDestroyed || !editor.isEditable) return;
+      const active = window.document.activeElement;
+      if (
+        active !== origin &&
+        !editor.view.dom.contains(active) &&
+        !(active === window.document.body && origin && !origin.isConnected)
+      )
+        return;
+      editor.view.focus();
+      editor.commands.scrollIntoView();
+    });
+  }
+  useEffect(() => () => cancelFocus(), []);
   useEffect(() => {
-    editor?.setEditable(!disabled);
+    editor?.setEditable(!disabled, false);
   }, [editor, disabled]);
   useEffect(() => {
     if (!editor) return;
@@ -107,7 +152,11 @@ export function RichEditor({
       aria-label={label}
       aria-pressed={active}
       onMouseDown={(event) => event.preventDefault()}
-      onClick={action}
+      onClick={() => {
+        cancelFocus();
+        action();
+        if (label !== "链接") focusEditor();
+      }}
     >
       {label}
     </button>
@@ -125,8 +174,9 @@ export function RichEditor({
           onChange={(e) => {
             const level = Number(e.target.value);
             if (level === 1 || level === 2 || level === 3)
-              editor.chain().focus().setHeading({ level }).run();
-            else editor.chain().focus().setParagraph().run();
+              editor.chain().setHeading({ level }).run();
+            else editor.chain().setParagraph().run();
+            focusEditor();
           }}
         >
           <option value="0">正文段落</option>
@@ -137,49 +187,49 @@ export function RichEditor({
         {button(
           "加粗",
           () => {
-            editor.chain().focus().toggleBold().run();
+            editor.chain().toggleBold().run();
           },
           editor.isActive("bold"),
         )}
         {button(
           "斜体",
           () => {
-            editor.chain().focus().toggleItalic().run();
+            editor.chain().toggleItalic().run();
           },
           editor.isActive("italic"),
         )}
         {button(
           "下划线",
           () => {
-            editor.chain().focus().toggleUnderline().run();
+            editor.chain().toggleUnderline().run();
           },
           editor.isActive("underline"),
         )}
         {button(
           "删除线",
           () => {
-            editor.chain().focus().toggleStrike().run();
+            editor.chain().toggleStrike().run();
           },
           editor.isActive("strike"),
         )}
         {button(
           "项目列表",
           () => {
-            editor.chain().focus().toggleBulletList().run();
+            editor.chain().toggleBulletList().run();
           },
           editor.isActive("bulletList"),
         )}
         {button(
           "编号列表",
           () => {
-            editor.chain().focus().toggleOrderedList().run();
+            editor.chain().toggleOrderedList().run();
           },
           editor.isActive("orderedList"),
         )}
         {button(
           "引用",
           () => {
-            editor.chain().focus().toggleBlockquote().run();
+            editor.chain().toggleBlockquote().run();
           },
           editor.isActive("blockquote"),
         )}
@@ -198,28 +248,27 @@ export function RichEditor({
         {button("插入表格", () => {
           editor
             .chain()
-            .focus()
             .insertTable({ rows: 2, cols: 3, withHeaderRow: true })
             .run();
         })}
         {editor.isActive("table") && (
           <>
             {button("表格加行", () => {
-              editor.chain().focus().addRowAfter().run();
+              editor.chain().addRowAfter().run();
             })}
             {button("表格加列", () => {
-              editor.chain().focus().addColumnAfter().run();
+              editor.chain().addColumnAfter().run();
             })}
             {button("删除表格", () => {
-              editor.chain().focus().deleteTable().run();
+              editor.chain().deleteTable().run();
             })}
           </>
         )}
         {button("撤销", () => {
-          editor.chain().focus().undo().run();
+          editor.chain().undo().run();
         })}
         {button("重做", () => {
-          editor.chain().focus().redo().run();
+          editor.chain().redo().run();
         })}
       </div>
       {showLink && (
@@ -254,9 +303,9 @@ export function RichEditor({
                   .setTextSelection(range)
                   .setLink({ href: link })
                   .setTextSelection(range.to)
-                  .focus(range.to)
                   .run();
                 setShowLink(false);
+                focusEditor();
                 setError("");
               } catch {
                 setError("链接请使用不含凭据的完整HTTP/HTTPS地址");
@@ -269,12 +318,32 @@ export function RichEditor({
             type="button"
             className="outline"
             onClick={() => {
-              editor.chain().focus().unsetLink().run();
+              editor.chain().unsetLink().run();
               setShowLink(false);
+              focusEditor();
             }}
           >
             移除链接
           </button>
+        </div>
+      )}
+      {!!images?.length && (
+        <div
+          className="editor-toolbar"
+          role="toolbar"
+          aria-label="回复图片插入"
+        >
+          {images.map((image) =>
+            button(`插入回复图片：${image.label}`, () => {
+              editor
+                .chain()
+                .insertContent({
+                  type: "privateImage",
+                  attrs: { attachment_id: image.id, alt: image.label },
+                })
+                .run();
+            }),
+          )}
         </div>
       )}
       <EditorContent editor={editor} />
@@ -284,7 +353,11 @@ export function RichEditor({
         </p>
       )}
       <small className="muted">
-        支持标题、文字格式、列表、链接、引用和表格。正文图片需先保存草稿，再上传附件并插入。
+        支持标题、文字格式、列表、链接、引用和表格。
+        {imageHelp ??
+          (images
+            ? "选择回复图片后，可插入光标位置；图片与回复一起提交并留档。"
+            : "正文图片需先保存草稿，再上传附件并插入。")}
       </small>
     </div>
   );

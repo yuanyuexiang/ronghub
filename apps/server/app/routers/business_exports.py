@@ -13,7 +13,7 @@ from sqlalchemy.orm import load_only
 from app import rating_results
 from app.authorization import require
 from app.business_dates import Dates, submission_time
-from app.dependencies import Actor
+from app.dependencies import SnapshotActor
 from app.models import (
     Audit,
     Operator,
@@ -85,7 +85,7 @@ def guard(db, user, module):
 
 
 @router.get("/api/v1/subsidy/claims/export", response_class=Response, responses=CSV)
-def subsidy_list(user: Actor, db: SnapshotDB, params: Filters):
+def subsidy_list(user: SnapshotActor, db: SnapshotDB, params: Filters):
     guard(db, user, "subsidy")
     c = SubsidyClaim
     stmt = (
@@ -142,7 +142,7 @@ def subsidy_list(user: Actor, db: SnapshotDB, params: Filters):
 
 
 @router.get("/api/v1/ratings/applications/export", response_class=Response, responses=CSV)
-def rating_list(user: Actor, db: SnapshotDB, params: Filters):
+def rating_list(user: SnapshotActor, db: SnapshotDB, params: Filters):
     guard(db, user, "ratings")
     a = RatingApplication
     stmt = (
@@ -302,10 +302,10 @@ def process(user, db, params, module):
 
 
 @router.get("/api/v1/subsidy/claims/process/export", response_class=Response, responses=CSV)
-def subsidy_process(user: Actor, db: SnapshotDB, params: Filters):
+def subsidy_process(user: SnapshotActor, db: SnapshotDB, params: Filters):
     return process(user, db, params, "subsidy")
 
 
 @router.get("/api/v1/ratings/applications/process/export", response_class=Response, responses=CSV)
-def rating_process(user: Actor, db: SnapshotDB, params: Filters):
+def rating_process(user: SnapshotActor, db: SnapshotDB, params: Filters):
     return process(user, db, params, "ratings")

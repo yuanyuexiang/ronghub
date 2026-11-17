@@ -6,6 +6,7 @@ import json
 import os
 import re
 import secrets
+import socket
 import subprocess
 import tarfile
 import time
@@ -175,7 +176,7 @@ class Stack:
                         ) as response:
                             if response.status == 200:
                                 break
-                    except (urllib.error.URLError, TimeoutError):
+                    except (urllib.error.URLError, TimeoutError, socket.timeout):
                         pass
                     if time.monotonic() >= deadline:
                         raise RuntimeError(

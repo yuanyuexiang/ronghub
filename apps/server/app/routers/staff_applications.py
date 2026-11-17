@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app import staff_applications as staff
 from app.contracts import StaffApplicationDetail, StaffApplicationPage, StaffRoleOptions
-from app.dependencies import DB, Actor, passwords
+from app.dependencies import DB, Actor, SnapshotActor, passwords
 from app.models import Audit, RoleProfile, StaffApplication, StaffApplicationAction, User, now
 from app.password_management import session_active
 from app.reporting import SnapshotDB
@@ -86,7 +86,7 @@ def detail_output(db, row):
 
 @router.get("", response_model=StaffApplicationPage)
 def listing(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     q: str = Query("", max_length=150),
     status: str = Query("", pattern="^(|pending|approved|rejected)$"),
@@ -126,7 +126,7 @@ def listing(
 
 @router.get("/role-options", response_model=StaffRoleOptions)
 def role_options(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     base_role: Literal["regulator", "association"],
     q: str = Query("", max_length=100),

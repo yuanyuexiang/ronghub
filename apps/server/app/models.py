@@ -75,6 +75,30 @@ class Station(Base):
     __tablename__ = "stations"
     __table_args__ = (
         UniqueConstraint("id", "operator_id", "source", name="uq_station_source_owner"),
+        CheckConstraint(
+            "supply_type IS NULL OR supply_type IN ('direct','transferred')",
+            name="ck_station_facility_supply_type",
+        ),
+        CheckConstraint(
+            "electricity_tariff IS NULL OR electricity_tariff IN ('commercial','general_industrial','large_industrial','other')",
+            name="ck_station_facility_electricity_tariff",
+        ),
+        CheckConstraint(
+            "(supply_capacity IS NULL AND supply_capacity_unit IS NULL) OR (supply_capacity IS NOT NULL AND supply_capacity >= 0 AND supply_capacity <= 99999999999.999 AND supply_capacity_unit IS NOT NULL AND supply_capacity_unit IN ('unknown','kW','kVA'))",
+            name="ck_station_facility_capacity",
+        ),
+        CheckConstraint(
+            "parking_spaces IS NULL OR parking_spaces >= 0",
+            name="ck_station_facility_parking_spaces",
+        ),
+        CheckConstraint(
+            "commissioned_on IS NULL OR commissioned_on BETWEEN DATE '1900-01-01' AND DATE '9998-12-31'",
+            name="ck_station_facility_commissioned_on",
+        ),
+        CheckConstraint(
+            "parking_fee_type IS NULL OR parking_fee_type IN ('free','paid','limited_free','charging_discount','onsite')",
+            name="ck_station_facility_parking_fee_type",
+        ),
         UniqueConstraint("source", "external_id"),
         CheckConstraint(
             "(longitude IS NULL AND latitude IS NULL) OR (longitude IS NOT NULL AND latitude IS NOT NULL AND longitude BETWEEN -180 AND 180 AND latitude BETWEEN -90 AND 90)",
@@ -89,11 +113,11 @@ class Station(Base):
         ),
         Index("ix_station_location", "coordinate_system", "longitude", "latitude"),
         CheckConstraint(
-            "usage_type IN ('unknown','public','personal','bus','sanitation','logistics','taxi','other')",
+            "usage_type IN ('unknown','public','personal','bus','sanitation','logistics','taxi','other','car_sharing','community_shared','workplace','private_shared')",
             name="ck_station_usage_type",
         ),
         CheckConstraint(
-            "construction_site IN ('unknown','public_institution','residential','enterprise','office','industrial','transit','culture_sports','highway','green_space','roadside','building_parking','other')",
+            "construction_site IN ('unknown','public_institution','residential','enterprise','office','industrial','transit','culture_sports','highway','green_space','roadside','building_parking','other','scenic_area','bus_depot','fuel_station','taxi_site')",
             name="ck_station_construction_site",
         ),
         CheckConstraint(
@@ -124,6 +148,21 @@ class Station(Base):
         String(30), default="unknown", server_default="unknown"
     )
     source_first_connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    source_first_reported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    supply_type: Mapped[str | None] = mapped_column(String(20))
+    electricity_tariff: Mapped[str | None] = mapped_column(String(30))
+    supply_capacity: Mapped[Decimal | None] = mapped_column(Numeric(14, 3))
+    supply_capacity_unit: Mapped[str | None] = mapped_column(String(12))
+    independent_connection: Mapped[bool | None] = mapped_column()
+    parking_spaces: Mapped[int | None] = mapped_column()
+    commissioned_on: Mapped[date | None] = mapped_column(Date)
+    parking_fee_type: Mapped[str | None] = mapped_column(String(20))
+    parking_fee_description: Mapped[str | None] = mapped_column(String(500))
+    business_hours: Mapped[str | None] = mapped_column(String(255))
+    filing_code: Mapped[str | None] = mapped_column(String(100))
+    station_contact_name: Mapped[str | None] = mapped_column(String(100))
+    station_contact_phone: Mapped[str | None] = mapped_column(String(80))
+
     id: Mapped[int] = mapped_column(primary_key=True)
     operator_id: Mapped[int] = mapped_column(ForeignKey("operators.id"), index=True)
     source: Mapped[str] = mapped_column(String(50))
@@ -154,21 +193,39 @@ class Equipment(Base):
     __table_args__ = (
         UniqueConstraint("station_id", "external_id"),
         UniqueConstraint("id", "station_id", name="uq_equipment_station_identity"),
+        CheckConstraint(
+            "equipment_type IS NULL OR equipment_type IN ('dc','ac','ac_dc','wireless','ordered','v2g','other')",
+            name="ck_equipment_equipment_type",
+        ),
+        CheckConstraint(
+            "manufactured_on IS NULL OR manufactured_on BETWEEN DATE '1900-01-01' AND DATE '9998-12-31'",
+            name="ck_equipment_manufactured_on",
+        ),
+        Index("ix_equipment_station_type", "station_id", "equipment_type", "id"),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     station_id: Mapped[int] = mapped_column(ForeignKey("stations.id"), index=True)
     external_id: Mapped[str] = mapped_column(String(100))
     name: Mapped[str] = mapped_column(String(150))
     power_kw: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    equipment_type: Mapped[str | None] = mapped_column(String(20))
+    model_name: Mapped[str | None] = mapped_column(String(100))
+    source_unique_code: Mapped[str | None] = mapped_column(String(100))
+    manufactured_on: Mapped[date | None] = mapped_column(Date())
 
 
 class Connector(Base):
     __tablename__ = "connectors"
-    __table_args__ = (UniqueConstraint("equipment_id", "external_id"),)
+    __table_args__ = (
+        UniqueConstraint("equipment_id", "external_id"),
+        Index("ix_connector_equipment_state", "equipment_id", "status", "id"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     equipment_id: Mapped[int] = mapped_column(ForeignKey("equipment.id"), index=True)
     external_id: Mapped[str] = mapped_column(String(100))
     status: Mapped[str] = mapped_column(String(40), default="unknown")
+    name: Mapped[str | None] = mapped_column(String(150))
+    interface_type: Mapped[str | None] = mapped_column(String(100))
 
 
 class SyncTask(Base):
@@ -205,6 +262,26 @@ class StationApplication(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
+class ApplicationSubmission(Base):
+    __tablename__ = "application_submissions"
+    __table_args__ = (
+        UniqueConstraint(
+            "application_id", "submitted_version", name="uq_application_submission_version"
+        ),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    application_id: Mapped[int] = mapped_column(
+        ForeignKey("station_applications.id", ondelete="CASCADE"), index=True
+    )
+    submitted_version: Mapped[int]
+    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    actor_username: Mapped[str] = mapped_column(String(100))
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    source_reviewed: Mapped[bool]
+    content_digest: Mapped[str] = mapped_column(String(64))
+    snapshot: Mapped[dict] = mapped_column(JSON)
+
+
 class ApprovalAction(Base):
     __tablename__ = "approval_actions"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -224,6 +301,10 @@ class LoginThrottle(Base):
 
 class Attachment(Base):
     __tablename__ = "attachments"
+    __table_args__ = (CheckConstraint("revision >= 1", name="ck_attachment_revision"),)
+    revision: Mapped[int] = mapped_column(default=1, server_default="1")
+    category: Mapped[str | None] = mapped_column(String(40))
+    active: Mapped[bool] = mapped_column(default=True, server_default="true")
     id: Mapped[int] = mapped_column(primary_key=True)
     application_id: Mapped[int] = mapped_column(ForeignKey("station_applications.id"), index=True)
     uploaded_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
@@ -237,7 +318,10 @@ class Attachment(Base):
 
 class EnergyRecord(Base):
     __tablename__ = "energy_records"
-    __table_args__ = (UniqueConstraint("source", "external_id"),)
+    __table_args__ = (
+        UniqueConstraint("source", "external_id"),
+        Index("ix_energy_station_day_source", "station_id", "day", "source"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     station_id: Mapped[int] = mapped_column(ForeignKey("stations.id"), index=True)
     source: Mapped[str] = mapped_column(String(50))
@@ -409,20 +493,54 @@ class RatingAction(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
+class InspectionPlan(Base):
+    __tablename__ = "inspection_plans"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    request_key: Mapped[str] = mapped_column(String(36))
+    title: Mapped[str] = mapped_column(String(150), default="", server_default="")
+    description: Mapped[str] = mapped_column(String(4000), default="", server_default="")
+    rich_document: Mapped[dict | None] = mapped_column(JSON(none_as_null=True), nullable=True)
+    targets: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="draft", server_default="draft")
+    version: Mapped[int] = mapped_column(default=1, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_demo: Mapped[bool] = mapped_column(default=True, server_default="true")
+    __table_args__ = (
+        UniqueConstraint("created_by", "request_key", name="uq_inspection_plan_request"),
+        CheckConstraint("version >= 1", name="ck_inspection_plan_version"),
+        CheckConstraint(
+            "status IN ('draft','published','deleted')", name="ck_inspection_plan_status"
+        ),
+        CheckConstraint(
+            "(status = 'published') = (published_at IS NOT NULL)",
+            name="ck_inspection_plan_publication",
+        ),
+    )
+
+
 class InspectionTask(Base):
     __tablename__ = "inspection_tasks"
     id: Mapped[int] = mapped_column(primary_key=True)
+    plan_id: Mapped[int | None] = mapped_column(
+        ForeignKey("inspection_plans.id", name="fk_inspection_task_plan"), nullable=True, index=True
+    )
     station_id: Mapped[int] = mapped_column(ForeignKey("stations.id"), index=True)
     operator_id: Mapped[int] = mapped_column(ForeignKey("operators.id"), index=True)
     title: Mapped[str] = mapped_column(String(150))
     description: Mapped[str] = mapped_column(String(4000))
+    rich_document: Mapped[dict | None] = mapped_column(JSON(none_as_null=True), nullable=True)
     severity: Mapped[str] = mapped_column(String(20))
-    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     status: Mapped[str] = mapped_column(String(30), default="assigned")
     version: Mapped[int] = mapped_column(default=1)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     is_demo: Mapped[bool] = mapped_column(default=True)
+    __table_args__ = (UniqueConstraint("plan_id", "station_id", name="uq_inspection_plan_station"),)
 
 
 class InspectionAction(Base):
@@ -432,6 +550,15 @@ class InspectionAction(Base):
     actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     action: Mapped[str] = mapped_column(String(30))
     comment: Mapped[str] = mapped_column(String(4000))
+    rich_document: Mapped[dict | None] = mapped_column(JSON(none_as_null=True), nullable=True)
+    contact_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    contact_phone: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    performed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    __table_args__ = (
+        CheckConstraint(
+            "(contact_name IS NULL) = (contact_phone IS NULL)", name="ck_inspection_contact_pair"
+        ),
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
@@ -451,7 +578,22 @@ class InspectionAttachment(Base):
 
 class AlertRule(Base):
     __tablename__ = "alert_rules"
-    __table_args__ = (UniqueConstraint("code", "version"),)
+    monitor_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    configuration: Mapped[dict | None] = mapped_column(JSON(none_as_null=True))
+    revision: Mapped[int] = mapped_column(default=1, server_default="1")
+    archived: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
+    created_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", name="fk_alert_rule_created_by")
+    )
+    updated_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", name="fk_alert_rule_updated_by")
+    )
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        UniqueConstraint("code", "version"),
+        CheckConstraint("revision >= 1", name="ck_alert_rule_revision"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(60))
     version: Mapped[int]
@@ -467,6 +609,7 @@ class AlertRule(Base):
 
 class AlertEvent(Base):
     __tablename__ = "alert_events"
+    configuration_evidence: Mapped[dict | None] = mapped_column(JSON(none_as_null=True))
     id: Mapped[int] = mapped_column(primary_key=True)
     rule_id: Mapped[int] = mapped_column(ForeignKey("alert_rules.id"), index=True)
     station_id: Mapped[int] = mapped_column(ForeignKey("stations.id"), index=True)
@@ -511,6 +654,7 @@ class Article(Base):
     __tablename__ = "articles"
     id: Mapped[int] = mapped_column(primary_key=True)
     kind: Mapped[str] = mapped_column(String(20))
+    portal_public: Mapped[bool] = mapped_column(default=False, server_default="false")
     title: Mapped[str] = mapped_column(String(150))
     body: Mapped[str] = mapped_column(String(20000))
     rich_document: Mapped[dict | None] = mapped_column(JSON(none_as_null=True))
@@ -523,6 +667,12 @@ class Article(Base):
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     is_demo: Mapped[bool] = mapped_column(default=True)
+    __table_args__ = (
+        CheckConstraint(
+            "NOT portal_public OR (kind IN ('announcement','news','contact') AND audience = 'all' AND operator_id IS NULL AND recipient_ids IS NULL)",
+            name="ck_article_portal_scope",
+        ),
+    )
 
 
 class ArticleAction(Base):
@@ -542,6 +692,7 @@ class ArticleReply(Base):
     operator_id: Mapped[int] = mapped_column(ForeignKey("operators.id"))
     actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     body: Mapped[str] = mapped_column(String(4000))
+    rich_document: Mapped[dict | None] = mapped_column(JSON(none_as_null=True))
     contact_name: Mapped[str | None] = mapped_column(String(100))
     contact_phone: Mapped[str | None] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
@@ -1085,3 +1236,206 @@ class SubsidyDeviceAllocation(Base):
     )
     fact_id: Mapped[int] = mapped_column(primary_key=True)
     claim_id: Mapped[int]
+
+
+class ConfiguredAlertObservation(Base):
+    __tablename__ = "configured_alert_observations"
+    __table_args__ = (
+        UniqueConstraint("namespace", "request_key", name="uq_configured_observation_request"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    namespace: Mapped[str] = mapped_column(String(80))
+    request_key: Mapped[str] = mapped_column(String(36))
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    station_id: Mapped[int] = mapped_column(ForeignKey("stations.id"), index=True)
+    operator_id: Mapped[int] = mapped_column(ForeignKey("operators.id"))
+    rule_id: Mapped[int] = mapped_column(ForeignKey("alert_rules.id"), index=True)
+    event_id: Mapped[int | None] = mapped_column(ForeignKey("alert_events.id"))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    evidence: Mapped[dict] = mapped_column(JSON)
+    result: Mapped[dict] = mapped_column(JSON)
+
+
+class AlertNotificationPreference(Base):
+    __tablename__ = "alert_notification_preferences"
+    __table_args__ = (CheckConstraint("version>=1", name="ck_alert_preference_version"),)
+    category: Mapped[str] = mapped_column(String(30), primary_key=True)
+    in_app_enabled: Mapped[bool]
+    sms_enabled: Mapped[bool]
+    version: Mapped[int]
+    updated_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class AlertRecipient(Base):
+    __tablename__ = "alert_recipients"
+    __table_args__ = (
+        CheckConstraint("version>=1", name="ck_alert_recipient_version"),
+        CheckConstraint("phone ~ '^1[3-9][0-9]{9}$'", name="ck_alert_recipient_phone"),
+        Index(
+            "uq_active_alert_recipient_phone",
+            "phone",
+            unique=True,
+            postgresql_where=text("NOT deleted"),
+        ),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80))
+    phone: Mapped[str] = mapped_column(String(11))
+    categories: Mapped[list] = mapped_column(JSON)
+    enabled: Mapped[bool] = mapped_column(default=True)
+    deleted: Mapped[bool] = mapped_column(default=False)
+    version: Mapped[int] = mapped_column(default=1)
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    updated_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class AlertNotificationRouting(Base):
+    __tablename__ = "alert_notification_routings"
+    __table_args__ = (UniqueConstraint("event_id", "phase", name="uq_alert_routing_phase"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    event_id: Mapped[int] = mapped_column(ForeignKey("alert_events.id"), index=True)
+    phase: Mapped[str] = mapped_column(String(20))
+    category: Mapped[str | None] = mapped_column(String(30))
+    preference_version: Mapped[int | None]
+    in_app_enabled: Mapped[bool]
+    sms_enabled: Mapped[bool]
+    sms_status: Mapped[str] = mapped_column(String(30))
+    notice_id: Mapped[int | None] = mapped_column(ForeignKey("alert_notices.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class AlertSmsDelivery(Base):
+    __tablename__ = "alert_sms_deliveries"
+    __table_args__ = (
+        UniqueConstraint("routing_id", "recipient_id", name="uq_alert_sms_recipient"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    routing_id: Mapped[int] = mapped_column(
+        ForeignKey("alert_notification_routings.id"), index=True
+    )
+    recipient_id: Mapped[int] = mapped_column(ForeignKey("alert_recipients.id"))
+    recipient_version: Mapped[int]
+    name_snapshot: Mapped[str] = mapped_column(String(80))
+    phone_snapshot: Mapped[str] = mapped_column(String(11))
+    status: Mapped[str] = mapped_column(String(30))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class AlertPeriodFact(Base):
+    __tablename__ = "alert_period_facts"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["station_id", "operator_id", "source"],
+            ["stations.id", "stations.operator_id", "stations.source"],
+            name="fk_alert_period_owner",
+        ),
+        UniqueConstraint("source", "operator_id", "external_id", name="uq_alert_period_source"),
+        UniqueConstraint(
+            "source",
+            "station_id",
+            "metric",
+            "period",
+            "period_start",
+            name="uq_alert_period_natural",
+        ),
+        CheckConstraint("version>=1", name="ck_alert_period_version"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    station_id: Mapped[int] = mapped_column(index=True)
+    operator_id: Mapped[int]
+    source: Mapped[str] = mapped_column(String(50))
+    external_id: Mapped[str] = mapped_column(String(100))
+    metric: Mapped[str] = mapped_column(String(40))
+    period: Mapped[str] = mapped_column(String(30))
+    period_start: Mapped[date] = mapped_column(Date)
+    period_closed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    source_updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    version: Mapped[int] = mapped_column(default=1)
+    payload: Mapped[dict] = mapped_column(JSON)
+    is_demo: Mapped[bool]
+
+
+class AlertPeriodEvaluation(Base):
+    __tablename__ = "alert_period_evaluations"
+    __table_args__ = (
+        UniqueConstraint("fact_id", "fact_version", "rule_id", name="uq_alert_period_evaluation"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fact_id: Mapped[int] = mapped_column(ForeignKey("alert_period_facts.id"))
+    fact_version: Mapped[int]
+    rule_id: Mapped[int] = mapped_column(ForeignKey("alert_rules.id"))
+    observation_id: Mapped[int] = mapped_column(
+        ForeignKey("configured_alert_observations.id"), unique=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class HazardCase(Base):
+    """Explicit hazard supervision; ordinary inspection history is never reclassified."""
+
+    __tablename__ = "hazard_cases"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    station_id: Mapped[int] = mapped_column(ForeignKey("stations.id"), index=True)
+    operator_id: Mapped[int] = mapped_column(ForeignKey("operators.id"), index=True)
+    station_name: Mapped[str] = mapped_column(String(150))
+    operator_name: Mapped[str] = mapped_column(String(150))
+    title: Mapped[str] = mapped_column(String(150))
+    description: Mapped[str] = mapped_column(String(4000))
+    rich_document: Mapped[dict | None] = mapped_column(JSON(none_as_null=True), nullable=True)
+    severity: Mapped[str] = mapped_column(String(20))
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(20), default="tracking")
+    progress: Mapped[str] = mapped_column(String(20), default="not_started")
+    version: Mapped[int] = mapped_column(default=1)
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_demo: Mapped[bool] = mapped_column(default=True)
+    __table_args__ = (
+        CheckConstraint("severity IN ('normal','major')", name="ck_hazard_severity"),
+        CheckConstraint("status IN ('tracking','closed')", name="ck_hazard_tracking"),
+        CheckConstraint(
+            "progress IN ('not_started','in_progress','completed')", name="ck_hazard_progress"
+        ),
+        CheckConstraint("(status = 'closed') = (closed_at IS NOT NULL)", name="ck_hazard_closure"),
+        CheckConstraint("version >= 1", name="ck_hazard_version"),
+    )
+
+
+class HazardAction(Base):
+    __tablename__ = "hazard_actions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("hazard_cases.id"), index=True)
+    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    action: Mapped[str] = mapped_column(String(20))
+    comment: Mapped[str] = mapped_column(String(4000))
+    rich_document: Mapped[dict | None] = mapped_column(JSON(none_as_null=True), nullable=True)
+    contact_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    contact_phone: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    performed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (
+        CheckConstraint("action IN ('publish','start','reply','close')", name="ck_hazard_action"),
+        CheckConstraint(
+            "(contact_name IS NULL) = (contact_phone IS NULL)", name="ck_hazard_contact_pair"
+        ),
+    )
+
+
+class HazardAttachment(Base):
+    __tablename__ = "hazard_attachments"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("hazard_cases.id"), index=True)
+    action_id: Mapped[int | None] = mapped_column(ForeignKey("hazard_actions.id"), index=True)
+    uploaded_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    storage_key: Mapped[str] = mapped_column(String(64), unique=True)
+    filename: Mapped[str] = mapped_column(String(180))
+    content_type: Mapped[str] = mapped_column(String(80))
+    size: Mapped[int]
+    sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

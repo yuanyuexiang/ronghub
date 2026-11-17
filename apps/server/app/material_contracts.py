@@ -30,3 +30,12 @@ def binary_responses(*types):
             "content": {mime: {"schema": {"type": "string", "format": "binary"}} for mime in types}
         }
     }
+
+
+class ApplicationAttachmentItem(ApplicationMaterialItem):
+    revision: int = Field(ge=1)
+    category: str | None
+
+
+class ApplicationAttachmentList(BaseModel):
+    items: list[ApplicationAttachmentItem]

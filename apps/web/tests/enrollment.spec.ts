@@ -114,3 +114,37 @@ test("enterprise enrollment materials, regulatory approval and first platform lo
     );
   }
 });
+
+test("applicant-cookie expiry stays separate from the business login", async ({
+  page,
+  context,
+}) => {
+  await context.addInitScript(() => {
+    window.addEventListener("ronghub:session-expired", () => {
+      document.documentElement.dataset.businessExpiry = "unexpected";
+    });
+  });
+  await page.goto("/");
+  await page.getByLabel("账号", { exact: true }).fill("regulator");
+  await page.getByLabel("密码", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "登录平台", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "退出登录", exact: true }),
+  ).toBeVisible();
+  const missing = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/api/v1/enrollment/me") &&
+      r.request().method() === "GET",
+  );
+  await page.goto("/register");
+  expect((await missing).status()).toBe(401);
+  await expect(
+    page.getByRole("heading", { name: "新企业注册", exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.dataset.businessExpiry),
+  ).toBeUndefined();
+  const identity = await page.request.get("/api/v1/auth/me");
+  expect(identity.status()).toBe(200);
+  expect((await identity.json()).username).toBe("regulator");
+});

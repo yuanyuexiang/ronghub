@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.db import session
 from app.models import LoginSession, Operator, User
+from app.reporting import SnapshotDB
 
 DB = Annotated[Session, Depends(session)]
 passwords = PasswordHash.recommended()
@@ -59,3 +60,11 @@ def scope(stmt, user):
 
 
 Actor = Annotated[User, Depends(current_user)]
+
+
+def snapshot_user(request: Request, db: SnapshotDB):
+    """Authenticate and read through one connection, avoiding nested pool checkout starvation."""
+    return current_user(request, db)
+
+
+SnapshotActor = Annotated[User, Depends(snapshot_user)]

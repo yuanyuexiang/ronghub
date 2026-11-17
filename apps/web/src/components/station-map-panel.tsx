@@ -1,13 +1,18 @@
 "use client";
+import { StationObservations } from "./station-observations";
+import { DeviceInventory } from "./device-inventory";
 import { usePageRefresh } from "./page-refresh";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { apiFetch } from "../lib/api-fetch";
+import type { paths } from "@ronghub/api-schema";
 import { useCapability } from "./permissions";
 import {
   businessStates,
   locationReasons,
   MapPoint,
+  MapQueryResponse,
   runtimeStates,
   StationPoint,
   stationTypes,
@@ -33,35 +38,28 @@ const empty = {
   site_state: "",
   source_sync_state: "",
 };
-type MapResponse = {
-  items: MapPoint[];
-  matching: number;
-  mappable: number;
-  unplottable: number;
-  in_view: number;
-  truncated: boolean;
-  generated_at: string;
-};
-type Device = {
-  id: number;
-  name: string;
-  power_kw: string;
-  connectors: { id: number; external_id: string; status: string }[];
-};
-async function read(url: string, signal?: AbortSignal) {
-  const response = await apiFetch(url, { cache: "no-store", signal });
-  const data = await response.json();
-  if (!response.ok)
-    throw new Error(
-      typeof data.detail === "string" ? data.detail : "地图数据读取失败",
-    );
-  return data;
+type MapResponse = MapQueryResponse;
+type ExportQuery = NonNullable<
+  paths["/api/v1/map/export"]["get"]["parameters"]["query"]
+>;
+async function read<T>(
+  request: Promise<{ data?: T; error?: unknown }>,
+): Promise<T> {
+  const result = await request;
+  if (!result.data) throw new Error(apiError(result.error, "地图数据读取失败"));
+  return result.data;
 }
 export function StationMapPanel() {
   const [classifications, setClassifications] = useState<
-    Record<string, Record<string, string>>
+    Partial<ApiSchemas["MapClassifications"]>
   >({});
   const canRating = useCapability("ratings.read");
+  const canExport = useCapability("stations.export");
+  const [exportQuery, setExportQuery] = useState<ExportQuery | null>(null);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState("");
+  const exportController = useRef<AbortController | null>(null);
+  useEffect(() => () => exportController.current?.abort(), []);
   const [draft, setDraft] = useState(empty),
     [filters, setFilters] = useState(empty),
     [view, setView] = useState<Viewport | null>(null),
@@ -76,7 +74,6 @@ export function StationMapPanel() {
     [reset, setReset] = useState(0),
     [operators, setOperators] = useState<{ id: number; name: string }[]>([]),
     [selected, setSelected] = useState<StationPoint | null>(null),
-    [devices, setDevices] = useState<Device[]>([]),
     [detailLoading, setDetailLoading] = useState(false),
     [focus, setFocus] = useState<{
       latitude: number;
@@ -103,7 +100,7 @@ export function StationMapPanel() {
   }, []);
   const onTileError = useCallback(() => setTileError(true), []);
   useEffect(() => {
-    read("/api/v1/map/options")
+    read(typedApi.GET("/api/v1/map/options", { cache: "no-store" }))
       .then((data) => setClassifications(data.classifications))
       .catch((e) => setError(e.message));
     const timer = window.setInterval(() => {
@@ -114,7 +111,7 @@ export function StationMapPanel() {
   }, []);
   const pageRefreshRevision = usePageRefresh();
   useEffect(() => {
-    read("/api/v1/operators")
+    read(typedApi.GET("/api/v1/operators", { cache: "no-store" }))
       .then((d) => setOperators(d.items))
       .catch((e) => setError(e.message));
   }, [pageRefreshRevision]);
@@ -124,15 +121,31 @@ export function StationMapPanel() {
       id = ++sequence.current;
     setLoading(true);
     setError("");
-    const params = new URLSearchParams(
-      Object.entries(filters).filter(([, v]) => v !== ""),
-    );
-    Object.entries(view).forEach(([k, v]) => params.set(k, String(v)));
+    setExportError("");
+    const query = {
+      ...filters,
+      ...view,
+      operator_id: filters.operator_id
+        ? Number(filters.operator_id)
+        : undefined,
+      stars: filters.stars ? Number(filters.stars) : undefined,
+      min_power: filters.min_power || undefined,
+      max_power: filters.max_power || undefined,
+    };
     Promise.all([
-      read(`/api/v1/map?${params}`, controller.signal),
+      read<MapResponse>(
+        typedApi.GET("/api/v1/map", {
+          params: { query },
+          cache: "no-store",
+          signal: controller.signal,
+        }),
+      ),
       read(
-        `/api/v1/map/stations?${params}&location=${location}&page=${page}`,
-        controller.signal,
+        typedApi.GET("/api/v1/map/stations", {
+          params: { query: { ...query, location, page } },
+          cache: "no-store",
+          signal: controller.signal,
+        }),
       ),
     ])
       .then(([map, list]) => {
@@ -140,6 +153,7 @@ export function StationMapPanel() {
           setData(map);
           setRows(list.items);
           setTotal(list.total);
+          setExportQuery({ ...query, location });
         }
       })
       .catch((e) => {
@@ -148,6 +162,7 @@ export function StationMapPanel() {
           setData(null);
           setRows([]);
           setTotal(0);
+          setExportQuery(null);
         }
       })
       .finally(() => {
@@ -155,10 +170,53 @@ export function StationMapPanel() {
       });
     return () => controller.abort();
   }, [filters, view, page, location, refresh, pageRefreshRevision]);
+  async function exportList() {
+    if (!exportQuery || loading || exportController.current) return;
+    const controller = new AbortController();
+    exportController.current = controller;
+    setExportBusy(true);
+    setExportError("");
+    try {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(exportQuery)) {
+        if (value !== undefined && value !== null && value !== "")
+          params.set(key, String(value));
+      }
+      const response = await apiFetch("/api/v1/map/export?" + params, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      if (!response.ok)
+        throw new Error(
+          apiError(await response.json(), "场站导出失败，请重试"),
+        );
+      if (!response.headers.get("content-type")?.startsWith("text/csv"))
+        throw new Error("未收到CSV文件，请重试");
+      const file = await response.blob();
+      if (controller.signal.aborted) return;
+      const url = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "ronghub-map-stations.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (reason) {
+      if (!controller.signal.aborted)
+        setExportError(
+          reason instanceof Error ? reason.message : "场站导出失败，请重试",
+        );
+    } finally {
+      if (exportController.current === controller) {
+        exportController.current = null;
+        setExportBusy(false);
+      }
+    }
+  }
   async function open(point: StationPoint) {
     const id = ++selectedSequence.current;
     setSelected(point);
-    setDevices([]);
     setDetailLoading(true);
     setError("");
     if (!point.unplottable_reason)
@@ -168,13 +226,14 @@ export function StationMapPanel() {
         nonce: Date.now(),
       });
     try {
-      const [station, equipment] = await Promise.all([
-        read(`/api/v1/stations/${point.id}`),
-        read(`/api/v1/stations/${point.id}/equipment`),
-      ]);
+      const station = await read(
+        typedApi.GET("/api/v1/stations/{station_id}", {
+          params: { path: { station_id: point.id } },
+          cache: "no-store",
+        }),
+      );
       if (id === selectedSequence.current) {
         setSelected({ ...point, ...station });
-        setDevices(equipment.items);
       }
     } catch (e) {
       if (id === selectedSequence.current)
@@ -449,6 +508,23 @@ export function StationMapPanel() {
             <p className="muted">
               共 {total} 个场站 · 第 {page} 页
             </p>
+            {canExport && (
+              <div className="map-export">
+                <button
+                  className="outline"
+                  disabled={loading || exportBusy || !exportQuery}
+                  onClick={exportList}
+                >
+                  {exportBusy ? "正在导出…" : "导出当前范围 CSV"}
+                </button>
+                <small>按已查询条件及列表范围导出全部结果，最多10000条。</small>
+                {exportError && (
+                  <p className="error" role="alert">
+                    {exportError}
+                  </p>
+                )}
+              </div>
+            )}
             {rows.map((point) => (
               <button
                 className={`map-station-row ${selected?.id === point.id ? "selected" : ""}`}
@@ -590,25 +666,11 @@ export function StationMapPanel() {
                 </p>
               </div>
               <div>
-                <h3>设备与接口</h3>
-                {devices.map((device) => (
-                  <article className="timeline" key={device.id}>
-                    <b>
-                      {device.name} · {device.power_kw}kW
-                    </b>
-                    <p>
-                      {device.connectors
-                        .map(
-                          (c) =>
-                            `${c.external_id}：${runtimeStates[c.status] ?? "未识别状态"}`,
-                        )
-                        .join("；")}
-                    </p>
-                  </article>
-                ))}
-                {!devices.length && (
-                  <p className="muted">尚无设备快照，不能据此推断设备离线。</p>
-                )}
+                <StationObservations
+                  key={`observations-${selected.id}`}
+                  stationId={selected.id}
+                />
+                <DeviceInventory key={selected.id} stationId={selected.id} />
               </div>
             </div>
           )}

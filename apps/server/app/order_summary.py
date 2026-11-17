@@ -2,13 +2,17 @@
 
 from sqlalchemy import Date, String, cast, func, literal, select
 
+from app.models import ChargingOrder
 from app.orders import statement
 
 NOTICE = "按北京时间及订单开始时间归属日/月/年，区间开始含、结束不含，所选周期可能不完整，全单指标不按区间切分。仅汇总已完成订单的已知指标，缺失不填零；分来源及演示标识展示，不认证源完整性，不等于实付/结算或日电量、补贴。无源桩编码的行不代表一个真实电桩。"
 
 
-def grouped(user, params, dimension, granularity):
-    base = statement(user, params).subquery()
+def grouped(user, params, dimension, granularity, *, station_ids=None):
+    base = statement(user, params)
+    if station_ids is not None:
+        base = base.where(ChargingOrder.station_id.in_(station_ids))
+    base = base.subquery()
     c = base.c
     period = cast(func.date_trunc(granularity, func.timezone("Asia/Shanghai", c.started_at)), Date)
     equipment = c.equipment_external_id if dimension == "equipment" else literal(None, String)

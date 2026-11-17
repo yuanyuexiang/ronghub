@@ -1,33 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-type Contact = {
-  name: string;
-  phone: string;
-  email?: string;
-  position?: string;
-  primary?: boolean;
-};
-type Draft = {
-  company_name: string;
-  credit_code: string;
-  registration_address: string;
-  contacts: Contact[];
-};
-type Enrollment = Draft & {
-  id: number;
-  username: string;
-  status: string;
-  version: number;
-  csrf_token: string;
-  history?: { action: string; comment: string; created_at: string }[];
-};
-type Material = {
-  id: number;
-  filename: string;
-  size: number;
-  submitted_version: number | null;
-};
+import { enrollmentApi, apiError, type ApiSchemas } from "../lib/typed-api";
+type Draft = Pick<
+  ApiSchemas["CreateInput"],
+  "company_name" | "credit_code" | "registration_address" | "contacts"
+>;
+type Enrollment = ApiSchemas["EnrollmentProgress"];
+type Material = ApiSchemas["EnrollmentMaterial"];
 const statuses: Record<string, string> = {
   draft: "草稿待提交",
   submitted: "待监管审核",
@@ -45,7 +25,7 @@ const blank: Draft = {
   company_name: "",
   credit_code: "",
   registration_address: "",
-  contacts: [{ name: "", phone: "", primary: true }],
+  contacts: [{ name: "", phone: "", email: "", position: "", primary: true }],
 };
 export function EnrollmentPortal() {
   const [current, setCurrent] = useState<Enrollment | null>(null),
@@ -58,38 +38,29 @@ export function EnrollmentPortal() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [open, setOpen] = useState(true);
-  async function request(url: string, body?: unknown, method = "POST") {
-    const form = body instanceof FormData;
-    const r = await fetch(
-      url,
-      body
-        ? {
-            method,
-            headers: {
-              ...(form ? {} : { "Content-Type": "application/json" }),
-              "x-enrollment-csrf": current?.csrf_token || "",
-            },
-            body: form ? body : JSON.stringify(body),
-          }
-        : { cache: "no-store" },
-    );
-    const data = await r.json();
-    if (!r.ok) {
-      if (r.status === 401 && url !== "/api/v1/enrollment/login") {
+  function read<T>(
+    result: { data?: T; error?: unknown; response: Response },
+    login = false,
+  ): T {
+    if (result.data === undefined) {
+      if (result.response.status === 401 && !login) {
         setCurrent(null);
         setMode("login");
       }
-      throw new Error(
-        typeof data.detail === "string" ? data.detail : "请检查注册资料",
-      );
+      throw new Error(apiError(result.error, "请检查注册资料"));
     }
-    return data;
+    return result.data;
   }
+  const headers = { "x-enrollment-csrf": current?.csrf_token || "" };
   async function load() {
-    const [r, m] = await Promise.all([
-      request("/api/v1/enrollment/me"),
-      request("/api/v1/enrollment/me/attachments"),
+    const results = await Promise.all([
+      enrollmentApi.GET("/api/v1/enrollment/me", { cache: "no-store" }),
+      enrollmentApi.GET("/api/v1/enrollment/me/attachments", {
+        cache: "no-store",
+      }),
     ]);
+    const r = read(results[0]),
+      m = read(results[1]);
     setCurrent(r);
     setDraft({
       company_name: r.company_name,
@@ -114,14 +85,18 @@ export function EnrollmentPortal() {
     let active = true;
     (async () => {
       try {
-        const health = await fetch("/api/v1/health", { cache: "no-store" });
-        if (health.ok && !(await health.json()).demo_mode) {
+        const health = await enrollmentApi.GET("/api/v1/health", {
+          cache: "no-store",
+        });
+        if (health.data && !health.data.demo_mode) {
           if (active) setOpen(false);
           return;
         }
-        const r = await fetch("/api/v1/enrollment/me", { cache: "no-store" });
-        if (active && r.ok) {
-          const d = await r.json();
+        const r = await enrollmentApi.GET("/api/v1/enrollment/me", {
+          cache: "no-store",
+        });
+        if (active && r.data) {
+          const d = r.data;
           setCurrent(d);
           setUsername(d.username);
           setDraft({
@@ -130,10 +105,11 @@ export function EnrollmentPortal() {
             registration_address: d.registration_address,
             contacts: d.contacts,
           });
-          const m = await fetch("/api/v1/enrollment/me/attachments", {
-            cache: "no-store",
-          });
-          if (active && m.ok) setMaterials((await m.json()).items);
+          const m = await enrollmentApi.GET(
+            "/api/v1/enrollment/me/attachments",
+            { cache: "no-store" },
+          );
+          if (active && m.data) setMaterials(m.data.items);
         }
       } catch {
         if (active) setError("注册服务暂不可用");
@@ -280,7 +256,13 @@ export function EnrollmentPortal() {
               ...draft,
               contacts: [
                 ...draft.contacts,
-                { name: "", phone: "", primary: false },
+                {
+                  name: "",
+                  phone: "",
+                  email: "",
+                  position: "",
+                  primary: false,
+                },
               ],
             })
           }
@@ -308,7 +290,11 @@ export function EnrollmentPortal() {
             disabled={busy}
             onClick={() =>
               run(async () => {
-                await request("/api/v1/enrollment/logout", {});
+                read(
+                  await enrollmentApi.POST("/api/v1/enrollment/logout", {
+                    headers,
+                  }),
+                );
                 setCurrent(null);
                 setMaterials([]);
                 setPassword("");
@@ -385,10 +371,11 @@ export function EnrollmentPortal() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   run(async () => {
-                    await request(
-                      "/api/v1/enrollment/me",
-                      { ...draft, version: current.version },
-                      "PATCH",
+                    read(
+                      await enrollmentApi.PATCH("/api/v1/enrollment/me", {
+                        headers,
+                        body: { ...draft, version: current.version },
+                      }),
                     );
                     await load();
                   });
@@ -463,10 +450,14 @@ export function EnrollmentPortal() {
                       disabled={busy || dirty}
                       onClick={() =>
                         run(async () => {
-                          await request(
-                            `/api/v1/enrollment/me/attachments/${m.id}`,
-                            {},
-                            "DELETE",
+                          read(
+                            await enrollmentApi.DELETE(
+                              "/api/v1/enrollment/me/attachments/{material_id}",
+                              {
+                                headers,
+                                params: { path: { material_id: m.id } },
+                              },
+                            ),
                           );
                           await load();
                         })
@@ -492,9 +483,15 @@ export function EnrollmentPortal() {
                         const form = new FormData();
                         form.set("file", file);
                         run(async () => {
-                          await request(
-                            "/api/v1/enrollment/me/attachments",
-                            form,
+                          read(
+                            await enrollmentApi.POST(
+                              "/api/v1/enrollment/me/attachments",
+                              {
+                                headers,
+                                body: { file: file.name },
+                                bodySerializer: () => form,
+                              },
+                            ),
                           );
                           await load();
                         });
@@ -512,9 +509,12 @@ export function EnrollmentPortal() {
                   disabled={busy || dirty || !materials.length}
                   onClick={() =>
                     run(async () => {
-                      await request("/api/v1/enrollment/me/submit", {
-                        version: current.version,
-                      });
+                      read(
+                        await enrollmentApi.POST(
+                          "/api/v1/enrollment/me/submit",
+                          { headers, body: { version: current.version } },
+                        ),
+                      );
                       await load();
                     })
                   }
@@ -564,14 +564,19 @@ export function EnrollmentPortal() {
             onSubmit={(e) => {
               e.preventDefault();
               run(async () => {
-                await request(
-                  mode === "create"
-                    ? "/api/v1/enrollment"
-                    : "/api/v1/enrollment/login",
-                  mode === "create"
-                    ? { ...draft, username, password }
-                    : { username, password },
-                );
+                if (mode === "create")
+                  read(
+                    await enrollmentApi.POST("/api/v1/enrollment", {
+                      body: { ...draft, username, password },
+                    }),
+                  );
+                else
+                  read(
+                    await enrollmentApi.POST("/api/v1/enrollment/login", {
+                      body: { username, password },
+                    }),
+                    true,
+                  );
                 setPassword("");
                 await load();
               });

@@ -1,6 +1,7 @@
 "use client";
 import { usePageRefresh } from "./page-refresh";
 import { SubsidyDeviceCalculation } from "./subsidy-device-calculation";
+import { SubsidyStatistics } from "./subsidy-statistics";
 import { SubsidyDeviceDays } from "./subsidy-device-days";
 import { SubsidyPolicyDetail } from "./subsidy-policy-detail";
 import { SubsidyPolicyForm } from "./subsidy-policy-form";
@@ -370,6 +371,7 @@ export function SubsidyPanel({
         )}
       </section>
 
+      <SubsidyStatistics />
       <SubsidyDeviceDays />
       <section className="panel">
         <div className="panel-title">

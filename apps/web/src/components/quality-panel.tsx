@@ -3,9 +3,36 @@ import { usePageRefresh } from "./page-refresh";
 import { FormEvent, useEffect, useState } from "react";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { useCapability } from "./permissions";
+import { QualitySummary } from "./quality-summary";
 import { MeterSourcePicker } from "./meter-source-picker";
 import { RuntimeAxes, formatObservedNumber as number } from "./runtime-axes";
 
+type Period = "custom" | "month" | "year";
+function periodWindow(mode: Exclude<Period, "custom">, value: string) {
+  const [year, month = 1] = value.split("-").map(Number);
+  if (
+    !Number.isInteger(year) ||
+    year < 1900 ||
+    year > 9998 ||
+    !Number.isInteger(month) ||
+    month < 1 ||
+    month > 12
+  )
+    return null;
+  return {
+    start_at: `${year}-${String(mode === "year" ? 1 : month).padStart(2, "0")}-01T00:00`,
+    end_at:
+      new Date(
+        Date.UTC(
+          mode === "year" ? year + 1 : year,
+          mode === "year" ? 0 : month,
+          1,
+        ),
+      )
+        .toISOString()
+        .slice(0, 10) + "T00:00",
+  };
+}
 type Filters = {
   source: string;
   group_by: "district" | "operator" | "station";
@@ -75,6 +102,10 @@ function AxisBrief({
 }
 export function QualityPanel() {
   const canExport = useCapability("statistics.export");
+  const [period, setPeriod] = useState<Period>("custom");
+  const [periodValue, setPeriodValue] = useState(() =>
+    initial().start_at.slice(0, 7),
+  );
   const [draft, setDraft] = useState<Filters>(initial),
     [query, setQuery] = useState<{
       filters: Filters;
@@ -144,19 +175,35 @@ export function QualityPanel() {
     });
   }
   async function download() {
-    if (!query) return;
+    if (!data) return;
     setExporting(true);
     setError("");
     try {
-      const { data, error } = await typedApi.GET(
+      const { data: file, error } = await typedApi.GET(
         "/api/v1/statistics/quality/export",
-        { params: { query: params(query.filters) }, parseAs: "blob" },
+        {
+          params: {
+            query: {
+              source: data.source,
+              group_by: data.group_by,
+              asset_scope: data.asset_scope,
+              q: data.q,
+              district: data.district,
+              start_at: data.start_at,
+              end_at: data.end_at,
+              ...(data.operator_id === null
+                ? {}
+                : { operator_id: data.operator_id }),
+            },
+          },
+          parseAs: "blob",
+        },
       );
-      if (!data)
+      if (!file)
         throw new Error(
-          apiError(error, "导出失败，单次最多10000行，请缩小范围"),
+          apiError(error, "导出失败，单次最多10000行（含总计），请缩小范围"),
         );
-      const url = URL.createObjectURL(data),
+      const url = URL.createObjectURL(file),
         link = document.createElement("a");
       link.href = url;
       link.download = "ronghub-quality-observations.csv";
@@ -176,6 +223,7 @@ export function QualityPanel() {
     <section className="panel quality-panel">
       <div className="panel-title">
         <div>
+          <span className="quality-section-label">告警分析</span>
           <h2>区域与企业质量观测</h2>
           <p>结合当前台账、历史状态区间与源报故障，分别核对数据覆盖</p>
         </div>
@@ -196,7 +244,7 @@ export function QualityPanel() {
           {canExport && (
             <button
               className="outline"
-              disabled={busy || exporting || !query}
+              disabled={busy || exporting || !data}
               onClick={download}
             >
               {exporting ? "正在导出…" : "导出当前质量查询"}
@@ -205,6 +253,51 @@ export function QualityPanel() {
         </div>
       </div>
       <form className="application-filters quality-filters" onSubmit={apply}>
+        <label>
+          周期选择（北京）
+          <select
+            aria-label="质量周期方式"
+            value={period}
+            onChange={(e) => {
+              const mode = e.target.value;
+              if (mode === "custom" || mode === "month" || mode === "year") {
+                setPeriod(mode);
+                if (mode !== "custom") {
+                  setPeriodValue(
+                    draft.start_at.slice(0, mode === "year" ? 4 : 7),
+                  );
+                  const selected = periodWindow(
+                    mode,
+                    draft.start_at.slice(0, mode === "year" ? 4 : 7),
+                  );
+                  if (selected) setDraft({ ...draft, ...selected });
+                }
+              }
+            }}
+          >
+            <option value="custom">自定义时间窗</option>
+            <option value="month">按月</option>
+            <option value="year">按年</option>
+          </select>
+        </label>
+        {period !== "custom" && (
+          <label>
+            {period === "month" ? "月份" : "年份"}
+            <input
+              aria-label={period === "month" ? "质量月份" : "质量年份"}
+              type={period === "month" ? "month" : "number"}
+              min={period === "month" ? "1900-01" : "1900"}
+              max={period === "month" ? "9998-12" : "9998"}
+              required
+              value={periodValue}
+              onChange={(e) => {
+                setPeriodValue(e.target.value);
+                const selected = periodWindow(period, e.target.value);
+                if (selected) setDraft({ ...draft, ...selected });
+              }}
+            />
+          </label>
+        )}
         <MeterSourcePicker
           kind="quality"
           value={draft.source}
@@ -274,7 +367,10 @@ export function QualityPanel() {
             step="1"
             required
             value={draft.start_at}
-            onChange={(e) => setDraft({ ...draft, start_at: e.target.value })}
+            onChange={(e) => {
+              setPeriod("custom");
+              setDraft({ ...draft, start_at: e.target.value });
+            }}
           />
         </label>
         <label>
@@ -285,7 +381,10 @@ export function QualityPanel() {
             step="1"
             required
             value={draft.end_at}
-            onChange={(e) => setDraft({ ...draft, end_at: e.target.value })}
+            onChange={(e) => {
+              setPeriod("custom");
+              setDraft({ ...draft, end_at: e.target.value });
+            }}
           />
         </label>
         <button className="primary" disabled={busy || !draft.source}>
@@ -326,6 +425,7 @@ export function QualityPanel() {
               {data.district ? ` · 区域：${data.district}` : ""}
             </p>
           </div>
+          <QualitySummary summary={data.summary} />
           <details className="quality-method">
             <summary>统计口径与数据覆盖说明</summary>
             <p className="muted">{data.notice}</p>
@@ -333,7 +433,12 @@ export function QualityPanel() {
           {!data.items.length ? (
             <p className="empty">当前条件下没有质量观测分组</p>
           ) : (
-            <div className="table-wrap">
+            <div
+              className="table-wrap"
+              tabIndex={0}
+              role="region"
+              aria-label="质量分组明细，可横向滚动"
+            >
               <table>
                 <thead>
                   <tr>
@@ -374,6 +479,9 @@ export function QualityPanel() {
                           </td>
                           <td>
                             {group.station_count}站
+                            <span>
+                              当前台账设备{group.inventory_equipment_count}台
+                            </span>
                             <span>
                               {stream
                                 ? `有运行区间${stream.stations_with_runtime}站`

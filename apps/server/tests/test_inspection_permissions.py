@@ -95,7 +95,19 @@ def test_inspection_assignment_evidence_reply_return_and_close_are_independent(
             return c.post(
                 url + "/actions",
                 headers=h,
-                json={"action": verb, "version": version, "comment": "整改证据与复核依据"},
+                json={
+                    "action": verb,
+                    "version": version,
+                    "comment": "整改证据与复核依据",
+                    **(
+                        {
+                            "contact": {"name": "Executor", "phone": "13800000001"},
+                            "performed_at": (now() - timedelta(days=1)).isoformat(),
+                        }
+                        if verb == "reply"
+                        else {}
+                    ),
+                },
             )
 
         assert action(materials, mh, "reply", 1).status_code == 403
@@ -112,6 +124,9 @@ def test_inspection_assignment_evidence_reply_return_and_close_are_independent(
             materials.delete(url + f"/attachments/{fresh.json()['id']}", headers=mh).status_code
             == 200
         )
+        # Previously bound evidence alone cannot justify a new reply.
+        assert action(replier, ph, "reply", 3).status_code == 422
+        assert materials.post(url + "/attachments", headers=mh, files=document).status_code == 201
         assert action(replier, ph, "reply", 3).status_code == 200
         assert action(assigner, ah, "close", 4).status_code == 403
         assert action(closer, ch, "close", 4).status_code == 200

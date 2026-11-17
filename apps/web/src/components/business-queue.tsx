@@ -8,8 +8,19 @@ import {
   useRef,
   useState,
 } from "react";
+import type { paths } from "@ronghub/api-schema";
 import { typedApi, apiError } from "../lib/typed-api";
+export type AlertCategory = NonNullable<
+  NonNullable<paths["/api/v1/alerts"]["get"]["parameters"]["query"]>["category"]
+>;
+type InspectionParams = NonNullable<
+  paths["/api/v1/inspections"]["get"]["parameters"]["query"]
+>;
+export type InspectionExecution = NonNullable<
+  InspectionParams["execution_state"]
+>;
 export type QueueQuery = {
+  category?: AlertCategory | "";
   q: string;
   status: string;
   kind: string;
@@ -18,6 +29,9 @@ export type QueueQuery = {
   acknowledged?: string;
   start_at?: string;
   end_at?: string;
+  execution_state?: InspectionExecution;
+  created_from?: string;
+  created_to?: string;
   submitted_from?: string;
   submitted_to?: string;
   period_from?: string;
@@ -80,6 +94,32 @@ export async function loadRatingQueue(query: QueueQuery, signal: AbortSignal) {
   if (!data) throw new Error(apiError(error, "星级记录加载失败"));
   return data;
 }
+export function inspectionQueueParams(
+  query: QueueQuery,
+): Omit<InspectionParams, "page" | "page_size"> {
+  const status = query.status;
+  if (
+    status !== "" &&
+    status !== "assigned" &&
+    status !== "replied" &&
+    status !== "returned" &&
+    status !== "closed"
+  )
+    throw new Error("不支持的巡检办理状态");
+  const severity = query.kind;
+  if (severity !== "" && severity !== "normal" && severity !== "major")
+    throw new Error("不支持的巡检等级");
+  return {
+    q: query.q,
+    status,
+    severity,
+    record_id: query.record_id ? Number(query.record_id) : undefined,
+    overdue: query.overdue ? query.overdue === "true" : undefined,
+    execution_state: query.execution_state || undefined,
+    created_from: query.created_from || undefined,
+    created_to: query.created_to || undefined,
+  };
+}
 export async function loadInspectionQueue(
   query: QueueQuery,
   signal: AbortSignal,
@@ -89,32 +129,34 @@ export async function loadInspectionQueue(
     signal,
     params: {
       query: {
-        ...params(query),
-        severity: query.kind,
-        overdue: query.overdue ? query.overdue === "true" : undefined,
+        ...inspectionQueueParams(query),
+        page: query.page,
+        page_size: 20,
       },
     },
   });
   if (!data) throw new Error(apiError(error, "巡检任务加载失败"));
   return data;
 }
+export function alertQueueParams(query: QueueQuery) {
+  return {
+    ...params(query),
+    category: query.category || undefined,
+    rule_id: query.kind ? Number(query.kind) : undefined,
+    acknowledged: query.acknowledged
+      ? query.acknowledged === "true"
+      : undefined,
+    start_at: query.start_at
+      ? new Date(query.start_at).toISOString()
+      : undefined,
+    end_at: query.end_at ? new Date(query.end_at).toISOString() : undefined,
+  };
+}
 export async function loadAlertQueue(query: QueueQuery, signal: AbortSignal) {
   const { data, error } = await typedApi.GET("/api/v1/alerts", {
     cache: "no-store",
     signal,
-    params: {
-      query: {
-        ...params(query),
-        rule_id: query.kind ? Number(query.kind) : undefined,
-        acknowledged: query.acknowledged
-          ? query.acknowledged === "true"
-          : undefined,
-        start_at: query.start_at
-          ? new Date(query.start_at).toISOString()
-          : undefined,
-        end_at: query.end_at ? new Date(query.end_at).toISOString() : undefined,
-      },
-    },
+    params: { query: alertQueueParams(query) },
   });
   if (!data) throw new Error(apiError(error, "告警记录加载失败"));
   return data;

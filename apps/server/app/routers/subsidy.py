@@ -19,7 +19,7 @@ from app.business_contracts import (
 )
 from app.business_dates import Dates, apply_dates, submission_time
 from app.contracts import SubsidyQueuePage
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.models import (
     Audit,
     EnergyRecord,
@@ -237,7 +237,7 @@ def claims_statement(user, q="", status="", record_id=None, dates=None):
 
 @router.get("/claims", response_model=SubsidyQueuePage)
 def claims(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     dates: Dates,
     q: str = Query("", max_length=150),
@@ -337,7 +337,7 @@ def detail(claim_id: int, user: Actor, db: DB):
 @router.get("/claims/{claim_id}/device-lines", response_model=DeviceLinePage)
 def device_lines(
     claim_id: int,
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     page: int = Query(1, ge=1, le=2147483647),
     page_size: int = Query(20, ge=1, le=100),

@@ -105,11 +105,13 @@ export function RichContent({
   body,
   articleId,
   manage,
+  imageSource,
 }: {
   document: RichDocument | null;
   body: string;
   articleId: number;
   manage: boolean;
+  imageSource?: (id: number) => string | undefined;
 }) {
   if (!document) return <p className="article-body">{body}</p>;
   function render(node: RichNode, key: number): ReactNode {
@@ -220,7 +222,11 @@ export function RichContent({
         return typeof attrs.attachment_id === "number" ? (
           <figure key={key}>
             <img
-              src={imageUrl(articleId, attrs.attachment_id, manage)}
+              src={
+                imageSource
+                  ? imageSource(attrs.attachment_id)
+                  : imageUrl(articleId, attrs.attachment_id, manage)
+              }
               alt={typeof attrs.alt === "string" ? attrs.alt : "正文图片"}
               loading="lazy"
             />

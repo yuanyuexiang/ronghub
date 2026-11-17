@@ -21,7 +21,7 @@ from app.business_contracts import (
     SubsidyMaterialMutation,
 )
 from app.config import settings
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.material_contracts import binary_responses
 from app.models import SubsidyAttachment
 from app.reporting import SnapshotDB
@@ -50,7 +50,7 @@ def edit(claim_id: Id, body: SubsidyDraftInput, user: Actor, db: DB, request: Re
 
 
 @router.get("/{claim_id}/attachments", response_model=SubsidyMaterialList)
-def listing(claim_id: Id, user: Actor, db: SnapshotDB):
+def listing(claim_id: Id, user: SnapshotActor, db: SnapshotDB):
     claim = subsidy.claim_access(db, user, claim_id)
     records = list(
         db.scalars(

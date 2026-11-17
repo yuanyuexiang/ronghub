@@ -95,7 +95,7 @@ test("multi-company notice creates independent records and isolates enterprise r
       .click();
     await expect(
       own
-        .locator(".timeline .article-body")
+        .locator(".timeline .rich-document, .timeline .article-body")
         .filter({ hasText: "甲企业独立反馈" }),
     ).toBeVisible();
     await other
@@ -119,11 +119,9 @@ test("multi-company notice creates independent records and isolates enterprise r
     await reg
       .getByRole("button", { name: "查询通知记录", exact: true })
       .click();
-    const records = reg
-      .locator("section.panel")
-      .filter({
-        has: reg.getByRole("heading", { name: "逐企业通知记录", exact: true }),
-      });
+    const records = reg.locator("section.panel").filter({
+      has: reg.getByRole("heading", { name: "逐企业通知记录", exact: true }),
+    });
     await expect(
       records.getByText("第1页 · 共1条", { exact: true }),
     ).toBeVisible();
@@ -142,7 +140,7 @@ test("multi-company notice creates independent records and isolates enterprise r
     await row.getByRole("button", { name: "查看内容", exact: true }).click();
     await expect(
       reg
-        .locator(".timeline .article-body")
+        .locator(".timeline .rich-document, .timeline .article-body")
         .filter({ hasText: "甲企业独立反馈" }),
     ).toBeVisible();
     await reg.screenshot({

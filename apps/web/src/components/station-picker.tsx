@@ -16,7 +16,7 @@ export function StationPicker({
   value: string;
   onChange: (value: string) => void;
   status?: string;
-  kind?: "inventory" | "runtime";
+  kind?: "inventory" | "runtime" | "alerts" | "inspection";
   onSource?: (source: string) => void;
   allowAll?: boolean;
 }) {
@@ -36,17 +36,29 @@ export function StationPicker({
     setBusy(true);
     setError("");
     const request =
-      kind === "runtime"
-        ? typedApi.GET("/api/v1/statistics/runtime/stations", {
+      kind === "inspection"
+        ? typedApi.GET("/api/v1/inspection-plans/stations", {
             params: { query: { q: query, page } },
             cache: "no-store",
             signal: controller.signal,
           })
-        : typedApi.GET("/api/v1/stations", {
-            params: { query: { q: query, status, page } },
-            cache: "no-store",
-            signal: controller.signal,
-          });
+        : kind === "runtime"
+          ? typedApi.GET("/api/v1/statistics/runtime/stations", {
+              params: { query: { q: query, page } },
+              cache: "no-store",
+              signal: controller.signal,
+            })
+          : kind === "alerts"
+            ? typedApi.GET("/api/v1/alerts/configured-observations/stations", {
+                params: { query: { q: query, page } },
+                cache: "no-store",
+                signal: controller.signal,
+              })
+            : typedApi.GET("/api/v1/stations", {
+                params: { query: { q: query, status, page } },
+                cache: "no-store",
+                signal: controller.signal,
+              });
     request
       .then(({ data: d, error }) => {
         if (!d) throw new Error(apiError(error, "场站加载失败"));
@@ -56,7 +68,8 @@ export function StationPicker({
         if (!allowAll && !current.current && d.items[0]) {
           setSelected(d.items[0]);
           onChange(String(d.items[0].id));
-          if ("source" in d.items[0]) onSource?.(d.items[0].source);
+          if ("source" in d.items[0] && typeof d.items[0].source === "string")
+            onSource?.(d.items[0].source);
         } else {
           const found = d.items.find(
             (s: Option) => String(s.id) === current.current,

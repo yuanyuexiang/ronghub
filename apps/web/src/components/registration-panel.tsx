@@ -1,25 +1,10 @@
 "use client";
 import { usePageRefresh } from "./page-refresh";
 import { useEffect, useRef, useState } from "react";
-import { apiFetch } from "../lib/api-fetch";
+import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { useCapability } from "./permissions";
-type Registration = {
-  id: number;
-  username: string;
-  company_name: string;
-  credit_code: string;
-  registration_address: string;
-  contacts: {
-    name: string;
-    phone: string;
-    email?: string;
-    primary?: boolean;
-  }[];
-  status: string;
-  version: number;
-  history?: { action: string; comment: string; created_at: string }[];
-  attachments?: { id: number; filename: string; size: number }[];
-};
+type Registration = ApiSchemas["EnrollmentRecord"];
+type Detail = ApiSchemas["RegistrationDetail"];
 const states: Record<string, string> = {
   submitted: "待注册审核",
   rejected: "已驳回待补充",
@@ -29,10 +14,10 @@ const states: Record<string, string> = {
 export function RegistrationPanel({ csrf }: { csrf: string }) {
   const canReview = useCapability("registrations.review");
   const [items, setItems] = useState<Registration[]>([]),
-    [detail, setDetail] = useState<Registration | null>(null),
-    [profiles, setProfiles] = useState<
-      { id: number; name: string; version: number }[]
-    >([]),
+    [detail, setDetail] = useState<Detail | null>(null),
+    [profiles, setProfiles] = useState<ApiSchemas["RegistrationRoleOption"][]>(
+      [],
+    ),
     [profile, setProfile] = useState(""),
     [comment, setComment] = useState(""),
     [q, setQ] = useState(""),
@@ -41,40 +26,27 @@ export function RegistrationPanel({ csrf }: { csrf: string }) {
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const sequence = useRef(0);
-  async function request(url: string, body?: unknown) {
-    const r = await apiFetch(
-      url,
-      body
-        ? {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-csrf-token": csrf,
-            },
-            body: JSON.stringify(body),
-          }
-        : { cache: "no-store" },
-    );
-    const d = await r.json();
-    if (!r.ok)
-      throw new Error(
-        typeof d.detail === "string" ? d.detail : "请检查审核输入",
-      );
-    return d;
+  function read<T>(result: { data?: T; error?: unknown }): T {
+    if (result.data === undefined)
+      throw new Error(apiError(result.error, "请检查审核输入"));
+    return result.data;
   }
   const appliedListQuery = useRef({ q: "" });
   async function load() {
     const seq = ++sequence.current;
     try {
-      const d = await request(
-        "/api/v1/registrations?" +
-          new URLSearchParams({
-            ...appliedListQuery.current,
-            page: String(page),
-          }),
+      const d = read(
+        await typedApi.GET("/api/v1/registrations", {
+          cache: "no-store",
+          params: { query: { ...appliedListQuery.current, page } },
+        }),
       );
       if (canReview) {
-        const options = await request("/api/v1/registrations/options");
+        const options = read(
+          await typedApi.GET("/api/v1/registrations/options", {
+            cache: "no-store",
+          }),
+        );
         if (seq === sequence.current) setProfiles(options.items);
       }
       if (seq === sequence.current) {
@@ -97,7 +69,14 @@ export function RegistrationPanel({ csrf }: { csrf: string }) {
     }
   }
   async function open(id: number) {
-    setDetail(await request("/api/v1/registrations/" + id));
+    setDetail(
+      read(
+        await typedApi.GET("/api/v1/registrations/{registration_id}", {
+          cache: "no-store",
+          params: { path: { registration_id: id } },
+        }),
+      ),
+    );
     setComment("");
     setProfile("");
   }
@@ -109,16 +88,22 @@ export function RegistrationPanel({ csrf }: { csrf: string }) {
   async function review(action: string) {
     if (!detail) return;
     await run(async () => {
-      await request(`/api/v1/registrations/${detail.id}/review`, {
-        action,
-        version: detail.version,
-        comment,
-        role_profile_id: action === "approve" ? Number(profile) : null,
-        role_profile_version:
-          action === "approve"
-            ? profiles.find((p) => p.id === Number(profile))?.version
-            : null,
-      });
+      read(
+        await typedApi.POST("/api/v1/registrations/{registration_id}/review", {
+          headers: { "x-csrf-token": csrf },
+          params: { path: { registration_id: detail.id } },
+          body: {
+            action,
+            version: detail.version,
+            comment,
+            role_profile_id: action === "approve" ? Number(profile) : null,
+            role_profile_version:
+              action === "approve"
+                ? profiles.find((p) => p.id === Number(profile))?.version
+                : null,
+          },
+        }),
+      );
       await load();
       await open(detail.id);
     });

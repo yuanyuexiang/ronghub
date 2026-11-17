@@ -1,6 +1,6 @@
 "use client";
 import { typedApi, apiError } from "../lib/typed-api";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrivateMaterials } from "./use-private-materials";
 export function InspectionMaterials({
   taskId,
@@ -9,6 +9,7 @@ export function InspectionMaterials({
   csrf,
   parentBusy,
   onBusy,
+  onImages,
 }: {
   taskId: number;
   version: number;
@@ -16,6 +17,7 @@ export function InspectionMaterials({
   csrf: string;
   parentBusy: boolean;
   onBusy: (busy: boolean) => void;
+  onImages?: (images: { id: number; url: string; label: string }[]) => void;
 }) {
   const [busy, setBusy] = useState(false),
     lock = useRef(false);
@@ -35,6 +37,22 @@ export function InspectionMaterials({
     [taskId, version],
   );
   const { items, loading, error, setError, reload } = usePrivateMaterials(read);
+  useEffect(() => {
+    onImages?.(
+      items
+        .filter(
+          (item) =>
+            item.action_id === null &&
+            ["image/png", "image/jpeg"].includes(item.content_type),
+        )
+        .map((item) => ({
+          id: item.id,
+          url: `/api/v1/inspections/${taskId}/attachments/${item.id}/download`,
+          label: item.filename,
+        })),
+    );
+  }, [items, taskId, onImages]);
+  useEffect(() => () => onImages?.([]), [onImages]);
   async function run(operation: () => Promise<void>) {
     if (lock.current || parentBusy) return;
     lock.current = true;

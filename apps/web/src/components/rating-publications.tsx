@@ -1,20 +1,9 @@
 "use client";
 import { usePageRefresh } from "./page-refresh";
 import { useEffect, useRef, useState } from "react";
-import { apiFetch } from "../lib/api-fetch";
+import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 
-type Publication = {
-  id: number;
-  station_name: string;
-  operator_name: string;
-  district: string;
-  address: string;
-  valid_until: string | null;
-  published_at: string | null;
-  result_state: string;
-  effective_stars: number | null;
-  show_association_mark: boolean;
-};
+type Publication = ApiSchemas["RatingPublication"];
 export const resultStates: Record<string, string> = {
   valid: "有效",
   evaluating: "评星中",
@@ -54,20 +43,25 @@ export function RatingPublications({
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    const params = new URLSearchParams({ page: String(page), page_size: "6" });
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) params.set(key, value);
-    });
-    apiFetch(`/api/v1/ratings/publications?${params}`, {
-      cache: "no-store",
-      signal: controller.signal,
-    })
-      .then(async (r) => {
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.detail || "公示查询失败");
+    typedApi
+      .GET("/api/v1/ratings/publications", {
+        params: {
+          query: {
+            ...filters,
+            page,
+            page_size: 6,
+            stars: filters.stars ? Number(filters.stars) : undefined,
+          },
+        },
+        cache: "no-store",
+        signal: controller.signal,
+      })
+      .then((result) => {
+        if (!result.data)
+          throw new Error(apiError(result.error, "公示查询失败"));
         if (id === sequence.current) {
-          setItems(data.items);
-          setTotal(data.total);
+          setItems(result.data.items);
+          setTotal(result.data.total);
         }
       })
       .catch((e) => {

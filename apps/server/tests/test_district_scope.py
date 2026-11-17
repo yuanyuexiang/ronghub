@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from alert_notification_samples import remove_for_events
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, select
 
@@ -191,6 +192,7 @@ def regional_data(accounts, staff, tmp_path, monkeypatch):
         db.execute(delete(InspectionAction).where(InspectionAction.task_id.in_(tids)))
         db.execute(delete(InspectionTask).where(InspectionTask.id.in_(tids)))
         db.execute(delete(AlertCursor).where(AlertCursor.rule_id == ruleid))
+        remove_for_events(db, eids)
         db.execute(delete(AlertNotice).where(AlertNotice.event_id.in_(eids)))
         db.execute(delete(AlertEvent).where(AlertEvent.id.in_(eids)))
         db.execute(delete(AlertRule).where(AlertRule.id == ruleid))

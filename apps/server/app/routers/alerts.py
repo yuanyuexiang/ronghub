@@ -1,18 +1,22 @@
 from datetime import datetime
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException, Query, Request
-from pydantic import BaseModel, Field, model_validator
-from sqlalchemy import func, or_, select
+from fastapi import APIRouter, HTTPException, Query, Request, Response
+from pydantic import BaseModel, Field, field_validator, model_validator
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app import alerts
+from app.alert_queries import Category
+from app.alert_queries import query as event_query
 from app.authorization import authorize_business_write
 from app.business_audit import state, transition
-from app.contracts import AlertQueuePage
-from app.dependencies import DB, Actor
-from app.models import AlertEvent, AlertNotice, AlertRule, Operator, Station, now
-from app.scopes import records as scoped_records
+from app.configured_alert_contracts import ObservationInput
+from app.contracts import AlertDetail, AlertEventResponse, AlertQueuePage
+from app.dependencies import DB, Actor, SnapshotActor
+from app.models import AlertEvent, AlertNotice, AlertRule, now
+from app.operational_contracts import LegacyAlertRules, LegacyRuleCreated, LegacySampleResult
+from app.reporting import SnapshotDB
 
 router = APIRouter(prefix="/api/v1/alerts", tags=["alerts"])
 
@@ -41,6 +45,11 @@ class SampleInput(BaseModel):
     value: Decimal = Field(max_digits=18, decimal_places=6)
     observed_at: datetime
 
+    @field_validator("observed_at")
+    @classmethod
+    def valid_time(cls, value):
+        return ObservationInput.aware(value)
+
 
 class AcknowledgeInput(BaseModel):
     version: int = Field(ge=1)
@@ -52,8 +61,9 @@ def authorized(user):
         raise HTTPException(403, "无权访问告警")
 
 
-@router.get("/rules")
-def rules(user: Actor, db: DB):
+@router.get("/rules", response_model=LegacyAlertRules)
+def rules(user: SnapshotActor, db: SnapshotDB, response: Response):
+    response.headers["Cache-Control"] = "no-store"
     authorized(user)
     return {
         "items": [
@@ -69,13 +79,17 @@ def rules(user: Actor, db: DB):
                 "notifications_enabled": r.notifications_enabled,
                 "is_demo": r.is_demo,
             }
-            for r in db.scalars(select(AlertRule).order_by(AlertRule.id.desc()))
+            for r in db.scalars(
+                select(AlertRule)
+                .where(AlertRule.configuration.is_(None))
+                .order_by(AlertRule.id.desc())
+            )
         ]
     }
 
 
-@router.post("/rules", status_code=201)
-def create_rule(body: RuleInput, request: Request, user: Actor, db: DB):
+@router.post("/rules", status_code=201, response_model=LegacyRuleCreated)
+def create_rule(body: RuleInput, request: Request, user: Actor, db: DB, response: Response):
     authorize_business_write(db, user, request, "alerts.rules")
     alerts.demo_only()
     if user.role != "regulator":
@@ -83,28 +97,34 @@ def create_rule(body: RuleInput, request: Request, user: Actor, db: DB):
     r = AlertRule(**body.model_dump(), is_demo=True)
     db.add(r)
     try:
+        db.flush()
+        result = LegacyRuleCreated.model_validate({"id": r.id})
         db.commit()
     except IntegrityError as e:
         db.rollback()
         raise HTTPException(409, "规则代码与版本已存在") from e
-    return {"id": r.id}
+    response.headers["Cache-Control"] = "no-store"
+    return result
 
 
-@router.post("/samples")
-def sample(body: SampleInput, request: Request, user: Actor, db: DB):
+@router.post("/samples", response_model=LegacySampleResult)
+def sample(body: SampleInput, request: Request, user: Actor, db: DB, response: Response):
     authorize_business_write(db, user, request, "alerts.samples")
-    result = alerts.observe(db, user, **body.model_dump())
+    result = LegacySampleResult.model_validate(alerts.observe(db, user, **body.model_dump()))
     db.commit()
+    response.headers["Cache-Control"] = "no-store"
     return result
 
 
 @router.get("", response_model=AlertQueuePage)
 def events(
-    user: Actor,
-    db: DB,
+    user: SnapshotActor,
+    db: SnapshotDB,
+    response: Response,
     q: str = Query("", max_length=150),
     status: str = Query("", max_length=30),
     acknowledged: bool | None = None,
+    category: Category | None = None,
     rule_id: int | None = Query(None, ge=1, le=9223372036854775807),
     record_id: int | None = Query(None, ge=1, le=9223372036854775807),
     start_at: datetime | None = None,
@@ -113,46 +133,18 @@ def events(
     page_size: int = Query(20, ge=1, le=100),
 ):
     authorized(user)
-    if status not in {"", "active", "recovered"}:
-        raise HTTPException(422, "不支持的设备事件状态")
-    for at in [start_at, end_at]:
-        if at is not None and at.utcoffset() is None:
-            raise HTTPException(422, "告警时间必须包含时区")
-    if start_at and end_at and start_at >= end_at:
-        raise HTTPException(422, "结束时间须晚于开始时间")
-    stmt = scoped_records(
-        select(AlertEvent, Station.name, Operator.name)
-        .join(Station, Station.id == AlertEvent.station_id)
-        .join(Operator, Operator.id == AlertEvent.operator_id),
-        AlertEvent,
+    response.headers["Cache-Control"] = "no-store"
+    stmt = event_query(
         user,
+        q=q,
+        status=status,
+        acknowledged=acknowledged,
+        rule_id=rule_id,
+        record_id=record_id,
+        start_at=start_at,
+        end_at=end_at,
+        category=category,
     )
-    if user.role == "operator":
-        stmt = stmt.where(AlertEvent.operator_id == user.operator_id)
-    if q.strip():
-        stmt = stmt.where(
-            or_(
-                AlertEvent.target.icontains(q.strip(), autoescape=True),
-                Station.name.icontains(q.strip(), autoescape=True),
-                Operator.name.icontains(q.strip(), autoescape=True),
-            )
-        )
-    if status:
-        stmt = stmt.where(AlertEvent.status == status)
-    if acknowledged is not None:
-        stmt = stmt.where(
-            AlertEvent.acknowledged_at.is_not(None)
-            if acknowledged
-            else AlertEvent.acknowledged_at.is_(None)
-        )
-    if rule_id is not None:
-        stmt = stmt.where(AlertEvent.rule_id == rule_id)
-    if record_id is not None:
-        stmt = stmt.where(AlertEvent.id == record_id)
-    if start_at:
-        stmt = stmt.where(AlertEvent.opened_at >= start_at)
-    if end_at:
-        stmt = stmt.where(AlertEvent.opened_at < end_at)
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     rows = db.execute(
         stmt.order_by(AlertEvent.id.desc()).offset((page - 1) * page_size).limit(page_size)
@@ -174,8 +166,9 @@ def events(
     }
 
 
-@router.get("/{event_id}")
-def detail(event_id: int, user: Actor, db: DB):
+@router.get("/{event_id}", response_model=AlertDetail)
+def detail(event_id: int, user: SnapshotActor, db: SnapshotDB, response: Response):
+    response.headers["Cache-Control"] = "no-store"
     e = alerts.access(db, user, event_id)
     return {
         **alerts.output(e),
@@ -193,7 +186,7 @@ def detail(event_id: int, user: Actor, db: DB):
     }
 
 
-@router.post("/{event_id}/acknowledge")
+@router.post("/{event_id}/acknowledge", response_model=AlertEventResponse)
 def acknowledge(event_id: int, body: AcknowledgeInput, request: Request, user: Actor, db: DB):
     authorize_business_write(db, user, request, "alerts.acknowledge")
     alerts.demo_only()
@@ -210,5 +203,6 @@ def acknowledge(event_id: int, body: AcknowledgeInput, request: Request, user: A
     e.acknowledge_note = body.note.strip()
     e.version += 1
     transition(db, user, "alerts.acknowledge", e.id, before, state(e), "alert_event")
+    result = AlertEventResponse.model_validate(alerts.output(e))
     db.commit()
-    return alerts.output(e)
+    return result

@@ -1,12 +1,72 @@
 "use client";
-import { apiFetch } from "../lib/api-fetch";
-import { useEffect, useRef, useState } from "react";
-type Device = {
-  id: number;
-  name: string;
-  power_kw: string;
-  connectors: { id: number; external_id: string; status: string }[];
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
+import { StationObservations } from "./station-observations";
+import { DeviceInventory } from "./device-inventory";
+import { businessStates, stationTypes } from "./station-map-types";
+
+type Detail = ApiSchemas["StationDetail"];
+const labels: Record<string, string> = {
+  direct: "直供电",
+  transferred: "转供电",
+  commercial: "商业用电",
+  general_industrial: "普通工业用电",
+  large_industrial: "大工业用电",
+  other: "其他",
+  free: "免费",
+  paid: "收费",
+  limited_free: "限时免费停车",
+  charging_discount: "充电限时减免",
+  onsite: "参考场地实际收费标准",
+  public: "公共",
+  personal: "个人",
+  bus: "公交专用",
+  sanitation: "环卫专用",
+  logistics: "物流专用",
+  taxi: "出租车专用",
+  car_sharing: "分时租赁专用",
+  community_shared: "小区共享",
+  workplace: "单位专用",
+  private_shared: "私人共享桩",
+  public_institution: "公共机构",
+  residential: "居民区",
+  enterprise: "企事业单位",
+  office: "写字楼",
+  industrial: "工业园区",
+  transit: "交通枢纽",
+  culture_sports: "大型文体设施",
+  highway: "城际高速服务区",
+  green_space: "城市绿地",
+  roadside: "路边停车位",
+  building_parking: "大型建筑配建停车场",
+  scenic_area: "风景区",
+  bus_depot: "公交场站",
+  fuel_station: "加油加气站",
+  taxi_site: "出租车场所",
+  constructing: "建设中",
+  offline: "关闭下线",
+  maintenance: "维护中",
+  normal: "正常使用",
+  active: "正常同步",
+  removed: "来源已下架",
 };
+const display = (value: string | null | undefined) =>
+  !value || value === "unknown" ? "来源未提供" : labels[value] || value;
+const timestamp = (value: string | null) =>
+  value
+    ? new Date(value).toLocaleString("zh-CN", {
+        timeZone: "Asia/Shanghai",
+        hour12: false,
+      })
+    : "来源未提供";
+function Item({ name, children }: { name: string; children: ReactNode }) {
+  return (
+    <div>
+      <dt>{name}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
 export function StationDetail({
   stationId,
   onClose,
@@ -15,48 +75,36 @@ export function StationDetail({
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [devices, setDevices] = useState<Device[]>([]),
-    [station, setStation] = useState<{
-      name: string;
-      address: string;
-      status: string;
-      power_kw: string;
-    } | null>(null),
+  const [station, setStation] = useState<Detail | null>(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
   useEffect(() => {
     dialog.current?.showModal();
-    let active = true;
-    Promise.all([
-      apiFetch(`/api/v1/stations/${stationId}`, { cache: "no-store" }),
-      apiFetch(`/api/v1/stations/${stationId}/equipment`, {
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    setStation(null);
+    typedApi
+      .GET("/api/v1/stations/{station_id}", {
+        params: { path: { station_id: stationId } },
+        signal: controller.signal,
         cache: "no-store",
-      }),
-    ])
-      .then(async (rs) => {
-        if (rs.some((r) => !r.ok)) throw new Error("场站详情读取失败");
-        const [s, e] = await Promise.all(rs.map((r) => r.json()));
-        if (active) {
-          setStation(s);
-          setDevices(e.items);
-        }
+      })
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+        if (!data) throw new Error(apiError(error, "场站详情读取失败"));
+        setStation(data);
       })
       .catch((e) => {
-        if (active) setError(e.message);
+        if (!controller.signal.aborted)
+          setError(e instanceof Error ? e.message : "场站详情读取失败");
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       });
-    return () => {
-      active = false;
-    };
+    return () => controller.abort();
   }, [stationId]);
-  const labels: Record<string, string> = {
-    available: "空闲",
-    charging: "充电中",
-    unknown: "状态未知",
-    faulted: "故障",
-  };
+  const f = station?.facilities;
   return (
     <dialog
       ref={dialog}
@@ -74,40 +122,114 @@ export function StationDetail({
         </button>
       </div>
       {loading ? (
-        <p className="empty">正在加载设备…</p>
+        <p className="empty" role="status">
+          正在加载场站与设备…
+        </p>
       ) : error ? (
         <p role="alert" className="error">
           {error}
         </p>
       ) : (
-        <div className="device-list">
-          <p className="muted">
-            装机功率 {station?.power_kw} kW · 设备状态与业务审批状态分别管理
-          </p>
-          {devices.length ? (
-            devices.map((d) => (
-              <article className="device" key={d.id}>
-                <h3>
-                  {d.name} <small>{d.power_kw} kW</small>
-                </h3>
-                <div className="connector-grid">
-                  {d.connectors.map((c) => (
-                    <div key={c.id}>
-                      <b>{c.external_id}</b>
-                      <em
-                        className={c.status === "charging" ? "green" : "amber"}
-                      >
-                        {labels[c.status] || c.status}
-                      </em>
-                    </div>
-                  ))}
-                </div>
-              </article>
-            ))
-          ) : (
-            <p className="empty">尚未同步设备明细，接口数量仅为台账汇总</p>
-          )}
-        </div>
+        station &&
+        f && (
+          <div className="station-detail-body">
+            <div className="station-detail-summary">
+              <span className="tag">
+                {businessStates[station.status] || station.status}
+              </span>
+              <span>
+                {stationTypes[station.station_type] || station.station_type}
+              </span>
+              <span>台账额定总功率 {station.power_kw} kW</span>
+            </div>
+            <p className="muted">
+              以下为来源上报资料；未知不等于否或零。正式投运日期、来源状态与平台审批状态分别管理。
+            </p>
+            <section aria-label="场站基本资料">
+              <h3>基本资料</h3>
+              <dl className="station-facts">
+                <Item name="来源场站编码">{station.external_id}</Item>
+                <Item name="来源 / 同步时间">
+                  {station.source} · {timestamp(station.synced_at)}（北京时间）
+                </Item>
+                <Item name="所在区域">{station.district}</Item>
+                <Item name="全省唯一备案号">{display(f.filing_code)}</Item>
+                <Item name="用途">{display(station.usage_type)}</Item>
+                <Item name="建设场所">
+                  {display(station.construction_site)}
+                </Item>
+                <Item name="来源站点状态">{display(station.site_state)}</Item>
+                <Item name="来源接入状态">
+                  {display(station.source_sync_state)}
+                </Item>
+                <Item name="经纬度 / 坐标系">
+                  {station.longitude == null || station.latitude == null
+                    ? "来源未提供"
+                    : `${station.longitude}, ${station.latitude} / ${station.coordinate_system.toUpperCase()}${station.location_is_demo ? "（演示坐标）" : ""}`}
+                </Item>
+                <Item name="来源首次上报时间">
+                  {timestamp(station.source_first_reported_at)}
+                </Item>
+                <Item name="来源首次接入时间">
+                  {timestamp(station.source_first_connected_at)}
+                </Item>
+              </dl>
+            </section>
+            <section aria-label="场站供电配套">
+              <h3>供电配套</h3>
+              <dl className="station-facts">
+                <Item name="供电类型">{display(f.supply_type)}</Item>
+                <Item name="电费类型">{display(f.electricity_tariff)}</Item>
+                <Item name="报装电源容量">
+                  {f.supply_capacity == null
+                    ? "来源未提供"
+                    : `${f.supply_capacity} ${f.supply_capacity_unit === "unknown" ? "（来源未注明单位）" : f.supply_capacity_unit}`}
+                </Item>
+                <Item name="是否独立报装">
+                  {f.independent_connection == null
+                    ? "来源未提供"
+                    : f.independent_connection
+                      ? "是"
+                      : "否"}
+                </Item>
+              </dl>
+            </section>
+            <section aria-label="场站运营与停车">
+              <h3>运营与停车</h3>
+              <dl className="station-facts">
+                <Item name="正式投运日期（来源）">
+                  {display(f.commissioned_on)}
+                </Item>
+                <Item name="营业时间">{display(f.business_hours)}</Item>
+                <Item name="车位数量">
+                  {f.parking_spaces == null
+                    ? "来源未提供"
+                    : `${f.parking_spaces} 个`}
+                </Item>
+                <Item name="停车费类型">{display(f.parking_fee_type)}</Item>
+                <Item name="停车费描述">
+                  {display(f.parking_fee_description)}
+                </Item>
+              </dl>
+            </section>
+            <section aria-label="场站联系方式">
+              <h3>联系方式</h3>
+              {station.contact_accessible ? (
+                <dl className="station-facts">
+                  <Item name="联系人">{display(station.contact?.name)}</Item>
+                  <Item name="联系电话">{display(station.contact?.phone)}</Item>
+                </dl>
+              ) : (
+                <p className="muted">当前岗位未授权查看场站联系人。</p>
+              )}
+            </section>
+            <StationObservations
+              key={`observations-${stationId}`}
+              stationId={stationId}
+            />
+            <DeviceInventory key={stationId} stationId={stationId} />
+          </div>
+        )
       )}
     </dialog>
   );

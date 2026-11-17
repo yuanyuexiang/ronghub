@@ -69,11 +69,9 @@ test("alert queue distinguishes confirmation from recovery and reaches historica
     await expect(
       page.getByText("告警第1页 · 共1条", { exact: true }),
     ).toBeVisible();
-    const row = page
-      .getByRole("row")
-      .filter({
-        has: page.getByRole("cell", { name: `ALERT-${id}`, exact: true }),
-      });
+    const row = page.getByRole("row").filter({
+      has: page.getByRole("cell", { name: `ALERT-${id}`, exact: true }),
+    });
     await expect(row).toContainText("持续异常");
     await expect(row).toContainText("已人工确认");
     await page.getByLabel("告警筛选状态").selectOption("recovered");
@@ -90,6 +88,34 @@ test("alert queue distinguishes confirmation from recovery and reaches historica
     await expect(
       page.getByText("告警第1页 · 共1条", { exact: true }),
     ).toBeVisible();
+    await page
+      .getByLabel("告警筛选类型", { exact: true })
+      .selectOption("device_offline");
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01T00:00`;
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const end = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-01T00:00`;
+    await page.getByLabel("告警触发开始时间", { exact: true }).fill(month);
+    await page.getByLabel("告警触发结束时间", { exact: true }).fill(end);
+    await page
+      .getByRole("button", { name: "查询告警记录", exact: true })
+      .click();
+    await expect(
+      page.getByText("告警第1页 · 共1条", { exact: true }),
+    ).toBeVisible();
+    // Editing draft conditions must not silently change the exported queried result.
+    await page.getByLabel("告警筛选状态").selectOption("recovered");
+    const downloadPromise = page.waitForEvent("download");
+    await page
+      .getByRole("button", { name: "导出告警CSV", exact: true })
+      .click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe("ronghub-alert-events.csv");
+    const csv = readFileSync((await download.path())!, "utf8");
+    expect(csv).toContain("事件编号");
+    expect(csv).toContain(String(id));
+    expect(csv.trim().split("\n")).toHaveLength(2);
+    expect(csv).not.toContain("短信通知号码");
     await page.screenshot({
       path: "test-results/alert-queue.png",
       fullPage: true,

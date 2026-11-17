@@ -1,6 +1,7 @@
 import secrets
 from datetime import timedelta
 
+from alert_notification_samples import remove_for_events
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, select
 
@@ -166,6 +167,7 @@ def test_alert_rules_samples_and_acknowledgement_have_independent_permissions(
         with SessionLocal.begin() as db:
             events = select(AlertEvent.id).where(AlertEvent.rule_id.in_(rules))
             db.execute(delete(AlertCursor).where(AlertCursor.rule_id.in_(rules)))
+            remove_for_events(db, events)
             db.execute(delete(AlertNotice).where(AlertNotice.event_id.in_(events)))
             db.execute(delete(AlertEvent).where(AlertEvent.rule_id.in_(rules)))
             db.execute(delete(AlertRule).where(AlertRule.id.in_(rules)))

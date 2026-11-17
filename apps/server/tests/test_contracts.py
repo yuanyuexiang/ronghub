@@ -34,7 +34,14 @@ def test_export_matches_runtime_and_does_not_connect(monkeypatch):
     ]
     assert paths["/api/v1/enrollment/me"]["get"]["security"] == [{"EnrollmentCookie": []}]
     assert paths["/api/v1/enrollment/me/submit"]["post"]["security"] == [
-        {"EnrollmentCookie": [], "CsrfHeader": []}
+        {"EnrollmentCookie": [], "EnrollmentCsrfHeader": []}
+    ]
+    assert (
+        schema["components"]["securitySchemes"]["EnrollmentCsrfHeader"]["name"]
+        == "x-enrollment-csrf"
+    )
+    assert paths["/api/v1/enrollment/me/attachments"]["get"]["security"] == [
+        {"EnrollmentCookie": []}
     ]
     assert paths["/api/v1/auth/staff-enrollment/me"]["get"]["security"] == [
         {"StaffApplicantCookie": []}

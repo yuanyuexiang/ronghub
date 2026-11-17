@@ -1,4 +1,5 @@
 "use client";
+import { DashboardOperations } from "../components/dashboard-operations";
 import { LoginCaptcha } from "../components/login-captcha";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { RuntimePanel } from "../components/runtime-panel";
@@ -23,6 +24,8 @@ import { CompanyPanel } from "../components/company-panel";
 import { ContentPanel } from "../components/content-panel";
 import { StatisticsPanel } from "../components/statistics-panel";
 import { AlertPanel } from "../components/alert-panel";
+import { ProtocolPanel } from "../components/protocol-panel";
+import { HazardPanel } from "../components/hazard-panel";
 import { InspectionPanel } from "../components/inspection-panel";
 import { SubsidyPanel } from "../components/subsidy-panel";
 import { RatingPanel } from "../components/rating-panel";
@@ -304,6 +307,9 @@ export default function Home() {
               <Link href="/staff-register">申请监管 / 协会工作人员账号</Link>
             </p>
             <Link href="/register">企业注册 / 注册进度查询</Link>
+            <p>
+              <Link href="/portal">查看公开资讯公告</Link>
+            </p>
           </form>
         </section>
       </main>
@@ -344,6 +350,7 @@ export default function Home() {
           "数据同步",
           "告警中心",
           "巡检督办",
+          "隐患督办",
           "补贴管理",
           "星级查看",
         ]
@@ -354,6 +361,7 @@ export default function Home() {
             "场站申请",
             "企业告警",
             "整改任务",
+            "隐患督办",
             "补贴申报",
             "星级申报",
           ]
@@ -370,7 +378,7 @@ export default function Home() {
   if (me.role !== "association")
     menu.push(me.role === "regulator" ? "企业台账" : "企业资料");
   if (me.role === "regulator") menu.push("注册审核");
-  menu.push("公告与通知", "统计分析");
+  menu.push("公告与通知", "监管协议", "统计分析");
   const menuPermissions: Record<string, string> = {
     全域地图: "stations.read",
     场站地图: "stations.read",
@@ -384,6 +392,7 @@ export default function Home() {
     运行状态: "statistics.read",
     告警中心: "alerts.read",
     企业告警: "alerts.read",
+    隐患督办: "hazards.read",
     巡检督办: "inspections.read",
     整改任务: "inspections.read",
     补贴管理: "subsidy.read",
@@ -394,6 +403,7 @@ export default function Home() {
     企业台账: "companies.read",
     企业资料: "companies.read",
     公告与通知: "content.read",
+    监管协议: "content.read",
     统计分析: "statistics.read",
   };
   if (geographicScope !== null)
@@ -485,31 +495,35 @@ export default function Home() {
                               ? "分场站与源桩编码汇总订单，核对已知指标及缺失覆盖"
                               : tab === "充电订单"
                                 ? "查询源报充电记录、桩枪编码与时间，按授权范围导出"
-                                : ["巡检督办", "整改任务"].includes(tab)
-                                  ? "跟踪整改期限、核验证据并保留回复与复核记录"
-                                  : ["告警中心", "企业告警"].includes(tab)
-                                    ? "区分设备事件与人工确认，跟踪异常、恢复及处置依据"
-                                    : tab === "场站申请"
-                                      ? "按编号、类型与状态检索申请，查阅材料并跟踪审核进度"
-                                      : tab === "操作日志"
-                                        ? "按人员、动作与时间追溯已记录的业务操作"
-                                        : tab === "统计分析"
-                                          ? "查看授权范围内的日月年观测电量、排名与数据覆盖情况"
-                                          : tab === "公告与通知"
-                                            ? "查阅公告、接收定向通知并跟踪企业回复"
-                                            : [
-                                                  "星级查看",
-                                                  "星级申报",
-                                                  "星级评价",
-                                                ].includes(tab)
-                                              ? "申报、复核、公示与申诉，保留每次评定依据"
-                                              : tab === "人员账号申请"
-                                                ? "核验工作人员身份，明确角色与区域并留存开通记录"
-                                                : tab === "账号安全"
-                                                  ? "管理本人登录凭据、验证手机与会话安全"
-                                                  : me.role === "operator"
-                                                    ? "查看本企业场站及设备概况"
-                                                    : "掌握已录入场站信息与接入情况"}
+                                : tab === "隐患督办"
+                                  ? "独立跟踪隐患整改、留存企业执行事实并明确监管关闭"
+                                  : ["巡检督办", "整改任务"].includes(tab)
+                                    ? "跟踪整改期限、核验证据并保留回复与复核记录"
+                                    : ["告警中心", "企业告警"].includes(tab)
+                                      ? "区分设备事件与人工确认，跟踪异常、恢复及处置依据"
+                                      : tab === "场站申请"
+                                        ? "按编号、类型与状态检索申请，查阅材料并跟踪审核进度"
+                                        : tab === "操作日志"
+                                          ? "按人员、动作与时间追溯已记录的业务操作"
+                                          : tab === "统计分析"
+                                            ? "查看授权范围内的日月年观测电量、排名与数据覆盖情况"
+                                            : tab === "监管协议"
+                                              ? "查阅已发布的监管协议正文与原始文件，核对正式接入要求"
+                                              : tab === "公告与通知"
+                                                ? "查阅公告、接收定向通知并跟踪企业回复"
+                                                : [
+                                                      "星级查看",
+                                                      "星级申报",
+                                                      "星级评价",
+                                                    ].includes(tab)
+                                                  ? "申报、复核、公示与申诉，保留每次评定依据"
+                                                  : tab === "人员账号申请"
+                                                    ? "核验工作人员身份，明确角色与区域并留存开通记录"
+                                                    : tab === "账号安全"
+                                                      ? "管理本人登录凭据、验证手机与会话安全"
+                                                      : me.role === "operator"
+                                                        ? "查看本企业场站及设备概况"
+                                                        : "掌握已录入场站信息与接入情况"}
                   </p>
                 </div>
                 <PageRefreshButton
@@ -602,6 +616,9 @@ export default function Home() {
                     })}
                 </section>
               )}
+              {tab === "工作台" && summary && me.role !== "association" && (
+                <DashboardOperations />
+              )}
               {tab === "工作台" && summary && (
                 <section className="panel workspace-tasks">
                   <h2>
@@ -678,10 +695,14 @@ export default function Home() {
                 <CompanyPanel role={me.role} csrf={me.csrf_token} />
               ) : tab === "公告与通知" ? (
                 <ContentPanel role={me.role} csrf={me.csrf_token} />
+              ) : tab === "监管协议" ? (
+                <ProtocolPanel onManage={() => setTab("公告与通知")} />
               ) : tab === "统计分析" ? (
                 <StatisticsPanel role={me.role} />
               ) : ["告警中心", "企业告警"].includes(tab) ? (
                 <AlertPanel role={me.role} csrf={me.csrf_token} />
+              ) : tab === "隐患督办" ? (
+                <HazardPanel role={me.role} csrf={me.csrf_token} />
               ) : ["巡检督办", "整改任务"].includes(tab) ? (
                 <InspectionPanel role={me.role} csrf={me.csrf_token} />
               ) : tab.startsWith("补贴") ? (

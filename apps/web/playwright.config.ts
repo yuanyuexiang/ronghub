@@ -14,12 +14,12 @@ export default defineConfig({
     {
       name: "core",
       testIgnore:
-        /(rating-(fields|standard-drafts|indicator-status)|subsidy-policies)\.spec\.ts/,
+        /(rating-(fields|standard-drafts|indicator-status)|subsidy-(policies|device-execution)|alert-configuration|configured-observations|alert-notifications)\.spec\.ts/,
     },
     {
       name: "configured-standards",
       testMatch:
-        /(rating-(fields|standard-drafts|indicator-status)|subsidy-policies)\.spec\.ts/,
+        /(rating-(fields|standard-drafts|indicator-status)|subsidy-(policies|device-execution)|alert-configuration|configured-observations|alert-notifications)\.spec\.ts/,
       dependencies: ["core"],
       workers: 1,
     },

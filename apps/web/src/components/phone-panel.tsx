@@ -1,4 +1,5 @@
 "use client";
+import { PhoneChange } from "./phone-change";
 import { usePageRefresh } from "./page-refresh";
 import { useEffect, useState } from "react";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -109,8 +110,9 @@ export function PhonePanel({
               : "未留存"}
           </p>
           <p className="muted">
-            此记录仅为模拟验证，不作为生产找回凭据。手机号变更需要额外核验，当前不提供直接覆盖入口。可在登录入口使用模拟短信登录或找回密码；真实通道尚未接入。
+            此记录仅为模拟验证，不作为生产找回凭据。更换手机须完成原、新手机双重核验；真实短信通道尚未接入。
           </p>
+          <PhoneChange csrf={csrf} state={state} onChanged={onBound} />
         </div>
       ) : (
         <>

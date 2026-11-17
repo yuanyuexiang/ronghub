@@ -4,28 +4,16 @@ import {
   loadInspectionQueue,
   QueuePagination,
 } from "./business-queue";
-import { apiFetch } from "../lib/api-fetch";
+import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { useCapability } from "./permissions";
 import { StationPicker } from "./station-picker";
 import { useState } from "react";
+import { RichEditor } from "./rich-editor";
+import { RichContent, type RichDocument } from "./rich-document";
+import { InspectionExport } from "./inspection-export";
+import { InspectionPlans } from "./inspection-plans";
 import { InspectionMaterials } from "./inspection-materials";
-type Task = {
-  id: number;
-  title: string;
-  description: string;
-  station_id: number;
-  severity: string;
-  due_at: string;
-  status: string;
-  version: number;
-  overdue: boolean;
-  history?: {
-    id: number;
-    action: string;
-    comment: string;
-    created_at: string;
-  }[];
-};
+type Task = ApiSchemas["InspectionDetailResponse"];
 const states: Record<string, string> = {
   assigned: "待整改",
   replied: "待复核",
@@ -55,6 +43,15 @@ export function InspectionPanel({
   const [sid, setSid] = useState(""),
     [title, setTitle] = useState(""),
     [description, setDescription] = useState(""),
+    [requirementDocument, setRequirementDocument] =
+      useState<RichDocument | null>(null),
+    [commentDocument, setCommentDocument] = useState<RichDocument | null>(null),
+    [contactName, setContactName] = useState(""),
+    [contactPhone, setContactPhone] = useState(""),
+    [performedAt, setPerformedAt] = useState(""),
+    [images, setImages] = useState<
+      { id: number; url: string; label: string }[]
+    >([]),
     [severity, setSeverity] = useState("normal"),
     [due, setDue] = useState(""),
     [detail, setDetail] = useState<Task | null>(null),
@@ -62,26 +59,18 @@ export function InspectionPanel({
     [busy, setBusy] = useState(false),
     [materialBusy, setMaterialBusy] = useState(false),
     [error, setError] = useState("");
-  async function request(url: string, body?: unknown) {
-    const r = await apiFetch(
-      url,
-      body
-        ? {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-csrf-token": csrf,
-            },
-            body: JSON.stringify(body),
-          }
-        : { cache: "no-store" },
+  function read<T>(result: { data?: T; error?: unknown }): T {
+    if (result.data === undefined)
+      throw new Error(apiError(result.error, "请检查输入内容"));
+    return result.data;
+  }
+  async function readDetail(id: number) {
+    return read(
+      await typedApi.GET("/api/v1/inspections/{task_id}", {
+        cache: "no-store",
+        params: { path: { task_id: id } },
+      }),
     );
-    const d = await r.json();
-    if (!r.ok)
-      throw new Error(
-        typeof d.detail === "string" ? d.detail : "请检查输入内容",
-      );
-    return d;
   }
   async function load() {
     await queue.reload();
@@ -101,23 +90,62 @@ export function InspectionPanel({
   async function act(action: string) {
     if (!detail || busy || materialBusy) return;
     await run(async () => {
-      await request(`/api/v1/inspections/${detail.id}/actions`, {
-        action,
-        version: detail.version,
-        comment,
-      });
+      read(
+        await typedApi.POST("/api/v1/inspections/{task_id}/actions", {
+          headers: { "x-csrf-token": csrf },
+          params: { path: { task_id: detail.id } },
+          body: {
+            action,
+            version: detail.version,
+            comment,
+            rich_document: commentDocument,
+            ...(action === "reply"
+              ? {
+                  contact:
+                    contactName.trim() || contactPhone.trim()
+                      ? { name: contactName, phone: contactPhone }
+                      : null,
+                  performed_at: performedAt
+                    ? new Date(performedAt).toISOString()
+                    : null,
+                }
+              : {}),
+          },
+        }),
+      );
       await load();
-      setDetail(await request("/api/v1/inspections/" + detail.id));
+      setDetail(await readDetail(detail.id));
       setComment("");
+      setCommentDocument(null);
+      setContactName("");
+      setContactPhone("");
+      setPerformedAt("");
     });
   }
   return (
     <div className="business-stack">
       {canAssign && role === "regulator" && (
+        <InspectionPlans
+          csrf={csrf}
+          parentBusy={busy || materialBusy}
+          onPublished={load}
+          onOpenTask={(id) =>
+            run(async () => {
+              setDetail(await readDetail(id));
+              setComment("");
+              setCommentDocument(null);
+              setContactName("");
+              setContactPhone("");
+              setPerformedAt("");
+            })
+          }
+        />
+      )}
+      {canAssign && role === "regulator" && (
         <section className="panel">
           <div className="panel-title">
             <div>
-              <h2>下发巡检督办</h2>
+              <h2>单站快捷下发</h2>
               <p>演示闭环规则 · 任务按场站归属定向到企业；重大隐患醒目标记</p>
             </div>
           </div>
@@ -126,21 +154,33 @@ export function InspectionPanel({
             onSubmit={(e) => {
               e.preventDefault();
               run(async () => {
-                const task = await request("/api/v1/inspections", {
-                  station_id: Number(sid),
-                  title,
-                  description,
-                  severity,
-                  due_at: new Date(due).toISOString(),
-                });
+                const task = read(
+                  await typedApi.POST("/api/v1/inspections", {
+                    headers: { "x-csrf-token": csrf },
+                    body: {
+                      station_id: Number(sid),
+                      title,
+                      description,
+                      rich_document: requirementDocument,
+                      severity,
+                      due_at: new Date(due).toISOString(),
+                    },
+                  }),
+                );
                 queue.reset();
-                setDetail(await request("/api/v1/inspections/" + task.id));
+                setDetail(await readDetail(task.id));
                 setTitle("");
                 setDescription("");
+                setRequirementDocument(null);
               });
             }}
           >
-            <StationPicker label="巡检场站" value={sid} onChange={setSid} />
+            <StationPicker
+              label="巡检场站"
+              value={sid}
+              onChange={setSid}
+              kind="inspection"
+            />
             <label>
               任务标题
               <input
@@ -158,7 +198,7 @@ export function InspectionPanel({
                 onChange={(e) => setSeverity(e.target.value)}
               >
                 <option value="normal">一般巡检</option>
-                <option value="major">重大隐患挂牌督办</option>
+                <option value="major">重大隐患巡检</option>
               </select>
             </label>
             <label>
@@ -171,17 +211,33 @@ export function InspectionPanel({
                 required
               />
             </label>
-            <label>
-              任务要求
-              <input
-                aria-label="巡检要求"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                maxLength={4000}
-                required
+            <div className="inspection-requirement-editor">
+              <p>任务要求（可读内容最多4000字）</p>
+              <RichEditor
+                document={requirementDocument}
+                body={description}
+                articleId={null}
+                images={[]}
+                label="巡检要求"
+                imageHelp="任务要求暂不嵌入图片，可使用格式化文字、列表或表格。"
+                disabled={busy || materialBusy}
+                onChange={(value, plain) => {
+                  setRequirementDocument(value);
+                  setDescription(plain);
+                }}
               />
-            </label>
-            <button className="outline" disabled={busy || materialBusy || !sid}>
+            </div>
+            <button
+              className="outline"
+              disabled={
+                busy ||
+                materialBusy ||
+                !sid ||
+                !title.trim() ||
+                !description.trim() ||
+                description.length > 4000
+              }
+            >
               下发任务
             </button>
           </form>
@@ -283,6 +339,61 @@ export function InspectionPanel({
               <option value="false">非逾期（含已关闭）</option>
             </select>
           </label>
+          <label>
+            反馈状态
+            <select
+              aria-label="巡检反馈状态"
+              value={queue.draft.execution_state || ""}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (
+                  value === "" ||
+                  value === "reported" ||
+                  value === "not_reported" ||
+                  value === "unknown"
+                )
+                  queue.setDraft({ ...queue.draft, execution_state: value });
+              }}
+            >
+              <option value="">全部反馈情况</option>
+              <option value="not_reported">未反馈</option>
+              <option value="reported">已反馈</option>
+              <option value="unknown">历史未留存</option>
+            </select>
+          </label>
+          <fieldset className="queue-date-range">
+            <legend>任务创建日期（北京时间）</legend>
+            <label>
+              开始日期
+              <input
+                type="date"
+                aria-label="巡检创建开始日期"
+                value={queue.draft.created_from || ""}
+                max={queue.draft.created_to || undefined}
+                onChange={(event) =>
+                  queue.setDraft({
+                    ...queue.draft,
+                    created_from: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label>
+              结束日期
+              <input
+                type="date"
+                aria-label="巡检创建结束日期"
+                value={queue.draft.created_to || ""}
+                min={queue.draft.created_from || undefined}
+                onChange={(event) =>
+                  queue.setDraft({
+                    ...queue.draft,
+                    created_to: event.target.value,
+                  })
+                }
+              />
+            </label>
+          </fieldset>
           <button
             className="primary"
             disabled={busy || materialBusy || queue.loading}
@@ -302,8 +413,22 @@ export function InspectionPanel({
           </button>
         </form>
         <p className="muted application-list-note">
-          当前台账名称；新建返回全部第一页。逾期按查询时刻判断，已关闭任务不记逾期；请刷新查询以更新时间状态。
+          当前台账名称；新建返回全部第一页。逾期按查询时刻判断，已关闭或未设置期限不记逾期。反馈状态只说明有无实际留存回复，不代表复核通过；填报执行时间不使用系统提交时间补空。
+          <br />
+          已应用创建日期：{queue.query.created_from || "不限"} 至{" "}
+          {queue.query.created_to || "不限"} · 反馈：
+          {queue.query.execution_state === "reported"
+            ? "已反馈"
+            : queue.query.execution_state === "not_reported"
+              ? "未反馈"
+              : queue.query.execution_state === "unknown"
+                ? "历史未留存"
+                : "全部"}
         </p>
+        <InspectionExport
+          query={queue.query}
+          busy={busy || materialBusy || queue.loading || Boolean(queue.error)}
+        />
         {queue.error && (
           <p role="alert" className="error">
             {queue.error}
@@ -315,7 +440,7 @@ export function InspectionPanel({
           </p>
         )}
         <div className="table-wrap">
-          <table>
+          <table aria-label="巡检任务列表">
             <thead>
               <tr>
                 {[
@@ -323,8 +448,11 @@ export function InspectionPanel({
                   "任务标题",
                   "场站 / 企业",
                   "隐患等级",
-                  "整改期限",
-                  "状态",
+                  "任务期限（北京时间）",
+                  "办理状态",
+                  "反馈状态",
+                  "创建时间（北京时间）",
+                  "最近反馈 / 填报执行时间（北京时间）",
                   "操作",
                 ].map((h) => (
                   <th key={h}>{h}</th>
@@ -348,10 +476,49 @@ export function InspectionPanel({
                       {t.severity === "major" ? "重大挂牌" : "一般巡检"}
                     </em>
                   </td>
-                  <td>{new Date(t.due_at).toLocaleString("zh-CN")}</td>
+                  <td>
+                    {t.due_at
+                      ? new Date(t.due_at).toLocaleString("zh-CN", {
+                          timeZone: "Asia/Shanghai",
+                        })
+                      : "未设置期限"}
+                  </td>
                   <td>
                     {states[t.status]}
                     {t.overdue && <em className="amber">已逾期</em>}
+                  </td>
+                  <td>
+                    {t.execution_state === "reported"
+                      ? "已反馈"
+                      : t.execution_state === "not_reported"
+                        ? "未反馈"
+                        : "历史未留存"}
+                  </td>
+                  <td>
+                    {new Date(t.created_at).toLocaleString("zh-CN", {
+                      timeZone: "Asia/Shanghai",
+                    })}
+                  </td>
+                  <td>
+                    <span>
+                      反馈：
+                      {t.last_reply_submitted_at
+                        ? new Date(t.last_reply_submitted_at).toLocaleString(
+                            "zh-CN",
+                            { timeZone: "Asia/Shanghai" },
+                          )
+                        : "未留存"}
+                    </span>
+                    <br />
+                    <small>
+                      填报：
+                      {t.last_reported_performed_at
+                        ? new Date(t.last_reported_performed_at).toLocaleString(
+                            "zh-CN",
+                            { timeZone: "Asia/Shanghai" },
+                          )
+                        : "未留存"}
+                    </small>
                   </td>
                   <td>
                     <button
@@ -359,10 +526,12 @@ export function InspectionPanel({
                       disabled={busy || materialBusy}
                       onClick={() =>
                         run(async () => {
-                          setDetail(
-                            await request("/api/v1/inspections/" + t.id),
-                          );
+                          setDetail(await readDetail(t.id));
                           setComment("");
+                          setCommentDocument(null);
+                          setContactName("");
+                          setContactPhone("");
+                          setPerformedAt("");
                         })
                       }
                     >
@@ -389,9 +558,7 @@ export function InspectionPanel({
                 <h2>
                   TASK-{detail.id} · {detail.title}
                 </h2>
-                <p>
-                  {states[detail.status]} · {detail.description}
-                </p>
+                <p>{states[detail.status]}</p>
               </div>
               <button
                 className="outline"
@@ -401,6 +568,26 @@ export function InspectionPanel({
                 关闭任务详情
               </button>
             </div>
+            <section
+              className="inspection-requirement"
+              aria-label="已下发巡检要求"
+            >
+              <h3>巡检要求</h3>
+              <RichContent
+                document={detail.rich_document}
+                body={detail.description}
+                articleId={0}
+                manage={false}
+                imageSource={() => undefined}
+              />
+              <p className="muted">
+                下发时间：
+                {new Date(detail.created_at).toLocaleString("zh-CN", {
+                  timeZone: "Asia/Shanghai",
+                })}
+                （北京时间）
+              </p>
+            </section>
             <div className="detail-grid">
               <div>
                 <InspectionMaterials
@@ -410,6 +597,7 @@ export function InspectionPanel({
                   csrf={csrf}
                   parentBusy={busy}
                   onBusy={setMaterialBusy}
+                  onImages={setImages}
                   editable={
                     canMaterials &&
                     role === "operator" &&
@@ -420,9 +608,44 @@ export function InspectionPanel({
                 {detail.history?.map((a) => (
                   <article key={a.id} className="timeline">
                     <b>{actions[a.action]}</b>
-                    <p>{a.comment}</p>
+                    <RichContent
+                      document={a.rich_document}
+                      body={a.comment}
+                      articleId={0}
+                      manage={false}
+                      imageSource={(id) =>
+                        `/api/v1/inspections/${detail.id}/attachments/${id}/download`
+                      }
+                    />
+                    {a.action === "reply" && (
+                      <dl className="station-facts">
+                        <div>
+                          <dt>填报执行联系人</dt>
+                          <dd>{a.contact?.name || "未填报"}</dd>
+                        </div>
+                        <div>
+                          <dt>填报联系方式</dt>
+                          <dd>{a.contact?.phone || "未填报"}</dd>
+                        </div>
+                        <div>
+                          <dt>用户填报执行时间</dt>
+                          <dd>
+                            {a.performed_at
+                              ? new Date(a.performed_at).toLocaleString(
+                                  "zh-CN",
+                                  { timeZone: "Asia/Shanghai" },
+                                ) + "（北京时间）"
+                              : "未填报"}
+                          </dd>
+                        </div>
+                      </dl>
+                    )}
                     <small>
-                      {new Date(a.created_at).toLocaleString("zh-CN")}
+                      系统记录时间：
+                      {new Date(a.created_at).toLocaleString("zh-CN", {
+                        timeZone: "Asia/Shanghai",
+                      })}
+                      （北京时间）
                     </small>
                   </article>
                 ))}
@@ -437,23 +660,83 @@ export function InspectionPanel({
                     (canReturn || canClose) &&
                     detail.status === "replied") ? (
                   <>
-                    <label>
-                      整改或复核说明
-                      <textarea
-                        aria-label="巡检处理说明"
+                    <div>
+                      <p>整改或复核说明（可读内容最多4000字）</p>
+                      <RichEditor
+                        key={`inspection-reply-${detail.id}-${detail.version}`}
+                        document={commentDocument}
+                        body={comment}
+                        articleId={null}
+                        images={role === "operator" ? images : []}
+                        label="巡检处理说明"
+                        imageHelp={
+                          role === "operator"
+                            ? "可插入本次未提交的整改图片；回复后图片随记录留存。"
+                            : "复核说明可使用文字格式、列表或表格。"
+                        }
                         disabled={busy || materialBusy}
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        maxLength={4000}
+                        onChange={(value, plain) => {
+                          setCommentDocument(value);
+                          setComment(plain);
+                        }}
                       />
-                    </label>
+                    </div>
+                    {role === "operator" && (
+                      <fieldset
+                        className="inspection-execution"
+                        disabled={busy || materialBusy}
+                      >
+                        <legend>本次执行信息</legend>
+                        <label>
+                          * 执行联系人
+                          <input
+                            aria-label="巡检执行联系人"
+                            required
+                            value={contactName}
+                            maxLength={100}
+                            onChange={(e) => setContactName(e.target.value)}
+                          />
+                        </label>
+                        <label>
+                          * 联系方式
+                          <input
+                            aria-label="巡检执行联系方式"
+                            required
+                            value={contactPhone}
+                            maxLength={80}
+                            onChange={(e) => setContactPhone(e.target.value)}
+                          />
+                        </label>
+                        <label>
+                          * 用户填报执行时间
+                          <input
+                            aria-label="巡检填报执行时间"
+                            required
+                            type="datetime-local"
+                            value={performedAt}
+                            onChange={(e) => setPerformedAt(e.target.value)}
+                          />
+                        </label>
+                        <p className="muted">
+                          新回复需填写联系人、联系方式及执行时间，并提交至少一份本次证明材料。时间按设备本地时区录入、按北京时间展示，不代表监管复核或正式完成认定；旧记录未留存时显示未知。
+                        </p>
+                      </fieldset>
+                    )}
                     <div className="action-row">
                       {canReply &&
                         role === "operator" &&
                         ["assigned", "returned"].includes(detail.status) && (
                           <button
                             className="outline"
-                            disabled={busy || materialBusy || !comment.trim()}
+                            disabled={
+                              busy ||
+                              materialBusy ||
+                              !comment.trim() ||
+                              comment.length > 4000 ||
+                              !contactName.trim() ||
+                              !contactPhone.trim() ||
+                              !performedAt
+                            }
                             onClick={() => act("reply")}
                           >
                             提交整改回复
@@ -467,7 +750,10 @@ export function InspectionPanel({
                               <button
                                 className="outline"
                                 disabled={
-                                  busy || materialBusy || !comment.trim()
+                                  busy ||
+                                  materialBusy ||
+                                  !comment.trim() ||
+                                  comment.length > 4000
                                 }
                                 onClick={() => act("return")}
                               >
@@ -478,7 +764,10 @@ export function InspectionPanel({
                               <button
                                 className="outline"
                                 disabled={
-                                  busy || materialBusy || !comment.trim()
+                                  busy ||
+                                  materialBusy ||
+                                  !comment.trim() ||
+                                  comment.length > 4000
                                 }
                                 onClick={() => act("close")}
                               >

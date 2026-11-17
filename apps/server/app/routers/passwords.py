@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, text
 
 from app import password_management as management
+from app.contracts import PasswordChanged, PasswordResetResult
 from app.dependencies import DB, Actor, passwords
 from app.models import User
 from app.routers.accounts import accounts_scope, mutation_admin, permissions
@@ -22,7 +23,7 @@ class ResetInput(BaseModel):
     reason: str = Field(min_length=1, max_length=1000)
 
 
-@router.post("/api/v1/auth/password")
+@router.post("/api/v1/auth/password", response_model=PasswordChanged)
 def change_password(body: ChangeInput, request: Request, response: Response, user: Actor, db: DB):
     key = management.attempt(db, user.id, "change")
     db.execute(text("SELECT pg_advisory_xact_lock(78230012)"))
@@ -40,13 +41,17 @@ def change_password(body: ChangeInput, request: Request, response: Response, use
     management.set_password(
         db, fresh, fresh, body.new_password, False, "password.change", "本人验证当前密码修改", key
     )
+    result = PasswordChanged.model_validate({"ok": True, "reauthenticate": True})
     db.commit()
+    response.headers["Cache-Control"] = "no-store"
     response.delete_cookie("ronghub_session", path="/")
-    return {"ok": True, "reauthenticate": True}
+    return result
 
 
-@router.post("/api/v1/accounts/{user_id}/password-reset")
-def reset_password(user_id: int, body: ResetInput, request: Request, user: Actor, db: DB):
+@router.post("/api/v1/accounts/{user_id}/password-reset", response_model=PasswordResetResult)
+def reset_password(
+    user_id: int, body: ResetInput, request: Request, user: Actor, db: DB, response: Response
+):
     key = management.attempt(db, user.id, "reset")
     mutation_admin(user, db, "accounts.manage")
     management.session_active(db, request, user)
@@ -71,10 +76,14 @@ def reset_password(user_id: int, body: ResetInput, request: Request, user: Actor
     management.set_password(
         db, user, target, body.temporary_password, True, "password.reset", body.reason.strip(), key
     )
+    result = PasswordResetResult.model_validate(
+        {
+            "ok": True,
+            "user_id": target.id,
+            "version": target.version,
+            "must_change_password": True,
+        }
+    )
     db.commit()
-    return {
-        "ok": True,
-        "user_id": target.id,
-        "version": target.version,
-        "must_change_password": True,
-    }
+    response.headers["Cache-Control"] = "no-store"
+    return result

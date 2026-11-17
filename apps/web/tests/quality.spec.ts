@@ -155,9 +155,16 @@ test("regional and enterprise quality keeps empty stations, observed cohorts and
     const path = await (await downloadPromise).path();
     expect(path).toBeTruthy();
     const csv = readFileSync(path!, "utf8");
-    expect(csv.trim().split("\n")).toHaveLength(27);
+    expect(csv.trim().split("\n")).toHaveLength(28);
     expect(csv).toContain("非设备总数");
     expect(csv).toContain("非维修工时");
+    expect(csv).toContain("查询总计");
+    expect(csv).toContain("当前台账设备数(非历史设备规模)");
+    const summary = page.getByLabel("质量查询统计汇总", { exact: true });
+    await expect(summary).toContainText("26站");
+    await expect(summary).toContainText("625件");
+    await expect(summary).toContainText("30秒");
+    await expect(summary).toContainText("待覆盖确认");
     await page.getByLabel("质量站企名称筛选", { exact: true }).fill(prefix);
     await page
       .getByLabel("质量分组方式", { exact: true })
@@ -171,6 +178,48 @@ test("regional and enterprise quality keeps empty stations, observed cohorts and
     await expect(page.locator(".quality-panel .runtime-applied")).toContainText(
       "按当前运营企业",
     );
+    await page
+      .getByLabel("质量周期方式", { exact: true })
+      .selectOption("month");
+    await page.getByLabel("质量月份", { exact: true }).fill("2024-02");
+    await expect(page.getByLabel("质量开始时间", { exact: true })).toHaveValue(
+      "2024-02-01T00:00",
+    );
+    await expect(page.getByLabel("质量结束时间", { exact: true })).toHaveValue(
+      "2024-03-01T00:00",
+    );
+    const monthly = page.waitForResponse(
+      (r) =>
+        r.url().includes("/statistics/quality?") && r.url().includes("2024"),
+    );
+    await page
+      .getByRole("button", { name: "查询质量观测", exact: true })
+      .click();
+    expect(new URL((await monthly).url()).searchParams.get("start_at")).toBe(
+      "2024-01-31T16:00:00.000Z",
+    );
+    await expect(summary).toContainText("26站");
+    await expect(summary).toContainText("没有运行或故障观测");
+    await page.getByLabel("质量周期方式", { exact: true }).selectOption("year");
+    await page.getByLabel("质量年份", { exact: true }).fill("2024");
+    await expect(page.getByLabel("质量开始时间", { exact: true })).toHaveValue(
+      "2024-01-01T00:00",
+    );
+    await expect(page.getByLabel("质量结束时间", { exact: true })).toHaveValue(
+      "2025-01-01T00:00",
+    );
+    await page
+      .getByRole("button", { name: "查询质量观测", exact: true })
+      .click();
+    await expect(page.locator(".quality-panel .runtime-applied")).toContainText(
+      "2025",
+    );
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.screenshot({
+      path: "test-results/quality-summary-narrow.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page
       .getByLabel("质量站企名称筛选", { exact: true })
       .fill("empty-no-quality-cohort");

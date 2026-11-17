@@ -42,6 +42,48 @@ try {
     const identityResponse=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/auth/me');
     if(identityResponse.status()!==200) throw new Error('Production identity failed');
     const identity=await identityResponse.json();
+    if(!identity.permissions.includes('stations.export')) throw new Error('Default role missing independent map export grant');
+    const mapCsv=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/map/export?location=all');
+    if(mapCsv.status()!==200 || mapCsv.headers()['cache-control']!=='no-store' || !mapCsv.headers()['content-type'].startsWith('text/csv') || !(await mapCsv.text()).includes('来源首次接入时间')) throw new Error('Production scoped map CSV failed');
+    const facilitiesListResponse = await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/stations?page_size=1');
+    const facilitiesList = await facilitiesListResponse.json();
+    if(facilitiesList.items.length) {
+      const facilitiesResponse = await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/stations/'+facilitiesList.items[0].id);
+      const facilities = await facilitiesResponse.json();
+      if(facilitiesResponse.status()!==200 || !facilities.facilities || !('independent_connection' in facilities.facilities) || !('supply_capacity_unit' in facilities.facilities)) throw new Error('Station source profile contract failed');
+      const historyResponse=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/stations/'+facilitiesList.items[0].id+'/energy-history?start_date=2026-11-01&end_date=2026-11-03');
+      const history=await historyResponse.json();
+      if(historyResponse.status()!==200 || !Array.isArray(history.streams) || history.source_completeness_verified!==false) throw new Error('Station energy history production contract failed');
+      const flowResponse=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/stations/'+facilitiesList.items[0].id+'/flow?page_size=1');
+      if(username==='association') { if(flowResponse.status()!==403) throw new Error('Station flow association privacy widened'); }
+      else { const flow=await flowResponse.json(); if(flowResponse.status()!==200 || !Number.isInteger(flow.total) || flow.reporting_state!==null || !('source_first_reported_at' in flow)) throw new Error('Station flow production contract failed'); }
+      const devicePageResponse=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/stations/'+facilitiesList.items[0].id+'/equipment/query?page_size=1');
+      const devicePage=await devicePageResponse.json();
+      if(devicePageResponse.status()!==200 || !Number.isInteger(devicePage.total) || !Number.isInteger(devicePage.station_connector_count)) throw new Error('Device inventory production page failed');
+      if(devicePage.items.length) {
+        const terminals=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/stations/'+facilitiesList.items[0].id+'/equipment/'+devicePage.items[0].id+'/connectors?page_size=1');
+        if(terminals.status()!==200 || !Number.isInteger((await terminals.json()).inventory_total)) throw new Error('Connector production page failed');
+      }
+      if(username==='association' && (facilities.contact_accessible!==false || facilities.contact!==null)) throw new Error('Station contact privacy widened');
+      if(username!=='association' && facilities.contact_accessible!==true) throw new Error('Station contact capability lost');
+    }
+    const operationsResponse = await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/dashboard/operations?period=month&period_date=2026-11-15');
+    if(username==='association') {
+      if(operationsResponse.status()!==403) throw new Error('Operations role ceiling widened');
+    } else {
+      const operations = await operationsResponse.json();
+      if(operationsResponse.status()!==200 || !Number.isInteger(operations.current_equipment) || typeof operations.current_equipment_power_kw!=='string' || !Array.isArray(operations.statuses) || !Array.isArray(operations.energy_trend) || operations.source_completeness_verified!==false || operations.approvals.approval_rate_pct!==null) throw new Error('Production operations snapshot failed');
+    }
+    const combinedPath = '/api/v1/statistics/charging-subsidy?period_date=2026-11-15';
+    const combinedResponse = await page.request.get(env.PUBLIC_ORIGIN + combinedPath);
+    const combinedFile = await page.request.get(env.PUBLIC_ORIGIN + combinedPath.replace('charging-subsidy?', 'charging-subsidy/export?'));
+    if(username==='association') {
+      if(combinedResponse.status()!==403 || combinedFile.status()!==403) throw new Error('Combined report role ceiling widened');
+    } else {
+      const combined = await combinedResponse.json();
+      if(combinedResponse.status()!==200 || !Array.isArray(combined.items) || !Array.isArray(combined.orders) || !Array.isArray(combined.subsidies) || combined.source_completeness_verified!==false) throw new Error('Combined report production contract failed');
+      if(combinedFile.status()!==200 || combinedFile.headers()['cache-control']!=='no-store' || combinedFile.headers()['content-type']!=='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || (await combinedFile.body()).subarray(0,2).toString()!=='PK') throw new Error('Combined Excel production export failed');
+    }
     for(const path of ['/api/v1/roles','/api/v1/accounts/options','/api/v1/accounts?q=production-smoke-no-matching-fixture']) {
       const response = await page.request.get(env.PUBLIC_ORIGIN+path);
       if(username!=='regulator') {
@@ -145,7 +187,7 @@ try {
       if(qualitySourcesResponse.status()!==403 || qualityResponse.status()!==403) throw new Error('Association quality scope failed');
     } else {
       const qualitySources=await qualitySourcesResponse.json(); const quality=await qualityResponse.json();
-      if(qualitySourcesResponse.status()!==200 || qualitySources.page_size!==1 || qualityResponse.status()!==200 || quality.page_size!==1 || quality.source_completeness_verified!==false || quality.faults_scope!=='all_station_events_started_in_window' || !Array.isArray(quality.items)) throw new Error('Quality production contract failed');
+      if(qualitySourcesResponse.status()!==200 || qualitySources.page_size!==1 || qualityResponse.status()!==200 || quality.page_size!==1 || quality.source_completeness_verified!==false || quality.faults_scope!=='all_station_events_started_in_window' || !Array.isArray(quality.items) || !Number.isInteger(quality.summary?.station_count) || !Number.isInteger(quality.summary?.inventory_equipment_count) || !Array.isArray(quality.summary?.streams)) throw new Error('Quality production contract failed');
       await page.getByRole('button',{name:'运行状态',exact:true}).click();
       await page.getByRole('button',{name:'区域与企业质量',exact:true}).click();
       await expect(page.getByRole('heading',{name:'区域与企业质量观测',exact:true})).toBeVisible();
@@ -227,7 +269,37 @@ try {
       await page.getByRole('button',{name:'查询订单',exact:true}).click();
       await expect(page.getByText('当前条件下没有订单记录',{exact:true})).toBeVisible();
     }
+    const syncOptions = await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/sync/operators');
+    if(syncOptions.status() !== (username==='regulator'?200:403)) throw new Error('Sync options role scope failed');
+    if(username==='regulator') {
+      if(syncOptions.headers()['cache-control']!=='no-store') throw new Error('Sync options private cache failed');
+      const choices=(await syncOptions.json()).items;
+      if(!choices.length || choices.some(item=>Object.keys(item).sort().join(',')!=='id,name')) throw new Error('Sync options minimal contract failed');
+      await page.getByRole('button',{name:'数据同步',exact:true}).click();
+      await expect(page.getByRole('heading',{name:'数据同步任务',exact:true})).toBeVisible();
+      await expect(page.getByLabel('同步运营商')).toBeEnabled();
+      await expect(page.getByRole('button',{name:'发起模拟同步',exact:true})).toBeEnabled();
+      await page.screenshot({path:'.backups/operational-sync-production.png'});
+    }
     await page.getByRole('button',{name:'场站台账',exact:true}).click();
+    for(const path of ['/api/v1/map?zoom=19','/api/v1/map/stations?location=all&page_size=1','/api/v1/map/options','/api/v1/ratings/publications?page_size=1']) {
+      const response=await page.request.get(env.PUBLIC_ORIGIN+path);
+      if(response.status()!==200 || response.headers()['cache-control']!=='no-store') throw new Error('Scoped query/cache failed: '+path);
+      const data=await response.json();
+      if(path.includes('/map?') && (!Array.isArray(data.items) || !Number.isInteger(data.matching) || data.coordinate_system!=='wgs84' || data.items.some(item=>item.kind==='cluster' && item.bounds.length!==4))) throw new Error('Map discriminated response failed');
+      if(path.includes('/stations?') && (!Number.isInteger(data.total) || data.page_size!==1)) throw new Error('Map page response failed');
+      if(path.includes('/publications?') && (!Number.isInteger(data.total) || data.timezone!=='Asia/Shanghai' || !data.scope.includes('非匿名'))) throw new Error('Publication scoped response failed');
+    }
+    const energyPath='/api/v1/statistics?start_date=2026-11-01&end_date=2026-11-03';
+    const energyResponse=await page.request.get(env.PUBLIC_ORIGIN+energyPath);
+    if(energyResponse.status()!==200 || energyResponse.headers()['cache-control']!=='no-store') throw new Error('Energy private response failed');
+    const energy=await energyResponse.json();
+    if(energy.timezone!=='Asia/Shanghai' || !Array.isArray(energy.ranking) || !energy.coverage || energy.comparisons.year_over_year.source_completeness_verified!==false || (energy.total_kwh!==null && typeof energy.total_kwh!=='string')) throw new Error('Energy nullable decimal/coverage failed');
+    for(const path of ['/api/v1/statistics/export','/api/v1/statistics/analysis/export']) {
+      const response=await page.request.get(env.PUBLIC_ORIGIN+path+'?start_date=2026-11-01&end_date=2026-11-03');
+      if(response.status()!==(username==='association'?403:200)) throw new Error('Energy export role failed');
+      if(username!=='association' && (response.headers()['cache-control']!=='no-store' || !response.headers()['content-type'].startsWith('text/csv'))) throw new Error('Energy CSV metadata failed');
+    }
     await expect(page.getByLabel('搜索场站')).toBeVisible();
     await expect(page.getByText('演示·鼓楼公共充电站',{exact:true}).first()).toBeVisible();
     const styled = await page.getByRole('button',{name:'退出登录'}).evaluate(el =>
@@ -317,9 +389,21 @@ try {
     if(ratingPage.status()!==200 || (await ratingPage.json()).page_size!==1) throw new Error('Production rating pagination failed');
     if(username === 'association') {
       if((await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/subsidy/claims')).status()!==403) throw new Error('Association reached financial queue');
+      if((await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/subsidy/statistics?start_date=2026-01-01&end_date=2026-12-31')).status()!==403) throw new Error('Association reached subsidy statistics');
     } else {
       await page.getByRole('button',{name:username==='regulator' ? '补贴管理' : '补贴申报',exact:true}).click();
       await expect(page.getByRole('button',{name:'查询补贴记录',exact:true})).toBeEnabled();
+      const subsidyStatistics=page.getByRole('region',{name:'补贴统计',exact:true});
+      await expect(subsidyStatistics).toBeVisible();
+      await expect(subsidyStatistics.getByRole('button',{name:'导出补贴统计CSV',exact:true})).toBeDisabled();
+      const statisticsOptions=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/subsidy/statistics/operators');
+      if(statisticsOptions.status()!==200 || !Array.isArray((await statisticsOptions.json()).items)) throw new Error('Subsidy scoped operator selector failed');
+      const statisticsQuery='start_date=2026-01-01&end_date=2026-12-31&station_id=2147483647';
+      const statisticsResponse=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/subsidy/statistics?'+statisticsQuery);
+      const statisticsResult=await statisticsResponse.json();
+      if(statisticsResponse.status()!==200 || statisticsResult.total!==0 || statisticsResult.totals.claim_count!==0 || statisticsResponse.headers()['cache-control']!=='no-store') throw new Error('Subsidy aggregate/no-store contract failed');
+      const statisticsCsv=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/subsidy/statistics/export?'+statisticsQuery);
+      if(statisticsCsv.status()!==200 || statisticsCsv.headers()['cache-control']!=='no-store') throw new Error('Subsidy aggregate CSV failed');
       const observationRegion=page.getByRole('region',{name:'设备日观测',exact:true});
       await expect(observationRegion).toBeVisible();
       await expect(observationRegion.getByText('选择条件后查询；未上报的设备或日期不按零值补齐。',{exact:true})).toBeVisible();
@@ -387,15 +471,94 @@ try {
       if(inspectionData.page_size!==1 || !inspectionData.query_at) throw new Error('Production inspection pagination failed');
     }
     if(username === 'association') {
+      if((await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/hazards')).status()!==403) throw new Error('Association reached independent hazard supervision');
+      await expect(page.getByRole('button',{name:'隐患督办',exact:true})).toHaveCount(0);
+    } else {
+      await page.getByRole('button',{name:'隐患督办',exact:true}).click();
+      const hazardRegion=page.getByRole('region',{name:'隐患督办工作区',exact:true});
+      await expect(hazardRegion.getByLabel('督办整改进度筛选',{exact:true})).toBeVisible();
+      await expect(hazardRegion.getByLabel('督办跟踪状态筛选',{exact:true})).toBeVisible();
+      await hazardRegion.getByLabel('督办检索名称',{exact:true}).fill('production-smoke-no-matching-fixture');
+      await hazardRegion.getByRole('button',{name:'查询督办',exact:true}).click();
+      await expect(hazardRegion.getByText('当前查询没有隐患督办记录',{exact:true})).toBeVisible();
+      const hazardPage=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/hazards?page_size=1');
+      const hazardData=await hazardPage.json();
+      if(hazardPage.status()!==200 || hazardPage.headers()['cache-control']!=='no-store' || hazardData.page_size!==1 || !hazardData.query_at) throw new Error('Independent hazard page contract failed');
+      const hazardCsv=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/hazards/export?q=production-smoke-no-matching-fixture');
+      if(hazardCsv.status()!==200 || hazardCsv.headers()['cache-control']!=='no-store' || !hazardCsv.headers()['content-type'].startsWith('text/csv') || !(await hazardCsv.text()).includes('整改进度,跟踪状态')) throw new Error('Independent hazard full-query export failed');
+    }
+    await page.getByRole('button',{name:'监管协议',exact:true}).click();
+    const protocolRegion=page.getByRole('region',{name:'监管协议阅读区',exact:true});
+    await protocolRegion.getByLabel('监管协议检索',{exact:true}).fill('production-smoke-no-matching-fixture');
+    await protocolRegion.getByRole('button',{name:'查询协议',exact:true}).click();
+    await expect(protocolRegion.getByText('暂无已发布的监管协议',{exact:true})).toBeVisible();
+    const protocolPage=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/protocols?q=production-smoke-no-matching-fixture');
+    if(protocolPage.status()!==200 || protocolPage.headers()['cache-control']!=='no-store' || (await protocolPage.json()).total!==0) throw new Error('Protocol publication reader contract failed');
+    await expect(protocolRegion.getByRole('button',{name:'管理协议内容',exact:true})).toHaveCount(username==='regulator'?1:0);
+    if(username === 'association') {
       if((await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts')).status()!==403) throw new Error('Association reached alerts');
+      if((await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/configured-rules')).status()!==403) throw new Error('Association reached configured alerts');
+      if((await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/configured-observations')).status()!==403) throw new Error('Association reached configured observations');
+      if((await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/notifications/preferences')).status()!==403) throw new Error('Association reached private alert notification settings');
     } else {
       await page.getByRole('button',{name:username==='regulator' ? '告警中心' : '企业告警',exact:true}).click();
       await expect(page.getByRole('button',{name:'查询告警记录',exact:true})).toBeEnabled();
+      const notificationRegion=page.getByRole('region',{name:'告警通知配置',exact:true});
+      if(username==='regulator') {
+        if(!identity.permissions.includes('alerts.notifications')) throw new Error('Default regulator missing independent notification management capability');
+        await page.getByRole('navigation',{name:'告警工作区'}).getByRole('button',{name:'通知设置',exact:true}).click();
+        await notificationRegion.getByRole('button',{name:'管理通知与接收人',exact:true}).click();
+        await expect(notificationRegion.getByRole('button',{name:'新增告警接收人',exact:true})).toBeEnabled();
+        const notificationPrefs=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/notifications/preferences');
+        const prefData=await notificationPrefs.json();
+        if(notificationPrefs.status()!==200 || prefData.items.length!==6 || prefData.sms_mode!=='demo' || notificationPrefs.headers()['cache-control']!=='no-store') throw new Error('Private notification preference contract failed');
+        const noContacts=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/notifications/recipients?q=production-smoke-no-matching-recipient');
+        if(noContacts.status()!==200 || (await noContacts.json()).total!==0 || noContacts.headers()['cache-control']!=='no-store') throw new Error('Private notification recipient query failed');
+        await notificationRegion.getByRole('button',{name:'收起通知配置',exact:true}).click();
+      } else {
+        await expect(notificationRegion).toHaveCount(0);
+        for(const suffix of ['preferences','recipients','routings','deliveries']) {
+          if((await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/notifications/'+suffix)).status()!==403) throw new Error('Operator reached private notification data');
+        }
+      }
+      await page.getByRole('navigation',{name:'告警工作区'}).getByRole('button',{name:'规则配置',exact:true}).click();
+      const configuredRegion=page.getByRole('region',{name:'分级与周期告警配置',exact:true});
+      await expect(configuredRegion).toBeVisible();
+      await page.getByRole('navigation',{name:'告警工作区'}).getByRole('button',{name:'来源与观测',exact:true}).click();
+      const observationPanel=page.getByRole('region',{name:'独立分级告警观测',exact:true});
+      await expect(observationPanel).toBeVisible();
+      const observationResponse=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/configured-observations?station_id=2147483647');
+      if(observationResponse.status()!==200 || (await observationResponse.json()).total!==0 || observationResponse.headers()['cache-control']!=='no-store') throw new Error('Configured observation scoped read failed');
+      const stationChoices=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/configured-observations/stations?page_size=1');
+      if(stationChoices.status()!==200 || (await stationChoices.json()).page_size!==1) throw new Error('Alert station selector failed');
+      if(username==='regulator') await expect(observationPanel.getByRole('button',{name:'提交独立演示观测',exact:true})).toBeDisabled();
+      else await expect(observationPanel.getByRole('button',{name:'提交独立演示观测',exact:true})).toHaveCount(0);
+
+      await page.getByRole('navigation',{name:'告警工作区'}).getByRole('button',{name:'规则配置',exact:true}).click();
+      const configuredResponse=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/configured-rules?page_size=1');
+      const configuredPage=await configuredResponse.json();
+      if(configuredResponse.status()!==200 || configuredResponse.headers()['cache-control']!=='no-store' || !Array.isArray(configuredPage.items) || configuredPage.page_size!==1) throw new Error('Configured alert read contract failed');
+      if(username==='regulator') {
+        await configuredRegion.getByRole('button',{name:'新增分级规则',exact:true}).click();
+        const configuredForm=configuredRegion.getByRole('form',{name:'分级规则表单',exact:true});
+        await expect(configuredForm.getByLabel('分级general阈值',{exact:true})).toHaveValue('');
+        await expect(configuredForm.getByRole('button',{name:'预览分级判断',exact:true})).toBeEnabled();
+        await configuredForm.getByRole('button',{name:'取消新增分级规则',exact:true}).click();
+      } else await expect(configuredRegion.getByRole('button',{name:'新增分级规则',exact:true})).toHaveCount(0);
+
+      await page.getByRole('navigation',{name:'告警工作区'}).getByRole('button',{name:'事件跟踪',exact:true}).click();
       await page.getByLabel('告警检索名称').fill('production-smoke-no-matching-fixture');
       await page.getByLabel('告警筛选状态').selectOption('active');
       await page.getByLabel('告警筛选确认').selectOption('false');
       await page.getByRole('button',{name:'查询告警记录',exact:true}).click();
       await expect(page.getByText('当前条件下没有告警记录',{exact:true})).toBeVisible();
+      await expect(page.getByLabel('告警筛选类型',{exact:true})).toBeVisible();
+      await expect(page.getByRole('button',{name:'导出告警CSV',exact:true})).toBeVisible();
+      const exportQuery=new URLSearchParams({q:'production-smoke-no-matching-fixture',category:'device_charging',start_at:'2026-11-01T00:00:00+08:00',end_at:'2026-12-01T00:00:00+08:00'});
+      const eventExport=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/export?'+exportQuery);
+      if(eventExport.status()!==200 || eventExport.headers()['cache-control']!=='no-store' || !(await eventExport.text()).includes('事件编号')) throw new Error('Alert CSV export contract failed');
+      const periodFacts=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/period-facts?station_id=2147483647');
+      if(periodFacts.status()!==200 || (await periodFacts.json()).total!==0 || periodFacts.headers()['cache-control']!=='no-store') throw new Error('Independent period source contract failed');
       const alertPage=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts?page_size=1&status=active&acknowledged=false');
       if(alertPage.status()!==200 || (await alertPage.json()).page_size!==1) throw new Error('Production alert pagination failed');
     }
@@ -417,4 +580,25 @@ try {
     await context.close();
     console.log(`${username}: standalone production UI, station list, audit permissions, application/subsidy/rating/inspection/alert queues and logout passed`);
   }
+  const publicContext=await browser.newContext({viewport:{width:390,height:844}});
+  try {
+    const portal=await publicContext.newPage();
+    const portalErrors=[];
+    portal.on('pageerror',error=>portalErrors.push(error.message));
+    await portal.goto(env.PUBLIC_ORIGIN+'/portal?q=production-smoke-no-matching-fixture');
+    await expect(portal.getByRole('heading',{name:'充电资讯与公告',exact:true})).toBeVisible();
+    await expect(portal.getByRole('heading',{name:'暂无公开资讯',exact:true})).toBeVisible();
+    const publicResponse=await portal.request.get(env.PUBLIC_ORIGIN+'/api/v1/public/articles?q=production-smoke-no-matching-fixture');
+    if(publicResponse.status()!==200 || publicResponse.headers()['cache-control']!=='no-store' || (await publicResponse.json()).total!==0) throw new Error('Anonymous public projection failed');
+    if((await portal.request.get(env.PUBLIC_ORIGIN+'/api/v1/auth/me')).status()!==401) throw new Error('Anonymous portal unexpectedly acquired private identity');
+    if(!await portal.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)) throw new Error('Public portal narrow layout overflow');
+    await portal.getByRole('link',{name:'平台登录',exact:true}).click();
+    await expect(portal.getByRole('heading',{name:'选择您的业务入口',exact:true})).toBeVisible();
+    await portal.getByRole('link',{name:/进入协会端登录/}).click();
+    await expect(portal.getByRole('heading',{name:'登录工作台',exact:true})).toBeVisible();
+    await portal.getByRole('link',{name:'查看公开资讯公告',exact:true}).click();
+    await expect(portal.getByRole('heading',{name:'充电资讯与公告',exact:true})).toBeVisible();
+    if(portalErrors.length) throw new Error('Public portal hydration failed');
+    console.log('anonymous: public portal, omitted identity, narrow layout and unified login entry passed; no existing private content auto-published');
+  } finally { await publicContext.close(); }
 } finally { await browser.close(); }

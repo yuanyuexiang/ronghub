@@ -4,6 +4,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
+from alert_notification_samples import remove_for_events
 from fastapi import HTTPException
 from sqlalchemy import delete, func, select
 
@@ -34,6 +35,7 @@ def rule(accounts):
     with SessionLocal.begin() as db:
         events = select(AlertEvent.id).where(AlertEvent.rule_id == rid)
         db.execute(delete(AlertCursor).where(AlertCursor.rule_id == rid))
+        remove_for_events(db, events)
         db.execute(delete(AlertNotice).where(AlertNotice.event_id.in_(events)))
         db.execute(delete(AlertEvent).where(AlertEvent.rule_id == rid))
         db.execute(delete(AlertRule).where(AlertRule.id == rid))

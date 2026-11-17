@@ -11,7 +11,7 @@ from sqlalchemy import func, or_, select
 
 from app import runtime
 from app.contracts import RuntimeObjectPage, RuntimeReport, RuntimeStationPage
-from app.dependencies import Actor
+from app.dependencies import SnapshotActor
 from app.models import Audit, RuntimeInterval, Station
 from app.reporting import SnapshotDB
 from app.routers.statistics import csv_cell
@@ -55,7 +55,7 @@ Filters = Annotated[dict, Depends(filters)]
 
 @router.get("/stations", response_model=RuntimeStationPage)
 def stations(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     q: str = Query("", max_length=150),
     page: int = Query(1, ge=1, le=2147483647),
@@ -78,7 +78,7 @@ def stations(
 
 @router.get("/objects", response_model=RuntimeObjectPage)
 def objects(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     station_id: int = Query(..., ge=1, le=2147483647),
     source: str = Query(..., min_length=1, max_length=50),
@@ -120,7 +120,7 @@ def objects(
 
 @router.get("", response_model=RuntimeReport)
 def report(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     params: Filters,
     page: int = Query(1, ge=1, le=2147483647),
@@ -135,7 +135,7 @@ def report(
     response_class=Response,
     responses={200: {"content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}}}},
 )
-def export(user: Actor, db: SnapshotDB, params: Filters):
+def export(user: SnapshotActor, db: SnapshotDB, params: Filters):
     station = runtime.station_for(db, user, params)
     rows = list(
         db.scalars(

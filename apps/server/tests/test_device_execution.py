@@ -223,7 +223,9 @@ def create(db, data, start=date(2026, 11, 1), end=date(2026, 11, 2)):
     )
 
 
-def test_end_to_end_frozen_device_money_materials_review_and_released_allocation(data, staff):
+def test_end_to_end_frozen_device_money_materials_review_and_released_allocation(
+    data, staff, tmp_path
+):
     with SessionLocal.begin() as db:
         claim = create(db, data)
         cid = claim.id
@@ -258,6 +260,25 @@ def test_end_to_end_frozen_device_money_materials_review_and_released_allocation
             )
             == 2
         )
+    from app.charging_report import collect as combined
+
+    with SessionLocal() as db:
+        report = combined(
+            db, db.get(User, data["user"]), "month", date(2026, 11, 1), "equipment", "", 1, 20
+        )
+        allocated = [item for item in report.items if item.subsidies]
+        assert len(allocated) == 1 and Decimal(allocated[0].subsidies[0].base_amount) == Decimal(
+            "4.21"
+        )
+        assert (
+            allocated[0].subsidies[0].adjusted_amount is None
+            and allocated[0].subsidies[0].disbursed_amount is None
+        )
+        assert Decimal(report.subsidies[0].adjusted_amount) == Decimal("5.06")
+        assert Decimal(report.subsidies[0].disbursed_amount) == Decimal("5.06")
+        from app.charging_report_excel import workbook
+
+        (tmp_path / "device-report.xlsx").write_bytes(workbook(report))
     with pytest.raises(HTTPException) as error, SessionLocal.begin() as db:
         create(db, data)
     assert error.value.status_code == 409
@@ -685,3 +706,218 @@ def test_closed_annual_create_and_same_receipt_replay_use_device_pipeline(data, 
         assert replay.status_code == 201 and replay.json() == {"replayed": True, "receipt": receipt}
     finally:
         client.close()
+
+
+@pytest.mark.parametrize("raw", ["NaN", "Infinity", "-Infinity", "1E100", "-0.01"])
+def test_invalid_or_unrepresentable_money_is_rejected(raw):
+    from app.subsidy_device_execution import money
+
+    with pytest.raises(HTTPException) as error:
+        money(Decimal(raw))
+    assert error.value.status_code == 422
+
+
+def test_equal_decimal_policy_representations_do_not_block_frozen_claim(data):
+    from app.subsidy_device_execution import verify
+
+    with SessionLocal.begin() as db:
+        claim = create(db, data)
+        frozen = copy.deepcopy(claim.snapshot)
+        frozen["policy_rate"] = "0.1000010"
+        claim.snapshot = frozen
+        policy = db.get(SubsidyPolicy, data["policy"])
+        changed = copy.deepcopy(policy.device_rules)
+        changed["swap_rate"] = "0.2000010"
+        policy.device_rules = changed
+        verify(db, claim, db.get(Station, data["station"]))
+
+
+def test_frozen_coefficient_tampering_is_rejected_without_rewriting_claim(data):
+    from app.subsidy_device_execution import verify
+
+    with SessionLocal.begin() as db:
+        claim = create(db, data)
+        frozen = copy.deepcopy(claim.snapshot)
+        frozen["device_calculation"]["star_coefficient"] = "1.000000"
+        claim.snapshot = frozen
+        with pytest.raises(HTTPException) as error:
+            verify(db, claim, db.get(Station, data["station"]))
+        assert error.value.status_code == 409
+        assert claim.adjusted_amount == Decimal("5.05")
+
+
+def test_subsidy_statistics_whole_period_frozen_rows_and_unallocated_adjustments(data, accounts):
+    from app.subsidy_statistics import collect
+
+    with SessionLocal.begin() as db:
+        claim = create(db, data)
+        claim.status = "approved"
+        claim.adjusted_amount = Decimal("5.06")
+    with SessionLocal() as db:
+        user = db.get(User, data["user"])
+        for dimension in ["operator", "station", "equipment", "device_day"]:
+            rows, totals = collect(
+                db, user, date(2026, 11, 1), date(2026, 11, 2), dimension, "accepted"
+            )
+            assert totals.claim_count == 1 and Decimal(totals.adjusted_amount) == Decimal("5.06")
+            assert Decimal(totals.adjustment_amount) == Decimal(".01")
+            assert sum(Decimal(row.base_amount) for row in rows) == Decimal("4.21")
+            if dimension in {"equipment", "device_day"}:
+                assert all(
+                    row.adjusted_amount is None and row.initial_amount is None for row in rows
+                )
+                assert sum(row.device_rows for row in rows) == 2
+            else:
+                assert Decimal(rows[0].initial_amount) == Decimal("5.05")
+        rows, totals = collect(
+            db, user, date(2026, 11, 2), date(2026, 11, 2), "station", "accepted"
+        )
+        assert not rows and totals.claim_count == 0  # no partial financial proration
+    with TestClient(app, client=("stats-" + secrets.token_hex(6), 1)) as client:
+        assert (
+            client.post(
+                "/api/v1/auth/login", json={"username": accounts[0][0], "password": accounts[1]}
+            ).status_code
+            == 200
+        )
+        path = "/api/v1/subsidy/statistics?start_date=2026-11-01&end_date=2026-11-02&dimension=device_day"
+        response = client.get(path)
+        assert response.status_code == 200, response.text
+        assert response.json()["total"] == 2 and response.headers["cache-control"] == "no-store"
+        csv = client.get(path.replace("statistics?", "statistics/export?"))
+        assert csv.status_code == 200, csv.text
+        assert csv.content.startswith(b"\xef\xbb\xbf") and "browser-device" not in csv.text
+        options = client.get("/api/v1/subsidy/statistics/operators")
+        assert options.status_code == 200 and options.headers["cache-control"] == "no-store"
+        assert len(options.json()["items"]) == 1
+        assert client.get(path + "&page_size=101").status_code == 422
+        assert client.get(path.replace("2026-11-02", "2026-10-01")).status_code == 422
+
+
+def test_subsidy_statistics_rejects_missing_lines_and_does_not_read_current_energy(data):
+    from app.subsidy_statistics import collect
+
+    with SessionLocal.begin() as db:
+        claim = create(db, data)
+        claim.status = "approved"
+        cid = claim.id
+        facts = list(
+            db.scalars(
+                select(SubsidyDeviceDay).where(SubsidyDeviceDay.station_id == data["station"])
+            )
+        )
+        for fact in facts:
+            fact.energy_kwh = Decimal(999)
+    with SessionLocal() as db:
+        rows, _ = collect(
+            db,
+            db.get(User, data["user"]),
+            date(2026, 11, 1),
+            date(2026, 11, 2),
+            "equipment",
+            "accepted",
+        )
+        assert Decimal(rows[0].eligible_kwh) == Decimal("42.125")
+    with SessionLocal.begin() as db:
+        db.execute(delete(SubsidyDeviceAllocation).where(SubsidyDeviceAllocation.claim_id == cid))
+        line = db.scalar(select(SubsidyDeviceLine).where(SubsidyDeviceLine.claim_id == cid))
+        db.delete(line)
+    with SessionLocal() as db, pytest.raises(HTTPException) as error:
+        collect(
+            db,
+            db.get(User, data["user"]),
+            date(2026, 11, 1),
+            date(2026, 11, 2),
+            "equipment",
+            "accepted",
+        )
+    assert error.value.status_code == 409
+
+
+def test_subsidy_statistics_scope_limits_and_failed_export_has_no_success_audit(
+    data, accounts, monkeypatch
+):
+    from app import subsidy_statistics as statistics
+
+    with SessionLocal.begin() as db:
+        claim = create(db, data)
+        claim.status = "approved"
+    with SessionLocal() as db:
+        user = db.get(User, data["user"])
+        user.allowed_districts = []
+        rows, total = statistics.collect(
+            db, user, date(2026, 11, 1), date(2026, 11, 2), "operator", "accepted"
+        )
+        assert not rows and total.claim_count == 0
+    with TestClient(app, client=("stats-limit-" + secrets.token_hex(6), 1)) as client:
+        assert (
+            client.post(
+                "/api/v1/auth/login", json={"username": accounts[0][1], "password": accounts[1]}
+            ).status_code
+            == 200
+        )
+        path = "/api/v1/subsidy/statistics?start_date=2026-11-01&end_date=2026-11-02"
+        assert client.get(path + f"&station_id={data['station']}").json()["total"] == 0
+    with TestClient(app, client=("stats-own-" + secrets.token_hex(6), 1)) as client:
+        assert (
+            client.post(
+                "/api/v1/auth/login", json={"username": accounts[0][0], "password": accounts[1]}
+            ).status_code
+            == 200
+        )
+        monkeypatch.setattr(statistics, "CLAIM_LIMIT", 0)
+        failed = client.get(path.replace("statistics?", "statistics/export?"))
+        assert failed.status_code == 422
+    with SessionLocal() as db:
+        assert (
+            db.scalar(
+                select(func.count())
+                .select_from(Audit)
+                .where(Audit.user_id == data["user"], Audit.action == "subsidy.statistics.export")
+            )
+            == 0
+        )
+
+
+def test_subsidy_statistics_repeatable_read_and_changed_frozen_amount_rejected(data):
+    from app.reporting import snapshot_session
+    from app.subsidy_statistics import collect
+
+    with SessionLocal.begin() as db:
+        claim = create(db, data)
+        claim.status = "approved"
+        cid = claim.id
+    read_session = snapshot_session()
+    db = next(read_session)
+    try:
+        db.scalar(select(SubsidyClaim.id).where(SubsidyClaim.id == cid))
+        with SessionLocal.begin() as writer:
+            line = writer.scalar(
+                select(SubsidyDeviceLine)
+                .where(SubsidyDeviceLine.claim_id == cid)
+                .order_by(SubsidyDeviceLine.fact_id)
+            )
+            value = copy.deepcopy(line.snapshot)
+            value["amount"] = "999.00"
+            line.snapshot = value
+        rows, _ = collect(
+            db,
+            db.get(User, data["user"]),
+            date(2026, 11, 1),
+            date(2026, 11, 2),
+            "equipment",
+            "accepted",
+        )
+        assert Decimal(rows[0].base_amount) == Decimal("4.21")
+    finally:
+        read_session.close()
+    with SessionLocal() as db, pytest.raises(HTTPException) as error:
+        collect(
+            db,
+            db.get(User, data["user"]),
+            date(2026, 11, 1),
+            date(2026, 11, 2),
+            "equipment",
+            "accepted",
+        )
+    assert error.value.status_code == 409

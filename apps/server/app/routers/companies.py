@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.company_contracts import CompanyDetail, CompanyList, CompanyProfile, CompanySummary
 from app.config import settings
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.models import Audit, Operator, User
 from app.reporting import SnapshotDB
 from app.routers.statistics import csv_cell
@@ -121,7 +121,7 @@ def filtered(user, q, credit_code):
 
 @router.get("", response_model=CompanyList)
 def listing(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     q: str = Query("", max_length=150),
     credit_code: str = Query("", max_length=18),
@@ -139,7 +139,7 @@ def listing(
 
 @router.get("/export", response_class=Response, responses=CSV)
 def export(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     q: str = Query("", max_length=150),
     credit_code: str = Query("", max_length=18),
@@ -183,7 +183,7 @@ def export(
 
 
 @router.get("/{company_id}", response_model=CompanyDetail)
-def detail(company_id: int, user: Actor, db: SnapshotDB):
+def detail(company_id: int, user: SnapshotActor, db: SnapshotDB):
     op = access(db, user, company_id)
     return {
         **output(op, True),

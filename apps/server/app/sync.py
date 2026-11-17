@@ -12,7 +12,9 @@ from typing import Protocol
 from sqlalchemy import and_, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 
-from app import station_metadata
+from app import device_metadata, station_metadata
+from app.alert_period_demo import records as demo_period_records
+from app.alert_period_worker import process_one
 from app.config import settings
 from app.db import SessionLocal
 from app.models import Connector, Equipment, Station, SyncTask, now
@@ -39,10 +41,25 @@ class DemoAdapter:
                 "site_state": "normal",
                 "source_sync_state": "active",
                 "source_first_connected_at": "2026-11-01T08:00:00+08:00",
+                "source_first_reported_at": "2026-11-01T08:05:00+08:00",
+                "supply_type": "direct",
+                "electricity_tariff": "commercial",
+                "supply_capacity": "160.125",
+                "supply_capacity_unit": "kVA",
+                "independent_connection": False,
+                "parking_spaces": 0,
+                "commissioned_on": "2026-10-01",
+                "parking_fee_type": "onsite",
+                "parking_fee_description": "演示数据，请以场地实际公示为准",
+                "business_hours": "00:00–24:00（演示）",
+                "filing_code": "DEMO-NOT-OFFICIAL",
+                "station_contact_name": "演示联系人",
+                "station_contact_phone": "DEMO-NOT-A-REAL-NUMBER",
                 "longitude": "119.300000",
                 "latitude": "26.080000",
                 "coordinate_system": "wgs84",
                 "location_is_demo": True,
+                "alert_period_facts": demo_period_records(operator_id),
                 "runtime_intervals": [
                     {
                         "external_id": f"demo-runtime-{operator_id}-{index}",
@@ -171,10 +188,24 @@ class DemoAdapter:
                     {
                         "external_id": "equipment-1",
                         "name": "演示直流设备",
+                        "equipment_type": "dc",
+                        "model_name": "DEMO-MODEL-DC",
+                        "manufactured_on": "2024-02-29",
+                        "source_unique_code": "DEMO-REPORTED-ONLY",
                         "power_kw": "120.00",
                         "connectors": [
-                            {"external_id": "connector-1", "status": "available"},
-                            {"external_id": "connector-2", "status": "charging"},
+                            {
+                                "external_id": "connector-1",
+                                "status": "available",
+                                "name": "演示1号终端",
+                                "interface_type": "直流接口枪头（演示）",
+                            },
+                            {
+                                "external_id": "connector-2",
+                                "status": "charging",
+                                "name": "演示2号终端",
+                                "interface_type": "直流接口枪头（演示）",
+                            },
                         ],
                     }
                 ],
@@ -182,7 +213,7 @@ class DemoAdapter:
         ]
 
 
-def enqueue(db, operator_id: int, request_key: str):
+def enqueue_once(db, operator_id: int, request_key: str):
     task_id = db.scalar(
         insert(SyncTask)
         .values(source="demo", operator_id=operator_id, request_key=request_key)
@@ -190,12 +221,17 @@ def enqueue(db, operator_id: int, request_key: str):
         .returning(SyncTask.id)
     )
     if task_id:
-        return db.get(SyncTask, task_id)
+        return db.get(SyncTask, task_id), True
     task = db.scalar(
         select(SyncTask).where(SyncTask.source == "demo", SyncTask.request_key == request_key)
     )
     if task.operator_id != operator_id:
         raise ValueError("Idempotency key belongs to another operator")
+    return task, False
+
+
+def enqueue(db, operator_id: int, request_key: str):
+    task, _created = enqueue_once(db, operator_id, request_key)
     return task
 
 
@@ -286,6 +322,7 @@ def lease_heartbeat(task_id: int, token: str, interval: float = 30):
 
 def ingest(db, source, operator_id, records):
     from app import (
+        alert_period_facts,
         faults,
         hourly_energy,
         orders,
@@ -334,28 +371,33 @@ def ingest(db, source, operator_id, records):
         if sid is None:
             raise ValueError("Station ownership mismatch")
         for equipment in record["equipment"]:
+            equipment_values = {
+                "name": equipment["name"],
+                "power_kw": Decimal(equipment["power_kw"]),
+                **device_metadata.equipment_values(equipment),
+            }
             eid = db.scalar(
                 insert(Equipment)
                 .values(
                     station_id=sid,
                     external_id=equipment["external_id"],
-                    name=equipment["name"],
-                    power_kw=Decimal(equipment["power_kw"]),
+                    **equipment_values,
                 )
                 .on_conflict_do_update(
                     index_elements=["station_id", "external_id"],
-                    set_={"name": equipment["name"], "power_kw": Decimal(equipment["power_kw"])},
+                    set_=equipment_values,
                 )
                 .returning(Equipment.id)
             )
             equipment_count += 1
             for connector in equipment["connectors"]:
+                connector_values = device_metadata.connector_values(connector)
                 db.execute(
                     insert(Connector)
-                    .values(equipment_id=eid, **connector)
+                    .values(equipment_id=eid, **connector_values)
                     .on_conflict_do_update(
                         index_elements=["equipment_id", "external_id"],
-                        set_={"status": connector["status"]},
+                        set_={k: v for k, v in connector_values.items() if k != "external_id"},
                     )
                 )
                 connector_count += 1
@@ -408,6 +450,14 @@ def ingest(db, source, operator_id, records):
                 is_demo=(source == "demo"),
             )
             fault_count += result["received"]
+        if "alert_period_facts" in record:
+            alert_period_facts.ingest(
+                db,
+                station_id=sid,
+                operator_id=operator_id,
+                source=source,
+                records=record["alert_period_facts"],
+            )
         if "hourly_energy" in record:
             result = hourly_energy.ingest(
                 db,
@@ -467,6 +517,7 @@ def main():
         task = claim()
         if task:
             execute(task)
+        process_one()
         if args.once:
             break
         if not task:

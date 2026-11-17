@@ -5,27 +5,30 @@ import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
 from fastapi.responses import HTMLResponse
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import aliased
 
 from app import rating, rating_results
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.models import Audit, Operator, RatingApplication, Station
+from app.query_contracts import RatingPublicationPage
+from app.reporting import SnapshotDB
 from app.scopes import records
 
 router = APIRouter(prefix="/api/v1/ratings", tags=["ratings"])
 
 
-@router.get("/publications")
+@router.get("/publications", response_model=RatingPublicationPage)
 def publications(
-    user: Actor,
-    db: DB,
+    user: SnapshotActor,
+    db: SnapshotDB,
+    response: Response,
     q: str = Query(default="", max_length=100),
     result_state: str = "",
     stars: int | None = Query(default=None, ge=0, le=5),
-    page: int = Query(default=1, ge=1),
+    page: int = Query(default=1, ge=1, le=2147483647),
     page_size: int = Query(default=12, ge=1, le=100),
 ):
     if result_state not in {
@@ -38,6 +41,8 @@ def publications(
         "evaluating",
     }:
         raise HTTPException(422, "不支持的结果状态")
+    response.headers["Cache-Control"] = "no-store"
+    today = rating_results.local_day()
     ranked = (
         records(
             select(
@@ -67,7 +72,7 @@ def publications(
         (a.status.in_(["submitted", "reviewed"]), "evaluating"),
         (~Station.status.in_(["access_approved", "accepted", "operating"]), "inactive"),
         (a.valid_until.is_(None), "validity_unknown"),
-        (a.valid_until < rating_results.local_day(), "expired"),
+        (a.valid_until < today, "expired"),
         else_="valid",
     )
     effective_stars = case(
@@ -83,8 +88,12 @@ def publications(
         .where(ranked.c.position == 1)
     )
     if q.strip():
+        literal = q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         stmt = stmt.where(
-            or_(Station.name.ilike(f"%{q.strip()}%"), Operator.name.ilike(f"%{q.strip()}%"))
+            or_(
+                Station.name.ilike(f"%{literal}%", escape="\\"),
+                Operator.name.ilike(f"%{literal}%", escape="\\"),
+            )
         )
     if result_state:
         stmt = stmt.where(state == result_state)
@@ -107,7 +116,7 @@ def publications(
                 "is_demo": app.is_demo,
                 "valid_until": app.valid_until.isoformat() if app.valid_until else None,
                 "published_at": app.published_at.isoformat() if app.published_at else None,
-                **rating_results.effective(app, station_status=station.status),
+                **rating_results.effective(app, today=today, station_status=station.status),
             }
         )
     return {

@@ -6,6 +6,7 @@ from sqlalchemy import delete, func, select
 
 from app.db import SessionLocal
 from app.models import (
+    AlertPeriodFact,
     ChargingOrder,
     Connector,
     Equipment,
@@ -33,6 +34,7 @@ def operator():
     with SessionLocal.begin() as db:
         stations = select(Station.id).where(Station.operator_id == oid)
         equipment = select(Equipment.id).where(Equipment.station_id.in_(stations))
+        db.execute(delete(AlertPeriodFact).where(AlertPeriodFact.operator_id == oid))
         db.execute(delete(SubsidyDeviceDay).where(SubsidyDeviceDay.operator_id == oid))
         db.execute(delete(SubsidyDeviceScope).where(SubsidyDeviceScope.operator_id == oid))
         db.execute(delete(Connector).where(Connector.equipment_id.in_(equipment)))

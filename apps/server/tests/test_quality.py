@@ -5,12 +5,12 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, event, insert, select
+from sqlalchemy import delete, event, insert, select, update
 
 from app import faults, runtime
 from app.db import SessionLocal, engine
 from app.main import app
-from app.models import Audit, FaultEvent, RoleProfile, RuntimeInterval, Station, User
+from app.models import Audit, Equipment, FaultEvent, RoleProfile, RuntimeInterval, Station, User
 
 STAMP = datetime(2026, 11, 1, tzinfo=UTC)
 BASE = "/api/v1/statistics/quality"
@@ -78,6 +78,7 @@ def clean(ids):
     with SessionLocal.begin() as db:
         db.execute(delete(RuntimeInterval).where(RuntimeInterval.station_id.in_(ids)))
         db.execute(delete(FaultEvent).where(FaultEvent.station_id.in_(ids)))
+        db.execute(delete(Equipment).where(Equipment.station_id.in_(ids)))
         db.execute(delete(Station).where(Station.id.in_(ids)))
 
 
@@ -252,7 +253,7 @@ def test_quality_cohort_axes_raw_fault_scope_unknown_and_identity(accounts, staf
             assert source["items"] == [{"source": "test", "station_count": 4}]
             exported = op.get(BASE + "/export", params=window(q=prefix))
             rows = list(csv.reader(io.StringIO(exported.text.lstrip("\ufeff"))))
-            assert exported.status_code == 200 and len(rows) == 5
+            assert exported.status_code == 200 and len(rows) == 7
             label_index = rows[0].index("当前分组名称")
             assert any(row[label_index] == "'=SUM(1,2)" for row in rows[1:])
             demo_index = rows[0].index("演示标识")
@@ -434,6 +435,10 @@ def test_quality_cohort_counts_and_durations_share_repeatable_snapshot(accounts)
                 assert Decimal(stream(first["items"][0])["axes"][0]["reported_seconds"]) == Decimal(
                     "0.3"
                 )
+                assert first["summary"]["station_count"] == 2
+                assert Decimal(stream(first["summary"])["axes"][0]["reported_seconds"]) == Decimal(
+                    "0.3"
+                )
                 second = op.get(BASE, params=query).json()
                 assert second["selected_station_count"] == 1 and Decimal(
                     stream(second["items"][0])["axes"][0]["reported_seconds"]
@@ -519,10 +524,56 @@ def test_quality_export_rejects_10001_groups_without_success_audit(accounts):
                     )
                     is None
                 )
+            # The actual output cap includes one no-observation total row, not just detail groups.
+            with SessionLocal.begin() as db:
+                db.execute(
+                    update(Station)
+                    .where(Station.id.in_(extras[:9999]))
+                    .values(name=prefix + "exact")
+                )
+            exact_query = window(
+                source=prefix,
+                q=prefix + "exact",
+                start_at=(STAMP + timedelta(days=2)).isoformat(),
+                end_at=(STAMP + timedelta(days=3)).isoformat(),
+            )
+            exact = op.get(BASE + "/export", params=exact_query)
+            assert exact.status_code == 200
+            exact_rows = list(csv.DictReader(io.StringIO(exact.text.lstrip("\ufeff"))))
+            assert (
+                len(exact_rows) == 10000
+                and sum(row["记录类型"] == "查询总计" for row in exact_rows) == 1
+            )
+            with SessionLocal.begin() as db:
+                audit_count = len(
+                    list(
+                        db.scalars(
+                            select(Audit.id).where(
+                                Audit.user_id == uid, Audit.action == "statistics.quality.export"
+                            )
+                        )
+                    )
+                )
+                db.get(Station, extras[9999]).name = prefix + "exact"
+            assert op.get(BASE + "/export", params=exact_query).status_code == 422
+            with SessionLocal() as db:
+                assert (
+                    len(
+                        list(
+                            db.scalars(
+                                select(Audit.id).where(
+                                    Audit.user_id == uid,
+                                    Audit.action == "statistics.quality.export",
+                                )
+                            )
+                        )
+                    )
+                    == audit_count
+                )
             result = op.get(BASE + "/export", params=window(source=prefix, district="D10000"))
             assert (
                 result.status_code == 200
-                and len(list(csv.reader(io.StringIO(result.text.lstrip("\ufeff"))))) == 2
+                and len(list(csv.reader(io.StringIO(result.text.lstrip("\ufeff"))))) == 3
             )
     finally:
         clean(extras)

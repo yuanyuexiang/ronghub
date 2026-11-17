@@ -5,6 +5,7 @@ This check creates only random ronghub-verify-* / ronghub-restore-* fixtures and
 """
 
 import base64
+import csv
 import hashlib
 import http.cookiejar
 import io
@@ -19,9 +20,27 @@ import urllib.request
 import zipfile
 from datetime import datetime, timedelta
 from uuid import uuid4
+from xml.etree import ElementTree as ET
 from zoneinfo import ZoneInfo
 
 from stack_ops import ROOT, Stack, initialize
+
+
+def xlsx_cells(payload):
+    ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        strings = ["".join(value.itertext()) for value in ET.fromstring(archive.read("xl/sharedStrings.xml")).findall("s:si", ns)]
+        sheets = ET.fromstring(archive.read("xl/workbook.xml")).findall("s:sheets/s:sheet", ns)
+        result = []
+        for index, sheet in enumerate(sheets, 1):
+            rows = []
+            for cell in ET.fromstring(archive.read(f"xl/worksheets/sheet{index}.xml")).findall(".//s:c", ns):
+                value = cell.find("s:v", ns)
+                if value is not None:
+                    rows.append((cell.get("r"), cell.get("t", "n"), strings[int(value.text)] if cell.get("t") == "s" else value.text))
+                assert cell.find("s:f", ns) is None
+            result.append((sheet.get("name"), rows))
+        return result
 
 
 def available_port():
@@ -37,8 +56,10 @@ class Client:
         self.cookies = http.cookiejar.CookieJar()
         self.http = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookies))
         self.csrf = ""
+        self.enrollment_csrf = ""
 
-    def request(self, path, body=None, method=None, raw=None, content_type=None, expected=200):
+    def request(self, path, body=None, method=None, raw=None, content_type=None, expected=200,
+                expected_media=None, private=False):
         headers = {}
         if body is not None:
             raw = json.dumps(body).encode()
@@ -47,6 +68,8 @@ class Client:
             headers["Content-Type"] = content_type
         if body is not None or raw is not None or method in {"POST", "PATCH", "DELETE"}:
             headers.update({"x-csrf-token": self.csrf, "Origin": self.origin})
+        if self.enrollment_csrf and path.startswith("/api/v1/enrollment"):
+            headers["x-enrollment-csrf"] = self.enrollment_csrf
         request = urllib.request.Request(
             self.origin + path, data=raw, headers=headers, method=method
         )
@@ -57,6 +80,10 @@ class Client:
         status, data = response.code, response.read()
         if status != expected:
             raise AssertionError(f"Unexpected HTTP {status}, expected {expected}: {path}")
+        if expected_media is not None:
+            assert response.headers.get("Content-Type", "").split(";")[0] == expected_media
+        if private:
+            assert response.headers.get("Cache-Control") == "no-store"
         return json.loads(data) if "json" in response.headers.get("Content-Type", "") else data
 
     def login(self, name, password, expected=200):
@@ -107,6 +134,200 @@ def multipart(content, filename="recovery-proof.pdf", mime="application/pdf", fi
     return data, "multipart/form-data; boundary=" + boundary
 
 
+def prepare_inspection_plans(reg,owner,association,plan_targets,key):
+    plan_title="Synthetic inspection plan "+key
+    plan_draft=reg.request("/api/v1/inspection-plans",{"request_key":str(uuid4())},expected=201)
+    plan_draft_path=f"/api/v1/inspection-plans/{plan_draft['id']}"
+    plan_body={"version":1,"title":plan_title,"description":"Restorable plan requirements","rich_document":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Restorable plan requirements","marks":[{"type":"bold"}]}]}]},"station_ids":plan_targets,"due_at":None}
+    plan_draft_before=reg.request(plan_draft_path,plan_body,method="PUT")
+    assert plan_draft_before["status"]=="draft" and plan_draft_before["target_count"]==2 and plan_draft_before["due_at"] is None
+    owner.request(plan_draft_path,expected=403)
+    association.request(plan_draft_path,expected=403)
+    assert owner.request("/api/v1/inspections?q="+urllib.parse.quote(plan_title))["total"]==0
+    published_plan=reg.request("/api/v1/inspection-plans",{"request_key":str(uuid4())},expected=201)
+    published_plan_path=f"/api/v1/inspection-plans/{published_plan['id']}"
+    reg.request(published_plan_path,{**plan_body,"title":"Published "+plan_title},method="PUT")
+    published_plan_before=reg.request(published_plan_path+"/publish",{"version":2})
+    assert published_plan_before["published_count"]==2
+    assert reg.request(published_plan_path+"/publish",{"version":2})==published_plan_before
+    for planned_target in published_plan_before["targets"]:
+        plan_task=reg.request(f"/api/v1/inspections/{planned_target['task_id']}")
+        assert plan_task["plan_id"]==published_plan["id"] and plan_task["due_at"] is None and plan_task["overdue"] is False
+    return {"draft_path":plan_draft_path,"draft":plan_draft_before,"published_path":published_plan_path,"published":published_plan_before}
+
+
+def verify_restored_inspection_plans(restored_manager,restored,restored_association,proof):
+    assert restored_manager.request(proof["draft_path"],private=True)==proof["draft"]
+    assert restored_manager.request(proof["published_path"],private=True)==proof["published"]
+    assert restored_manager.request(proof["published_path"]+"/publish",{"version":2})==proof["published"]
+    resumed_plan=restored_manager.request(proof["draft_path"]+"/publish",{"version":2})
+    assert resumed_plan["status"]=="published" and resumed_plan["published_count"]==2
+    assert restored_manager.request(proof["draft_path"]+"/publish",{"version":2})==resumed_plan
+    for planned in resumed_plan["targets"]:
+        plan_task=restored_manager.request(f"/api/v1/inspections/{planned['task_id']}")
+        assert plan_task["plan_id"]==proof["draft"]["id"] and plan_task["due_at"] is None and plan_task["overdue"] is False
+        restored_association.request(f"/api/v1/inspections/{planned['task_id']}",expected=403)
+    restored.request(proof["draft_path"],expected=403)
+    print("Inspection plan restore: creator-private drafts, target recipient snapshots, no-deadline tasks and exact publication receipts preserved; pending batch published once after restore, repeat returns same tasks.",flush=True)
+
+
+def prepare_inspection_query_proof(owner,other,association,task_detail):
+    created_date=datetime.fromisoformat(task_detail["created_at"]).astimezone(ZoneInfo("Asia/Shanghai")).date().isoformat()
+    query=urllib.parse.urlencode({"record_id":task_detail["id"],"created_from":created_date,"created_to":created_date,"execution_state":"reported"})
+    list_path="/api/v1/inspections?"+query
+    csv_path="/api/v1/inspections/export?"+query
+    view=owner.request(list_path,private=True)
+    view.pop("query_at",None)
+    assert view["total"]==1 and view["items"][0]["execution_state"]=="reported"
+    assert view["items"][0]["last_reported_performed_at"] is not None
+    content=owner.request(csv_path,expected_media="text/csv",private=True)
+    decoded=list(csv.DictReader(io.StringIO(content.decode("utf-8-sig"))))
+    assert len(decoded)==1 and decoded[0]["该次执行联系人"]=="Synthetic executor"
+    assert other.request(list_path)["total"]==0
+    assert list(csv.DictReader(io.StringIO(other.request(csv_path,expected_media="text/csv",private=True).decode("utf-8-sig"))))==[]
+    association.request(csv_path,expected=403)
+    return {"list_path":list_path,"csv_path":csv_path,"view":view,"csv":content}
+
+
+def verify_restored_inspection_query(owner,proof):
+    view=owner.request(proof["list_path"],private=True)
+    view.pop("query_at",None)
+    assert view==proof["view"]
+    assert owner.request(proof["csv_path"],expected_media="text/csv",private=True)==proof["csv"]
+    print("Inspection query restore: applied Beijing creation range, actual feedback state/latest reply clocks and exact private full-query CSV preserved; no submitted clock substituted for user execution time.",flush=True)
+
+
+def prepare_hazard_proof(reg,owner,other,association,station,key):
+    created=reg.request("/api/v1/hazards",{"station_id":station["id"],"operator_id":station["operator_id"],"title":"Synthetic hazard "+key,"description":"Independent hazard supervision recovery","severity":"major","due_at":(datetime.now(ZoneInfo("UTC"))+timedelta(days=2)).isoformat()},expected=201)
+    path="/api/v1/hazards/"+str(created["id"])
+    started=owner.request(path+"/actions",{"version":created["version"],"action":"start","comment":"Synthetic start"})
+    raw,mime=multipart(b"%PDF-1.4\nSynthetic hazard recovery proof","hazard-proof.pdf")
+    material=owner.request(path+"/attachments",raw=raw,content_type=mime,expected=201)
+    facts={"contact":{"name":"Synthetic hazard executor","phone":"13800000003"},"performed_at":(datetime.now(ZoneInfo("UTC"))-timedelta(hours=2)).isoformat()}
+    completed=owner.request(path+"/actions",{"version":started["version"],"action":"reply","comment":"Synthetic completion; tracking continues",**facts})
+    assert completed["progress"]=="completed" and completed["status"]=="tracking" and completed["closed_at"] is None
+    raw,mime=multipart(b"%PDF-1.4\nSynthetic pending hazard supplement","hazard-pending.pdf")
+    pending=owner.request(path+"/attachments",raw=raw,content_type=mime,expected=201)
+    detail=owner.request(path,private=True)
+    csv_path="/api/v1/hazards/export?"+urllib.parse.urlencode({"record_id":created["id"],"progress":"completed","status":"tracking"})
+    report=owner.request(csv_path,expected_media="text/csv",private=True)
+    other.request(path,expected=404)
+    association.request(path,expected=403)
+    files={}
+    for item in [material,pending]:
+        download=path+"/attachments/"+str(item["id"])+"/download"
+        files[download]=hashlib.sha256(owner.request(download,expected_media="application/pdf",private=True)).hexdigest()
+    return {"path":path,"detail":detail,"csv_path":csv_path,"csv":report,"files":files,"facts":facts}
+
+
+def verify_restored_hazard(reg,owner,other,association,proof):
+    path=proof["path"]
+    assert owner.request(path,private=True)==proof["detail"]
+    assert owner.request(proof["csv_path"],expected_media="text/csv",private=True)==proof["csv"]
+    for download,digest in proof["files"].items():
+        assert hashlib.sha256(owner.request(download,expected_media="application/pdf",private=True)).hexdigest()==digest
+    other.request(path,expected=404)
+    association.request(path,expected=403)
+    before=proof["detail"]
+    owner.request(path+"/actions",{"version":before["version"],"action":"reply","comment":"Incomplete new hazard reply"},expected=422)
+    assert owner.request(path)==before
+    continued=owner.request(path+"/actions",{"version":before["version"],"action":"reply","comment":"Complete restored supplement",**proof["facts"]})
+    assert continued["progress"]=="completed" and continued["status"]=="tracking"
+    closed=reg.request(path+"/actions",{"version":continued["version"],"action":"close","comment":"Explicit restored supervision closure"})
+    assert closed["status"]=="closed" and closed["progress"]=="completed" and closed["closed_at"] is not None
+    owner.request(path+"/actions",{"version":closed["version"],"action":"reply","comment":"Must not reopen closed supervision",**proof["facts"]},expected=409)
+    print("Hazard restore: independent completed/tracking state, explicit facts, frozen/pending proof and exact private CSV preserved; complete supplement continued, explicit regulator closure stopped tracking without rewriting completion facts.",flush=True)
+
+
+def prepare_protocol_proof(reg,owner,association,key):
+    text="Synthetic protocol for recovery, not a formal customer standard"
+    document={"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":text,"marks":[{"type":"bold"}]}]}]}
+    created=reg.request("/api/v1/content",{"kind":"protocol","title":"Synthetic customer protocol "+key,"body":text,"rich_document":document},expected=201)
+    path="/api/v1/content/"+str(created["id"])
+    raw,mime=multipart(b"%PDF-1.4\nSynthetic protocol recovery document","protocol.pdf",fields={"version":str(created["version"])})
+    uploaded=reg.request(path+"/attachments",raw=raw,content_type=mime,expected=201)
+    published=reg.request(path+"/actions",{"version":uploaded["article"]["version"],"action":"publish"})
+    reading="/api/v1/protocols/"+str(created["id"])
+    detail=owner.request(reading,private=True)
+    material=detail["attachments"][0]
+    assert material["frozen"] and detail["rich_document"] is not None
+    download=path+"/attachments/"+str(material["id"])
+    payload=owner.request(download,expected_media="application/pdf",private=True)
+    draft=reg.request("/api/v1/content",{"kind":"protocol","title":"Synthetic pending protocol "+key,"body":"Synthetic pending protocol; must remain hidden before publish"},expected=201)
+    for actor in [reg,owner,association]:
+        assert actor.request(reading)==detail
+        actor.request("/api/v1/protocols/"+str(draft["id"]),expected=404)
+    return {"path":path,"reading":reading,"detail":detail,"download":download,"digest":hashlib.sha256(payload).hexdigest(),"published":published,"draft":draft}
+
+
+def verify_restored_protocol(reg,owner,association,proof):
+    for actor in [reg,owner,association]:
+        assert actor.request(proof["reading"],private=True)==proof["detail"]
+        assert hashlib.sha256(actor.request(proof["download"],expected_media="application/pdf",private=True)).hexdigest()==proof["digest"]
+        actor.request("/api/v1/protocols/"+str(proof["draft"]["id"]),expected=404)
+    draft=proof["draft"]
+    reg.request("/api/v1/content/"+str(draft["id"])+"/actions",{"version":draft["version"],"action":"publish"})
+    assert owner.request("/api/v1/protocols/"+str(draft["id"]))["body"]==draft["body"]
+    reg.request(proof["path"]+"/actions",{"version":proof["published"]["version"],"action":"withdraw"})
+    for actor in [reg,owner,association]:
+        actor.request(proof["reading"],expected=404)
+        actor.request(proof["download"],expected=404)
+    print("Protocol restore: published formatting/frozen private PDF and pending draft preserved; restored draft published explicitly and withdrawal revoked reader/download visibility for all three roles; no formal text invented.",flush=True)
+
+
+def prepare_public_portal(reg,private_id,png,key):
+    created=reg.request("/api/v1/content",{"kind":"news","title":"Explicit public recovery "+key,"body":"Explicitly approved synthetic public information","portal_public":True},expected=201)
+    path="/api/v1/content/"+str(created["id"])
+    latest=created
+    materials=[]
+    for filename,payload,mime_type in [("public-image.png",png,"image/png"),("public-document.pdf",b"%PDF-1.4\nSynthetic public recovery document","application/pdf")]:
+        raw,mime=multipart(payload,filename,mime_type,{"version":str(latest["version"])})
+        receipt=reg.request(path+"/attachments",raw=raw,content_type=mime,expected=201)
+        latest=receipt["article"]
+        materials=receipt["attachments"]
+    image=next(item for item in materials if item["content_type"]=="image/png")
+    document={"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":created["body"],"marks":[{"type":"bold"}]}]},{"type":"privateImage","attrs":{"attachment_id":image["id"],"alt":"Explicit public demo image"}}]}
+    latest=reg.request(path,{"kind":"news","title":created["title"],"body":created["body"],"portal_public":True,"version":latest["version"],"rich_document":document},method="PATCH")
+    published=reg.request(path+"/actions",{"action":"publish","version":latest["version"]})
+    anonymous=Client(reg.origin,reg.stack)
+    anonymous.request("/api/v1/auth/me",expected=401)
+    info=anonymous.request("/api/v1/public/info",private=True)
+    assert info["demo_mode"] is True
+    reading="/api/v1/public/articles/"+str(created["id"])
+    detail=anonymous.request(reading,private=True)
+    assert "operator_id" not in detail and "history" not in detail and len(detail["attachments"])==2
+    listing="/api/v1/public/articles?"+urllib.parse.urlencode({"q":created["title"]})
+    page=anonymous.request(listing,private=True)
+    assert page["total"]==1
+    files={}
+    for item in materials:
+        download=reading+"/attachments/"+str(item["id"])
+        files[download]=hashlib.sha256(anonymous.request(download,expected_media=item["content_type"],private=True)).hexdigest()
+    draft=reg.request("/api/v1/content",{"kind":"announcement","title":"Pending explicit public "+key,"body":"Pending explicit public draft, not yet visible","portal_public":True},expected=201)
+    anonymous.request("/api/v1/public/articles/"+str(draft["id"]),expected=404)
+    anonymous.request("/api/v1/public/articles/"+str(private_id),expected=404)
+    return {"path":path,"reading":reading,"detail":detail,"listing":listing,"page":page,"files":files,"published":published,"draft":draft,"private_id":private_id}
+
+
+def verify_restored_public_portal(reg,proof):
+    anonymous=Client(reg.origin,reg.stack)
+    anonymous.request("/api/v1/auth/me",expected=401)
+    assert anonymous.request(proof["reading"],private=True)==proof["detail"]
+    assert anonymous.request(proof["listing"],private=True)==proof["page"]
+    for download,digest in proof["files"].items():
+        assert hashlib.sha256(anonymous.request(download,private=True)).hexdigest()==digest
+    anonymous.request("/api/v1/public/articles/"+str(proof["private_id"]),expected=404)
+    draft=proof["draft"]
+    anonymous.request("/api/v1/public/articles/"+str(draft["id"]),expected=404)
+    reg.request("/api/v1/content/"+str(draft["id"])+"/actions",{"action":"publish","version":draft["version"]})
+    assert anonymous.request("/api/v1/public/articles/"+str(draft["id"]))["body"]==draft["body"]
+    reg.request(proof["path"]+"/actions",{"action":"withdraw","version":proof["published"]["version"]})
+    anonymous.request(proof["reading"],expected=404)
+    for download in proof["files"]:
+        anonymous.request(download,expected=404)
+    print("Public portal restore: explicit consent, anonymous safe projection, rich text/image/PDF and private/pending boundaries preserved; pending public draft published explicitly, withdrawal revokes anonymous article and both files; authenticated-all remains private.",flush=True)
+
+
 def main():
     key = secrets.token_hex(5)
     source_env = ROOT / f"deploy/.env.verify-{key}"
@@ -138,6 +359,8 @@ def main():
             },
             expected=201,
         )
+        application_path = f"/api/v1/applications/{application['id']}"
+        application = owner.request(application_path, {"version": application["version"], "note": "Edited source application proof"}, method="PATCH")
         payload = b"%PDF-1.4\nDocker coordinated recovery proof.\n"
         raw, content_type = multipart(payload)
         attachment = owner.request(
@@ -150,12 +373,26 @@ def main():
         assert owner.request(download) == payload
         other.request(download, expected=404)
         association.request(download, expected=403)
-        owner.request(
-            f"/api/v1/applications/{application['id']}/actions", {"action": "submit", "version": 1}
+        category = owner.request(application_path+f"/attachments/{attachment['id']}/category", {"version": application["version"], "revision": attachment["revision"], "category": "other"}, method="PATCH")
+        assert category["material"]["category"] == "other"
+        review = owner.request(application_path+"/review-context", private=True)
+        application = owner.request(
+            application_path+"/actions", {"action": "submit", "version": application["version"], "review_token": review["review_token"]}
         )
-        reg.request(
-            f"/api/v1/applications/{application['id']}/actions",
-            {"action": "approve", "version": 2, "comment": "Docker demo approval"},
+        submissions_path = application_path+"/submissions"
+        submitted_proof = owner.request(submissions_path, private=True)["items"][0]
+        submission_path = submissions_path+f"/{submitted_proof['id']}"
+        frozen_proof = owner.request(submission_path, private=True)
+        assert frozen_proof["source_reviewed"] and frozen_proof["content"]["materials"][0]["category"] == "other"
+        frozen_download = submission_path+f"/materials/{attachment['id']}/download"
+        assert owner.request(frozen_download, private=True) == payload
+        frozen_archive_path = submission_path+"/archive"
+        frozen_archive_digest = hashlib.sha256(owner.request(frozen_archive_path, expected_media="application/zip", private=True)).hexdigest()
+        other.request(submission_path, expected=404)
+        association.request(submission_path, expected=403)
+        application = reg.request(
+            application_path+"/actions",
+            {"action": "approve", "version": application["version"], "comment": "Docker demo approval"},
         )
         standard = owner.request("/api/v1/ratings/standards")["items"][0]
         rating = owner.request(
@@ -198,11 +435,18 @@ def main():
         other.request(material_archive_path, expected=404)
         assert association.request(material_archive_path) == material_archive_before
         owner_info = owner.request("/api/v1/auth/me")
+        sync_body = {"operator_id": owner_info["operator_id"], "request_key": "verify-" + key}
+        choices = reg.request("/api/v1/sync/operators")["items"]
+        assert any(item["id"] == owner_info["operator_id"] for item in choices)
+        assert all(set(item) == {"id", "name"} for item in choices)
+        owner.request("/api/v1/sync/operators", expected=403)
         task = reg.request(
             "/api/v1/sync/tasks",
-            {"operator_id": owner_info["operator_id"], "request_key": "verify-" + key},
+            sync_body,
             expected=202,
         )
+        assert reg.request("/api/v1/sync/tasks", sync_body, expected=202)["id"] == task["id"]
+        sync_lookup_path = "/api/v1/sync/tasks?" + urllib.parse.urlencode({"request_key": sync_body["request_key"]})
         deadline = time.monotonic() + 25
         while True:
             status = next(
@@ -215,6 +459,9 @@ def main():
             if time.monotonic() > deadline:
                 raise AssertionError("Worker did not finish fixture task")
             time.sleep(0.4)
+        sync_before = reg.request(sync_lookup_path)
+        assert [item["id"] for item in sync_before["items"]] == [task["id"]]
+        assert "lease_owner" not in sync_before["items"][0]
         owner.request("/api/v1/map")
         synced = owner.request("/api/v1/stations?" + urllib.parse.urlencode({"q":"演示·接口同步场站"}))["items"]
         assert len(synced) == 1
@@ -285,12 +532,47 @@ print('Runtime SQL privileges, non-root image, shared extension and actual exclu
         reg.request("/api/v1/content/batch-actions", {"action":"delete", "items":[{"id":deleted_notice["id"],"version":1}]})
         deleted_notice_before = reg.request(deleted_notice_path+"?manage=true")
         assert deleted_notice_before["status"] == "deleted"
-        owner.request(notice_path+"/replies", {"body":"恢复前回复", "contact_name":"测试联系人", "contact_phone":"13800000000"}, expected=201)
+        reply_raw, reply_type = multipart(png, "reply-proof.png", "image/png",
+                                          {"body":"恢复前回复", "contact_name":"测试联系人", "contact_phone":"13800000000", "rich_document":json.dumps({"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"恢复前回复","marks":[{"type":"bold"}]}]},{"type":"privateImage","attrs":{"attachment_id":1,"alt":"恢复验证回复图片"}}]}, ensure_ascii=False)}, file_field="files")
+        reply_result = owner.request(notice_path+"/replies/with-images", raw=reply_raw, content_type=reply_type, expected=201, private=True)
         notice_csv_before = reg.request("/api/v1/content/notice-records/export?article_id="+str(notice["id"]))
         notice_before = reg.request(notice_path+"?manage=true")
         owner_notice_before = owner.request(notice_path)
+        reply_image = next(item for item in owner_notice_before["replies"] if item["id"] == reply_result["id"])["images"][0]
+        reply_document_before = next(item for item in owner_notice_before["replies"] if item["id"] == reply_result["id"])["rich_document"]
+        assert reply_document_before["content"][0]["content"][0]["marks"][0]["type"] == "bold"
+        assert reply_document_before["content"][1]["attrs"]["attachment_id"] == reply_image["id"]
+        notice_image_path = notice_path + f"/replies/{reply_result['id']}/images/{reply_image['id']}"
+        assert hashlib.sha256(owner.request(notice_image_path, expected_media="image/png", private=True)).hexdigest() == reply_image["sha256"]
+        other.request(notice_image_path, expected=404)
         assert len(notice_before["deliveries"]) == len(notice_ids)
         assert len(owner_notice_before["deliveries"]) == 1
+        enterprise_applicant=Client(origin,source)
+        registration_username="restore-enrollment-"+key
+        registration_password=secrets.token_urlsafe(24)
+        registration_body={"username":registration_username,"password":registration_password,
+            "company_name":"Synthetic enterprise enrollment "+key,"credit_code":"A"+secrets.token_hex(9).upper()[:17],
+            "registration_address":"Synthetic pending registration","contacts":[{"name":"Synthetic applicant","phone":"100006","primary":True}]}
+        enterprise_created=enterprise_applicant.request("/api/v1/enrollment",registration_body,expected=201)
+        enterprise_applicant.enrollment_csrf=enterprise_created["csrf_token"]
+        enterprise_id=enterprise_created["id"]
+        enterprise_path=f"/api/v1/registrations/{enterprise_id}"
+        assert enterprise_created["operator_id"] is None and enterprise_created["user_id"] is None
+        enterprise_applicant.request("/api/v1/auth/me",expected=401)
+        material_bytes=b"%PDF-1.4\nSynthetic enterprise enrollment restore proof"
+        enterprise_raw,enterprise_type=multipart(material_bytes,"enterprise-proof.pdf","application/pdf")
+        enterprise_material=enterprise_applicant.request("/api/v1/enrollment/me/attachments",raw=enterprise_raw,content_type=enterprise_type,expected=201)
+        enterprise_submitted=enterprise_applicant.request("/api/v1/enrollment/me/submit",{"version":1})
+        registration_role=reg.request("/api/v1/roles",{"name":"Restore enterprise role "+key,"base_role":"operator","permissions":["stations.read"]},expected=201)
+        rejected_registration=reg.request(enterprise_path+"/review",{"version":enterprise_submitted["version"],"action":"reject","comment":"Synthetic correction round"})
+        enterprise_edited=enterprise_applicant.request("/api/v1/enrollment/me",{**{k:v for k,v in registration_body.items() if k not in {"username","password"}},"version":rejected_registration["version"],"registration_address":"Synthetic corrected registration"},method="PATCH")
+        enterprise_applicant.request("/api/v1/enrollment/me/submit",{"version":enterprise_edited["version"]})
+        enterprise_before=reg.request(enterprise_path)
+        enterprise_materials_before=enterprise_applicant.request("/api/v1/enrollment/me/attachments")
+        enterprise_progress_before={k:v for k,v in enterprise_applicant.request("/api/v1/enrollment/me").items() if k!="csrf_token"}
+        enterprise_file_path=enterprise_path+f"/attachments/{enterprise_material['id']}/download"
+        enterprise_file_hash=hashlib.sha256(reg.request(enterprise_file_path)).hexdigest()
+        assert enterprise_file_hash==enterprise_material["sha256"]
         phone_issue = owner.request("/api/v1/auth/phone/challenges", {"phone":"13900000001", "current_password":source.values["DEMO_PASSWORD"]}, expected=201)
         assert phone_issue["delivery_mode"] == "demo" and "code" not in phone_issue
         phone_seed = json.loads(source.run("exec","-T","api","python","-m","app.sms_fixture","--container-preview","--",phone_issue["challenge_id"],capture=True).stdout)
@@ -308,8 +590,24 @@ print('Runtime SQL privileges, non-root image, shared extension and actual exclu
         owner.request("/api/v1/auth/me",expected=401)
         sms_device.request("/api/v1/auth/me",expected=401)
         owner.login("operator_a",owner_password)
+        # Real authenticated two-phone flow, using only the isolated demo SMS fixture.
+        def owner_sms_code(token):
+            return json.loads(source.run("exec","-T","api","python","-m","app.sms_fixture","--container-preview","--",token,capture=True).stdout)["code"]
+        before_change = owner.request("/api/v1/auth/phone")
+        old_change = owner.request("/api/v1/auth/phone/change/challenges", {"current_password":owner_password,"phone_version":before_change["version"]},expected=201)
+        new_change = owner.request("/api/v1/auth/phone/change/new-challenges", {"old_challenge_id":old_change["challenge_id"],"old_code":owner_sms_code(old_change["challenge_id"]),"phone":"13800000001"},expected=201)
+        assert owner.request("/api/v1/auth/phone")==before_change
+        changed_phone = owner.request("/api/v1/auth/phone/change/confirm", {"challenge_id":new_change["challenge_id"],"code":owner_sms_code(new_change["challenge_id"])})
+        assert changed_phone["phone_masked"]=="138****0001"
+        owner.request("/api/v1/auth/me",expected=401)
+        owner.login("operator_a",owner_password)
         phone_before = owner.request("/api/v1/auth/phone")
         assert phone_before["verified"] and phone_before["verification_mode"] == "demo"
+        assert phone_before["version"]==before_change["version"]+1
+        pending_old_change=owner.request("/api/v1/auth/phone/change/challenges",{"current_password":owner_password,"phone_version":phone_before["version"]},expected=201)
+        pending_new_change=owner.request("/api/v1/auth/phone/change/new-challenges",{"old_challenge_id":pending_old_change["challenge_id"],"old_code":owner_sms_code(pending_old_change["challenge_id"]),"phone":"13800000004"},expected=201)
+        pending_new_code=owner_sms_code(pending_new_change["challenge_id"])
+
         other.request("/api/v1/auth/phone/challenges", {"phone":"13900000002", "current_password":source.values["DEMO_PASSWORD"]}, expected=201)
         applicant=Client(origin,source)
         staff_request=applicant.staff_request("association","Docker staff " + key,"13900000003")
@@ -326,7 +624,55 @@ print('Runtime SQL privileges, non-root image, shared extension and actual exclu
         staff_account.login(staff_username,staff_password)
         assert staff_account.request("/api/v1/auth/me")["must_change_password"]
         staff_account.request("/api/v1/stations",expected=403)
+        configured_alert_code = "RESTORE-ALERT-"+key
+        alert_body = {"code":configured_alert_code,"version":1,"name":"Demo multi-level restore","notifications_enabled":True,"configuration":{"configuration_version":1,"kind":"device_temperature","direction":"gte","period":"instant","thresholds":{"general":"60","severe":"70","critical":"80"},"recover_value":"50"}}
+        configured_alerts = [reg.request("/api/v1/alerts/configured-rules",alert_body,expected=201)]
+        alert_body = json.loads(json.dumps(alert_body))
+        alert_body["version"] = 2
+        alert_body["configuration"].update(kind="station_fault",period="natural_month",thresholds={"general":"10","critical":"20"},recover_value="5")
+        second_alert = reg.request("/api/v1/alerts/configured-rules",alert_body,expected=201)
+        configured_alerts.append(reg.request(f"/api/v1/alerts/configured-rules/{second_alert['id']}/availability",{"revision":1,"enabled":False},method="PATCH"))
+        alert_body["version"] = 3
+        third_alert = reg.request("/api/v1/alerts/configured-rules",alert_body,expected=201)
+        configured_alerts.append(reg.request(f"/api/v1/alerts/configured-rules/{third_alert['id']}?revision=1",method="DELETE"))
+        alert_configuration_path = "/api/v1/alerts/configured-rules?"+urllib.parse.urlencode({"q":configured_alert_code,"include_archived":"true"})
+        alert_configuration_before = reg.request(alert_configuration_path)
+        assert alert_configuration_before["total"]==3
+        association.request("/api/v1/alerts/configured-rules",expected=403)
         operating = next(station for station in own if station["status"] == "operating")
+        inspection_requirement = {"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Synthetic major hazard recovery workflow","marks":[{"type":"bold"}]}]}]}
+        inspection_performed_at=(datetime.now(ZoneInfo("UTC"))-timedelta(days=1)).isoformat()
+        inspection_task=reg.request("/api/v1/inspections",{"station_id":operating["id"],"title":"Synthetic inspection "+key,"description":"Synthetic major hazard recovery workflow","rich_document":inspection_requirement,"severity":"major","due_at":(datetime.now(ZoneInfo("UTC"))+timedelta(days=1)).isoformat()},expected=201)
+        inspection_path=f"/api/v1/inspections/{inspection_task['id']}"
+        inspection_materials=[]
+        for index in [1,2]:
+            raw_proof,proof_type=multipart(png if index==1 else b"%PDF-1.4\nSynthetic inspection evidence "+str(index).encode(),f"inspection-{index}.png" if index==1 else f"inspection-{index}.pdf","image/png" if index==1 else "application/pdf")
+            inspection_materials.append(owner.request(inspection_path+"/attachments",raw=raw_proof,content_type=proof_type,expected=201))
+            if index==1:
+                reply=owner.request(inspection_path+"/actions",{"version":inspection_task["version"],"action":"reply","comment":"Synthetic first correction","rich_document":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Synthetic first correction","marks":[{"type":"bold"}]}]},{"type":"privateImage","attrs":{"attachment_id":inspection_materials[-1]["id"],"alt":"Inspection evidence"}}]},"contact":{"name":"Synthetic executor","phone":"13800000001"},"performed_at":inspection_performed_at})
+                inspection_task=reg.request(inspection_path+"/actions",{"version":reply["version"],"action":"return","comment":"Synthetic request for extra evidence"})
+        inspection_before=reg.request(inspection_path)
+        inspection_materials_before=owner.request(inspection_path+"/attachments")
+        assert inspection_before["rich_document"] is not None
+        frozen_execution=inspection_before["history"][1]
+        assert frozen_execution["rich_document"]["content"][1]["attrs"]["attachment_id"]==inspection_materials[0]["id"]
+        assert frozen_execution["contact"]=={"name":"Synthetic executor","phone":"13800000001"}
+        assert datetime.fromisoformat(frozen_execution["performed_at"])==datetime.fromisoformat(inspection_performed_at)
+
+        assert inspection_before["status"]=="returned" and len(inspection_before["history"])==3
+        assert inspection_materials_before["items"][0]["action_id"] is not None and inspection_materials_before["items"][1]["action_id"] is None
+        inspection_files_before={inspection_path+f"/attachments/{material['id']}/download":material["sha256"] for material in inspection_materials}
+        for path,expected_digest in inspection_files_before.items():
+            assert hashlib.sha256(owner.request(path)).hexdigest()==expected_digest
+            other.request(path,expected=404)
+        association.request(inspection_path,expected=403)
+        public_portal_proof=prepare_public_portal(reg,content_before["id"],png,key)
+        protocol_proof=prepare_protocol_proof(reg,owner,association,key)
+        hazard_proof=prepare_hazard_proof(reg,owner,other,association,operating,key)
+        inspection_query_proof=prepare_inspection_query_proof(owner,other,association,inspection_before)
+        inspection_plan_proof=prepare_inspection_plans(reg,owner,association,[operating["id"],others[0]["id"]],key)
+
+
         policy = owner.request("/api/v1/subsidy/policies")["items"][0]
         assert policy["device_rules"] is None and policy["claim_supported"]
         device_body = {"code":"DEVICE-RESTORE-"+key,"version":1,"name":"Device restore rules","rate":"0.100001","effective_from":"2026-01-01","effective_to":"2026-12-31","device_rules":{"configuration_version":1,"swap_rate":"0.200001","generation_period":"day","star_coefficients":{str(star):"1.200001" for star in range(6)},"fault_rate_below":"10.2500","offline_rate_below":"20.0000"}}
@@ -338,6 +684,46 @@ print('Runtime SQL privileges, non-root image, shared extension and actual exclu
         device_policy_ids={row["id"] for row in device_policies_before}
         blocked_device_claim={"station_id":operating["id"],"policy_id":device_policies_before[0]["id"],"start_date":"2026-11-01","end_date":"2026-11-02"}
         owner.request("/api/v1/subsidy/claims",blocked_device_claim,expected=409)
+        # Explicit synthetic history in this randomly owned demo stack; all financial writes use HTTP.
+        device_seed = """
+import secrets
+from sqlalchemy import select
+from app.config import settings
+from app.db import SessionLocal
+from app.models import Station,User
+assert settings.demo_mode
+with SessionLocal.begin() as db:
+    owner=db.scalar(select(User).where(User.username=='operator_a'))
+    key=secrets.token_hex(12)
+    station=Station(operator_id=owner.operator_id,source='browser-test',external_id=key,name='浏览器验收-restore-'+key,district='鼓楼区',address='Synthetic restore fixture',power_kw=120,connectors=1,status='operating')
+    db.add(station);db.flush();sid=station.id
+print(sid)
+"""
+        executable_station = int(source.run("exec","-T","api","python","-c",device_seed,capture=True).stdout)
+        source.run("exec","-T","api","python","-m","app.device_execution_fixture","--container-preview","--station",str(executable_station),capture=True)
+        executable_body = json.loads(json.dumps(device_body))
+        executable_body.update(code="EXEC-RESTORE-"+key,version=1)
+        executable_body["device_rules"].update(configuration_version=2,metric_basis="calendar_day_seconds_v1",device_scope_basis="source_declared_station_day_v1",rating_reference="period_end_publication_snapshot_v1",rounding="HALF_UP_PER_DEVICE_DAY_THEN_COEFFICIENT_2DP")
+        executable_policy = reg.request("/api/v1/subsidy/policies",executable_body,expected=201)
+        executable_payload = {"station_id":executable_station,"policy_id":executable_policy["id"],"start_date":"2026-11-01","end_date":"2026-11-02"}
+        executable_claim = owner.request("/api/v1/subsidy/claims",executable_payload,expected=201)
+        executable_path = f"/api/v1/subsidy/claims/{executable_claim['id']}"
+        executable_claim = owner.prepare_subsidy(executable_claim)
+        owner.request(executable_path+"/actions",{"action":"submit","version":executable_claim["version"],"comment":"Synthetic device restore proof"})
+        executable_before = owner.request(executable_path)
+        executable_lines = owner.request(executable_path+"/device-lines")
+        subsidy_statistics_before = {}
+        for dimension in ["operator", "station", "equipment", "device_day"]:
+            query = urllib.parse.urlencode({"start_date":"2026-11-01","end_date":"2026-11-02","station_id":executable_station,"status":"submitted","dimension":dimension})
+            statistics_path = "/api/v1/subsidy/statistics?"+query
+            subsidy_statistics_before[statistics_path] = owner.request(statistics_path)
+            export_path = "/api/v1/subsidy/statistics/export?"+query
+            subsidy_statistics_before[export_path] = owner.request(export_path)
+            assert subsidy_statistics_before[statistics_path]["totals"]["claim_count"] == 1
+
+        assert executable_before["base_amount"]=="4.21" and executable_before["adjusted_amount"]=="6.32"
+        assert executable_lines["total"]==2
+        owner.request("/api/v1/subsidy/claims",executable_payload,expected=409)
         # Seed two clearly isolated demo stations; all annual business writes still use HTTP.
         annual_seed = """
 import json,secrets
@@ -360,6 +746,101 @@ with SessionLocal.begin() as db:
 print(json.dumps(ids))
 """
         annual_station_ids = json.loads(source.run("exec", "-T", "api", "python", "-c", annual_seed, capture=True).stdout)
+        observation_station = annual_station_ids[0]
+        legacy_rule = reg.request("/api/v1/alerts/rules", {
+            "code": "RESTORE-LEGACY-" + key, "version": 1, "name": "Synthetic legacy restore",
+            "metric": "offline_minutes", "unit": "分钟", "trigger_value": "30", "recover_value": "5",
+        }, expected=201)
+        legacy_sample = {"station_id": observation_station, "rule_id": legacy_rule["id"],
+                         "target": "restore-legacy", "value": "40", "observed_at": "2026-11-01T08:00:00+08:00"}
+        legacy_first = reg.request("/api/v1/alerts/samples", legacy_sample)
+        assert legacy_first["outcome"] == "opened"
+        legacy_event_path = "/api/v1/alerts/" + str(legacy_first["event_id"])
+        legacy_event_before = reg.request(legacy_event_path)
+        legacy_rule_before = next(item for item in reg.request("/api/v1/alerts/rules")["items"] if item["id"] == legacy_rule["id"])
+        observation_equipment = reg.request(f"/api/v1/alerts/configured-observations/equipment?station_id={observation_station}")["items"][0]["id"]
+        # Explicit synthetic period replay in this random verifier stack only; no HTTP history bypass.
+        period_rule = reg.request("/api/v1/alerts/configured-rules", {
+            "code":"RESTORE-PERIOD-"+key,"version":1,"name":"Synthetic automatic period restore",
+            "configuration":{"configuration_version":1,"kind":"station_fault","direction":"gte",
+                             "period":"natural_week","thresholds":{"general":"5"},"recover_value":"4"},
+            "notifications_enabled":True},expected=201)
+        period_seed = """
+import sys
+from datetime import datetime, timezone
+from sqlalchemy import select
+from app.config import settings
+from app.db import SessionLocal
+from app.models import AlertRule, Station, Equipment
+from app.alert_period_facts import ingest
+assert settings.demo_mode
+with SessionLocal.begin() as db:
+    station=db.scalar(select(Station).where(Station.id==int(sys.argv[1])).with_for_update())
+    rule=db.get(AlertRule,int(sys.argv[2]))
+    assert station and station.source=='restore-annual-fixture' and station.name.startswith('Demo annual restore ')
+    assert rule and rule.code==sys.argv[3] and rule.code.startswith('RESTORE-PERIOD-') and rule.is_demo
+    equipment=db.scalar(select(Equipment).where(Equipment.station_id==station.id))
+    rule.monitor_from=datetime(2026,10,1,tzinfo=timezone.utc)
+    ingest(db,station_id=station.id,operator_id=station.operator_id,source=station.source,records=[{
+        'external_id':'synthetic-period-restore','metric':'station_fault','period':'natural_week',
+        'period_start':'2026-10-05','period_end':'2026-10-12','basis':'source_declared_equipment_service_seconds_v1',
+        'equipment_external_ids':[equipment.external_id],'members_complete':True,
+        'members':[{'equipment_external_id':equipment.external_id,'equipment_name':'Synthetic historical cohort',
+                    'expected_seconds':'604800','observed_seconds':'604800','unknown_seconds':'0','affected_seconds':'60480'}],
+        'source_updated_at':'2026-10-12T00:00:00+08:00'}])
+print('Seeded one synthetic closed period and explicit fixture monitor start.')
+"""
+        source.run("exec","-T","api","python","-c",period_seed,str(observation_station),str(period_rule["id"]),period_rule["code"])
+        period_receipts_path=f"/api/v1/alerts/configured-observations?station_id={observation_station}&rule_id={period_rule['id']}"
+        deadline=time.monotonic()+30
+        while True:
+            period_receipts_before=reg.request(period_receipts_path)
+            if period_receipts_before["total"]==1: break
+            if time.monotonic()>deadline: raise AssertionError("Worker did not consume synthetic closed period")
+            time.sleep(.25)
+        period_observation=period_receipts_before["items"][0]
+        assert period_observation["created_by"] is None and period_observation["result"]["outcome"]=="opened"
+        assert period_observation["evidence"]["source_basis"]=="adapter_period_demo_v1"
+        assert period_observation["evidence"]["source_period"]["fact_version"]==1
+        period_facts_path=f"/api/v1/alerts/period-facts?station_id={observation_station}"
+        period_facts_before=reg.request(period_facts_path)
+        assert period_facts_before["items"][0]["percent"]=="10.000000"
+        period_event_path=f"/api/v1/alerts/{period_observation['result']['event_id']}"
+        period_event_before=reg.request(period_event_path)
+        independent_body = {"request_key":str(uuid4()),"station_id":observation_station,"equipment_id":observation_equipment,"rule_id":configured_alerts[0]["id"],"value":"60","coverage_complete":True,"observed_at":"2026-11-01T08:00:00+08:00"}
+        notification_preference_before=reg.request("/api/v1/alerts/notifications/preferences/device_charging",{"version":0,"in_app_enabled":False,"sms_enabled":True},method="PUT")
+        notification_recipient=reg.request("/api/v1/alerts/notifications/recipients",{"name":"Demo restore recipient","phone":"18800000009","categories":["device_charging"],"enabled":True},expected=201)
+        independent_first = reg.request("/api/v1/alerts/configured-observations",independent_body,expected=201)
+        assert independent_first["outcome"]=="opened"
+        assert reg.request("/api/v1/alerts/configured-observations",independent_body,expected=201)==independent_first
+        notification_recipient=reg.request(f"/api/v1/alerts/notifications/recipients/{notification_recipient['id']}",{"version":1,"name":"Demo restore recipient revised","phone":"18800000008","categories":["device_charging"],"enabled":True},method="PATCH")
+
+        for value,complete,stamp in [("80",True,"2026-11-01T08:01:00+08:00"),(None,False,"2026-11-01T08:02:00+08:00")]:
+            reg.request("/api/v1/alerts/configured-observations",{**independent_body,"request_key":str(uuid4()),"value":value,"coverage_complete":complete,"observed_at":stamp},expected=201)
+        independent_path = f"/api/v1/alerts/{independent_first['event_id']}"
+        alert_csv_path="/api/v1/alerts/export?"+urllib.parse.urlencode({"record_id":independent_first["event_id"],"category":"device_charging","start_at":"2026-11-01T00:00:00+08:00","end_at":"2026-12-01T00:00:00+08:00"})
+        alert_csv_before=reg.request(alert_csv_path)
+        assert "事件编号" in alert_csv_before.decode("utf-8-sig") and "短信通知号码" not in alert_csv_before.decode("utf-8-sig")
+        assert reg.request("/api/v1/alerts?"+urllib.parse.urlencode({"record_id":independent_first["event_id"],"category":"device_charging"}))["total"]==1
+        independent_before = reg.request(independent_path)
+        independent_records_path = "/api/v1/alerts/configured-observations?"+urllib.parse.urlencode({"station_id":observation_station,"rule_id":configured_alerts[0]["id"]})
+        independent_records_before = reg.request(independent_records_path)
+        assert independent_before["status"]=="active" and independent_before["configuration_evidence"]["highest_level"]=="critical"
+        assert independent_records_before["total"]==3
+        notification_recipient=reg.request(f"/api/v1/alerts/notifications/recipients/{notification_recipient['id']}",{"version":2,"name":"Demo restore recipient revised","phone":"18800000008","categories":["device_charging"],"enabled":False},method="PATCH")
+        notification_contacts_path="/api/v1/alerts/notifications/recipients?"+urllib.parse.urlencode({"q":"Demo restore recipient"})
+        notification_contacts_before=reg.request(notification_contacts_path)
+        notification_routes_path=f"/api/v1/alerts/notifications/routings?event_id={independent_first['event_id']}"
+        notification_deliveries_path=f"/api/v1/alerts/notifications/deliveries?event_id={independent_first['event_id']}"
+        notification_routes_before=reg.request(notification_routes_path)
+        notification_deliveries_before=reg.request(notification_deliveries_path)
+        assert notification_routes_before["total"]==2 and notification_deliveries_before["total"]==2
+        assert {row["recipient_version"] for row in notification_deliveries_before["items"]}=={1,2}
+        assert all(row["status"]=="simulated" for row in notification_deliveries_before["items"])
+        assert independent_before["notices"]==[]
+        owner.request("/api/v1/alerts/notifications/recipients",expected=403)
+
+
         annual_payload = {"request_key": str(uuid4()), "application_year": 2026, "station_ids": annual_station_ids, "policy_id": policy["id"], "application_note": "Demo annual restore evidence", "mode": "submit"}
         annual_zip = io.BytesIO()
         with zipfile.ZipFile(annual_zip,"w") as bundle:
@@ -495,6 +976,104 @@ with SessionLocal.begin() as db:
                 if base == "ratings/applications":
                     assert len(business_csv_before[dated_path].decode("utf-8-sig").splitlines()) == 1
 
+        staff_lookup_path = "/api/v1/accounts?" + urllib.parse.urlencode({"q": staff_username})
+        staff_record = next(item for item in reg.request(staff_lookup_path)["items"] if item["username"] == staff_username)
+        staff_original_password = staff_password
+        staff_password = secrets.token_urlsafe(24)
+        staff_reset = reg.request(f"/api/v1/accounts/{staff_record['id']}/password-reset", {
+            "admin_password": source.values["DEMO_PASSWORD"], "temporary_password": staff_password,
+            "version": staff_record["version"], "reason": "Synthetic restore owner verified",
+        })
+        assert staff_reset == {"ok": True, "user_id": staff_record["id"], "version": staff_record["version"] + 1, "must_change_password": True}
+        staff_account.request("/api/v1/auth/me", expected=401)
+        staff_record_before = reg.request(staff_lookup_path)
+        staff_before = reg.request(staff_path)
+        operations_paths = ["/api/v1/dashboard/operations?" + urllib.parse.urlencode({"period":period, "period_date":"2026-11-15"}) for period in ["day", "month", "year"]]
+        quality_path = "/api/v1/statistics/quality?" + urllib.parse.urlencode({"source":"demo", "group_by":"station", "asset_scope":"connector", "start_at":"2026-11-01T08:00:00+08:00", "end_at":"2026-11-01T12:00:00+08:00", "page_size":100})
+        facility_path = f"/api/v1/stations/{synced[0]['id']}"
+        source_device = owner.request(f"/api/v1/stations/{synced[0]['id']}/equipment")["items"][0]
+        assert source_device["equipment_type"] == "dc" and source_device["model_name"] == "DEMO-MODEL-DC"
+        assert source_device["source_unique_code"] == "DEMO-REPORTED-ONLY" and source_device["manufactured_on"] == "2024-02-29"
+        inventory_paths = [f"/api/v1/stations/{synced[0]['id']}/equipment/query?equipment_type=dc&connector_status=charging&page_size=1", f"/api/v1/stations/{synced[0]['id']}/equipment/{source_device['id']}/connectors?connector_status=charging&page_size=1"]
+        history_energy_path = f"/api/v1/stations/{operating['id']}/energy-history?start_date=2026-11-01&end_date=2026-11-03"
+        history_flow_path = f"/api/v1/stations/{station['id']}/flow?page_size=1"
+        history_source_flow_path = f"/api/v1/stations/{synced[0]['id']}/flow?page_size=1"
+        history_action_path = f"/api/v1/stations/{station['id']}/flow/{application['id']}/actions?page_size=1"
+        history_paths = [history_energy_path, history_flow_path, history_source_flow_path, history_action_path]
+        query_views_before = {}
+        for path in ["/api/v1/map?zoom=19", "/api/v1/map/stations?location=all&page_size=100", "/api/v1/map/options",
+                     "/api/v1/ratings/publications?page_size=100", "/api/v1/statistics?start_date=2026-11-01&end_date=2026-11-03",
+                     "/api/v1/stations?page_size=100", "/api/v1/dashboard", f"/api/v1/stations/{synced[0]['id']}/equipment",
+                     f"/api/v1/stations/{station['id']}", f"/api/v1/applications?application_id={application['id']}",
+                     application_path, application_path+"/attachments", submissions_path, submission_path, application_path+"/review-context", quality_path, facility_path, *operations_paths, *inventory_paths, *history_paths]:
+            view = owner.request(path, private=True)
+            view.pop("generated_at", None)
+            query_views_before[path] = view
+        for path in operations_paths:
+            view = query_views_before[path]
+            assert view["current_stations"] >= 1 and isinstance(view["current_equipment"], int)
+            assert view["source_completeness_verified"] is False and view["approvals"]["approval_rate_pct"] is None
+        energy_history = query_views_before[history_energy_path]
+        assert energy_history["station_id"] == operating["id"] and energy_history["source_completeness_verified"] is False
+        assert any(stream["source"] == "demo" and stream["kwh"] == "120.050000" for stream in energy_history["streams"])
+        flow_history = query_views_before[history_flow_path]
+        assert flow_history["reporting_state"] is None and flow_history["last_access_approved_at"] is not None
+        assert datetime.fromisoformat(query_views_before[history_source_flow_path]["source_first_reported_at"]) == datetime(2026,11,1,8,5,tzinfo=ZoneInfo("Asia/Shanghai"))
+        assert datetime.fromisoformat(query_views_before[history_source_flow_path]["source_first_connected_at"]) == datetime(2026,11,1,8,0,tzinfo=ZoneInfo("Asia/Shanghai"))
+        assert query_views_before[history_action_path]["total"] >= 3
+        association.request(history_energy_path)
+        for history_path in [history_flow_path,history_source_flow_path,history_action_path]:
+            association.request(history_path,expected=403)
+        for history_path in history_paths:
+            other.request(history_path,expected=404)
+        device_page = query_views_before[inventory_paths[0]]
+        assert device_page["total"] == device_page["matching_connector_count"] == 1
+        assert device_page["station_connector_count"] == 2
+        assert device_page["items"][0]["manufactured_on"] == "2024-02-29"
+        terminal_page = query_views_before[inventory_paths[1]]
+        assert terminal_page["total"] == 1 and terminal_page["inventory_total"] == 2
+        assert terminal_page["items"][0]["name"] == "演示2号终端"
+        assert terminal_page["items"][0]["interface_type"] == "直流接口枪头（演示）"
+        for inventory_path in inventory_paths:
+            other.request(inventory_path, expected=404)
+            association.request(inventory_path)
+        facility = query_views_before[facility_path]
+        assert facility["facilities"]["supply_capacity"] == "160.125"
+        assert facility["facilities"]["supply_capacity_unit"] == "kVA"
+        assert facility["facilities"]["independent_connection"] is False
+        assert facility["facilities"]["parking_spaces"] == 0
+        assert facility["facilities"]["commissioned_on"] == "2026-10-01"
+        assert facility["contact_accessible"] is True and facility["contact"]["phone"] == "DEMO-NOT-A-REAL-NUMBER"
+        association_facility = association.request(facility_path)
+        assert association_facility["contact_accessible"] is False and association_facility["contact"] is None
+        association.request(operations_paths[0], expected=403)
+        quality_before = query_views_before[quality_path]
+        assert quality_before["summary"]["station_count"] == quality_before["selected_station_count"]
+        assert quality_before["total"] <= quality_before["page_size"]
+        assert quality_before["summary"]["inventory_equipment_count"] == sum(item["inventory_equipment_count"] for item in quality_before["items"])
+        assert quality_before["summary"]["streams"] and quality_before["source_completeness_verified"] is False
+        quality_csv_path = quality_path.replace("/quality?", "/quality/export?")
+        quality_csv_before = owner.request(quality_csv_path, expected_media="text/csv", private=True)
+        assert "查询总计" in quality_csv_before.decode("utf-8-sig")
+        combined_before = {}
+        combined_files_before = {}
+        for dimension in ["station", "equipment"]:
+            path = "/api/v1/statistics/charging-subsidy?" + urllib.parse.urlencode({"period":"month", "period_date":"2026-11-15", "dimension":dimension, "page_size":100})
+            combined_before[path] = owner.request(path, private=True)
+            assert combined_before[path]["source_completeness_verified"] is False
+            xlsx_path = path.replace("charging-subsidy?", "charging-subsidy/export?")
+            combined_files_before[xlsx_path] = xlsx_cells(owner.request(xlsx_path, expected_media="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", private=True))
+        association.request("/api/v1/statistics/charging-subsidy?period_date=2026-11-15", expected=403)
+        energy_csv_before = {}
+        for path in ["/api/v1/statistics/export?start_date=2026-11-01&end_date=2026-11-03",
+                     "/api/v1/statistics/analysis/export?start_date=2026-11-01&end_date=2026-11-03"]:
+            energy_csv_before[path] = owner.request(path, expected_media="text/csv", private=True)
+        map_csv_before = {}
+        for location in ["all", "unlocated"]:
+            path = "/api/v1/map/export?location=" + location
+            map_csv_before[path] = owner.request(path, expected_media="text/csv", private=True)
+        assert association.request("/api/v1/map/export?location=all", expected_media="text/csv", private=True).startswith(b"\xef\xbb\xbf")
+        association.request("/api/v1/statistics/export?start_date=2026-11-01&end_date=2026-11-03", expected=403)
         pending_captcha = owner.request("/api/v1/auth/captcha")
         pending_seed = json.loads(source.run("exec","-T","api","python","-m","app.captcha_fixture","--container-preview","--",pending_captcha["captcha_id"],capture=True).stdout)
         source.backup(backup)
@@ -532,6 +1111,15 @@ with SessionLocal.begin() as db:
         assert sorted(restored_device_policies,key=lambda row:row["id"])==device_policies_before
         restored.request("/api/v1/subsidy/claims",blocked_device_claim,expected=409)
         assert restored.request("/api/v1/auth/phone") == phone_before
+        restored.request("/api/v1/auth/phone/change/confirm",{"challenge_id":pending_new_change["challenge_id"],"code":pending_new_code},expected=422)
+        assert restored.request("/api/v1/auth/phone")==phone_before
+
+        assert restored.request(executable_path)==executable_before
+        assert restored.request(executable_path+"/device-lines")==executable_lines
+        for statistics_path, expected_statistics in subsidy_statistics_before.items():
+            assert restored.request(statistics_path) == expected_statistics
+
+        restored.request("/api/v1/subsidy/claims",executable_payload,expected=409)
         assert restored.request(device_days_path)==device_days_before
         assert restored.request(device_days_csv_path)==device_days_csv_before
         runtime_after = restored.request(runtime_path)
@@ -566,6 +1154,113 @@ with SessionLocal.begin() as db:
             assert hashlib.sha256(restored.request(path)).hexdigest() == expected_hash
         restored_manager = Client(target.values["PUBLIC_ORIGIN"], target)
         restored_manager.login("regulator",source.values["DEMO_PASSWORD"])
+        for path, before in query_views_before.items():
+            view = restored.request(path, private=True)
+            view.pop("generated_at", None)
+            assert view == before, "Restored query changed: " + path
+        assert restored.request(frozen_download, private=True) == payload
+        assert hashlib.sha256(restored.request(frozen_archive_path, expected_media="application/zip", private=True)).hexdigest() == frozen_archive_digest
+        restored_association.request(submission_path, expected=403)
+        print("Application evidence restore: frozen source/payload/material classification, actual submission identity/time and exact private file/archive preserved; no legacy history fabricated.", flush=True)
+        restored_facility = restored_association.request(facility_path)
+        assert restored_facility["contact_accessible"] is False and restored_facility["contact"] is None
+        restored_association.request(history_energy_path)
+        for history_path in [history_flow_path,history_source_flow_path,history_action_path]:
+            restored_association.request(history_path,expected=403)
+        print("Station history restore: exact independent daily sources/nullable days, real application/action pages and distinct source connection/first-report clocks preserved; association flow denied.",flush=True)
+        print("Device profile restore: source type/model/manufacturing date/unique code, terminal names/interface descriptions and bounded filtered inventory pages preserved.", flush=True)
+        print("Station facility restore: exact source capacity/unit, false/zero, commissioning date, tariff/parking/profile fields and scoped contacts preserved.", flush=True)
+        restored_association.request(operations_paths[0], expected=403)
+        print("Operations restore: day/month/year inventory/distribution/approval proofs, independent order/day-energy sources and nullable 12-month trend preserved.", flush=True)
+        assert restored.request(quality_csv_path, expected_media="text/csv", private=True) == quality_csv_before
+        print("Quality summary restore: all-query inventory/observed streams/weighted recovery and detail+total CSV bytes preserved.", flush=True)
+        for path, before in combined_before.items():
+            assert restored.request(path, private=True) == before
+        for path, before in combined_files_before.items():
+            assert xlsx_cells(restored.request(path, expected_media="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", private=True)) == before
+        restored_association.request("/api/v1/statistics/charging-subsidy?period_date=2026-11-15", expected=403)
+        print("Combined report restore: station/equipment scope, source/missing values/frozen money, all-query totals and canonical Excel cell values preserved; no workbook formulas.", flush=True)
+        for path, before in energy_csv_before.items():
+            assert restored.request(path, expected_media="text/csv", private=True) == before
+        for path, before in map_csv_before.items():
+            assert restored.request(path, expected_media="text/csv", private=True) == before
+        assert "stations.export" in restored.request("/api/v1/auth/me")["permissions"]
+        assert "stations.export" in restored_association.request("/api/v1/auth/me")["permissions"]
+        assert "statistics.export" not in restored_association.request("/api/v1/auth/me")["permissions"]
+        print("Map export restore: all/unlocated CSV bytes and independent station export grants preserved; association financial export remains unavailable.", flush=True)
+        print("Query restore: 26 scoped inventory/dashboard/equipment/application/material/map/publication/energy views and both energy CSVs unchanged; private cache headers verified.", flush=True)
+        assert restored_manager.request(sync_lookup_path) == sync_before
+        assert restored_manager.request("/api/v1/sync/tasks", sync_body, expected=202)["id"] == task["id"]
+        assert restored_manager.request(sync_lookup_path) == sync_before
+        print("Sync restore: exact request lookup, completed counters and same-key replay preserved.", flush=True)
+        assert next(item for item in restored_manager.request("/api/v1/alerts/rules")["items"] if item["id"] == legacy_rule["id"]) == legacy_rule_before
+        assert restored_manager.request(legacy_event_path) == legacy_event_before
+        assert restored_manager.request("/api/v1/alerts/samples", legacy_sample) == {"outcome": "ignored_stale", "event_id": legacy_first["event_id"]}
+        assert restored_manager.request(legacy_event_path) == legacy_event_before
+        print("Legacy alert restore: rule, event and cursor retained; repeated observation does not increment event.", flush=True)
+        assert restored_manager.request(period_facts_path)==period_facts_before
+        assert restored_manager.request(period_receipts_path)==period_receipts_before
+        assert restored_manager.request(period_event_path)==period_event_before
+        # Worker can tick after restoration without replaying the same fact version.
+        target.run("exec","-T","api","python","-c","from app.alert_period_worker import process_one; process_one()")
+        assert restored_manager.request(period_receipts_path)==period_receipts_before
+        verify_restored_inspection_plans(restored_manager,restored,restored_association,inspection_plan_proof)
+        verify_restored_inspection_query(restored,inspection_query_proof)
+        verify_restored_protocol(restored_manager,restored,restored_association,protocol_proof)
+        verify_restored_public_portal(restored_manager,public_portal_proof)
+        restored_hazard_other=Client(target.values["PUBLIC_ORIGIN"],target)
+        restored_hazard_other.login("operator_b",source.values["DEMO_PASSWORD"])
+        verify_restored_hazard(restored_manager,restored,restored_hazard_other,restored_association,hazard_proof)
+        assert restored_manager.request(inspection_path)==inspection_before
+        assert restored.request(inspection_path+"/attachments")==inspection_materials_before
+        for path,expected_digest in inspection_files_before.items():
+            assert hashlib.sha256(restored.request(path)).hexdigest()==expected_digest
+        # Restored historical data remains readable, but new writes cannot bypass facts.
+        restored.request(inspection_path+"/actions",{"version":inspection_before["version"],"action":"reply","comment":"Incomplete new reply must not advance restored task"},expected=422)
+        assert restored_manager.request(inspection_path)==inspection_before
+        assert restored.request(inspection_path+"/attachments")==inspection_materials_before
+        resumed_inspection=restored.request(inspection_path+"/actions",{"version":inspection_before["version"],"action":"reply","comment":"Synthetic correction continued after restore","contact":{"name":"Synthetic restored executor","phone":"13800000002"},"performed_at":(datetime.now(ZoneInfo("UTC"))-timedelta(hours=1)).isoformat()})
+        finished_inspection=restored_manager.request(inspection_path+"/actions",{"version":resumed_inspection["version"],"action":"close","comment":"Synthetic restored evidence reviewed"})
+        assert finished_inspection["status"]=="closed" and not finished_inspection["overdue"]
+        inspection_after=restored.request(inspection_path)
+        assert len(inspection_after["history"])==5
+        assert inspection_after["history"][-2]["contact"]=={"name":"Synthetic restored executor","phone":"13800000002"}
+        assert inspection_after["history"][-2]["performed_at"] is not None
+        materials_after=restored.request(inspection_path+"/attachments")["items"]
+        assert all(row["action_id"] is not None for row in materials_after)
+        assert materials_after[0]["action_id"]==inspection_materials_before["items"][0]["action_id"]
+        print("Inspection restore: structured requirement/reply/inline image, explicit executor/contact/user time and frozen/pending evidence preserved; reply and closure continued, original facts unchanged.",flush=True)
+        assert restored_manager.request(enterprise_path)==enterprise_before
+        assert hashlib.sha256(restored_manager.request(enterprise_file_path)).hexdigest()==enterprise_file_hash
+        restored_enterprise=Client(target.values["PUBLIC_ORIGIN"],target)
+        for cookie in enterprise_applicant.cookies: restored_enterprise.cookies.set_cookie(cookie)
+        restored_enterprise.request("/api/v1/enrollment/me",expected=401)
+        restored_enterprise.cookies.clear()
+        enterprise_login=restored_enterprise.request("/api/v1/enrollment/login",{"username":registration_username,"password":registration_password})
+        restored_enterprise.enrollment_csrf=enterprise_login["csrf_token"]
+        assert {k:v for k,v in restored_enterprise.request("/api/v1/enrollment/me").items() if k!="csrf_token"}==enterprise_progress_before
+        assert restored_enterprise.request("/api/v1/enrollment/me/attachments")==enterprise_materials_before
+        enterprise_approved=restored_manager.request(enterprise_path+"/review",{"version":enterprise_before["version"],"action":"approve","comment":"Synthetic post-restore approval","role_profile_id":registration_role["id"],"role_profile_version":registration_role["version"]})
+        assert enterprise_approved["status"]=="approved" and enterprise_approved["user_id"] is not None and enterprise_approved["operator_id"] is not None
+        enterprise_business=Client(target.values["PUBLIC_ORIGIN"],target)
+        enterprise_business.login(registration_username,registration_password)
+        assert enterprise_business.request("/api/v1/auth/me")["permissions"]==["stations.read"]
+        print("Enterprise enrollment restore: typed profile/history/material versions and private digest preserved; old applicant session revoked; approval and scoped first login passed.",flush=True)
+        assert restored_manager.request(alert_configuration_path)==alert_configuration_before
+        assert restored_manager.request(alert_csv_path)==alert_csv_before
+        assert restored_manager.request(independent_path)==independent_before
+        assert restored_manager.request(independent_records_path)==independent_records_before
+        assert restored_manager.request("/api/v1/alerts/configured-observations",independent_body,expected=201)==independent_first
+        assert restored_manager.request(notification_contacts_path)==notification_contacts_before
+        assert restored_manager.request(notification_routes_path)==notification_routes_before
+        assert restored_manager.request(notification_deliveries_path)==notification_deliveries_before
+        restored_preference=next(row for row in restored_manager.request("/api/v1/alerts/notifications/preferences")["items"] if row["category"]=="device_charging")
+        assert restored_preference==notification_preference_before
+
+
+        restored_preview = restored_manager.request("/api/v1/alerts/configured-rules/preview",{"configuration":configured_alerts[0]["configuration"],"value":"80","coverage_complete":True})
+        assert restored_preview["level"]=="critical"
+
         restored_manager.request(content_path+f"/attachments/{article_assets[0]['id']}?version=5",method="DELETE",expected=409)
         for path, content in business_csv_before.items():
             assert restored_manager.request(path) == content
@@ -577,12 +1272,16 @@ with SessionLocal.begin() as db:
         for cookie in applicant.cookies: restored_applicant.cookies.set_cookie(cookie)
         restored_applicant.request("/api/v1/auth/staff-enrollment/me",expected=401)
         restored_staff=Client(target.values["PUBLIC_ORIGIN"],target)
+        assert restored_manager.request(staff_lookup_path) == staff_record_before
+        restored_staff.login(staff_username,staff_original_password,expected=401)
         restored_staff.login(staff_username,staff_password)
         assert restored_staff.request("/api/v1/auth/me")["must_change_password"]
         restored_staff.request("/api/v1/stations",expected=403)
         staff_final_password=secrets.token_urlsafe(24)
-        restored_staff.request("/api/v1/auth/password",{"current_password":staff_password,"new_password":staff_final_password})
+        assert restored_staff.request("/api/v1/auth/password",{"current_password":staff_password,"new_password":staff_final_password}) == {"ok": True, "reauthenticate": True}
+        restored_staff.request("/api/v1/auth/me", expected=401)
         restored_staff.login(staff_username,staff_final_password)
+        print("Password restore: admin reset version/temporary requirement preserved, old credential rejected; authenticated change revokes session and permits fresh login.", flush=True)
         identity=restored_staff.request("/api/v1/auth/me")
         assert identity["role"]=="association" and identity["allowed_districts"]==["鼓楼区"] and identity["permissions"]==["content.read","stations.read"]
         assert restored_staff.request("/api/v1/auth/phone")["verified"] is False
@@ -597,6 +1296,31 @@ with SessionLocal.begin() as db:
         assert notice_after["replies"] == notice_before["replies"]
         assert restored.request(notice_path)["deliveries"] == owner_notice_before["deliveries"]
         assert restored.request(notice_path)["replies"] == owner_notice_before["replies"]
+        for client, suffix in [(restored, ""), (restored_manager, "?manage=true")]:
+            assert hashlib.sha256(client.request(notice_image_path + suffix, expected_media="image/png", private=True)).hexdigest() == reply_image["sha256"]
+        restored_association.request(notice_image_path, expected=404)
+        print("Structured reply restore: immutable formatting/inline image IDs, metadata/contact/hash preserved; owner/manager binary no-store and association denial verified.", flush=True)
+        restored_manager.request(executable_path+"/actions",{"action":"approve","version":executable_before["version"],"comment":"Verify recovered source, cohort, historical rating and allocation"})
+        print("Recovered executable device claim: frozen lines/amounts equal; duplicate blocked; evidence reverified on approval.",flush=True)
+        recovered_independent = restored_manager.request("/api/v1/alerts/configured-observations",{**independent_body,"request_key":str(uuid4()),"value":"50","observed_at":"2026-11-01T08:03:00+08:00"},expected=201)
+        assert recovered_independent["outcome"]=="recovered"
+        assert restored_manager.request(notification_deliveries_path)==notification_deliveries_before
+        assert restored_manager.request(notification_routes_path)["items"][0]["sms_status"]=="no_recipients"
+        print("Notification restore: typed preferences, disabled receiver, old masked phone snapshots and simulated receipts preserved; no real SMS provider used.",flush=True)
+
+        assert restored_manager.request(independent_path)["configuration_evidence"]["first"]==independent_before["configuration_evidence"]["first"]
+        print("Independent alert restore: receipts/unknown coverage/frozen evidence preserved; replay idempotent; recovery continued.",flush=True)
+        for kind in ["acceptance", "commission"]:
+            continued = restored.request("/api/v1/applications", {"station_id": station["id"], "kind": kind, "payload": {"note": "Synthetic continued workflow after restore"}}, expected=201)
+            continued_path = f"/api/v1/applications/{continued['id']}"
+            continued = restored.request(continued_path, {"version": continued["version"], "note": "Edited after restore"}, method="PATCH")
+            continued = restored.request(continued_path+"/actions", {"version": continued["version"], "action": "submit"})
+            continued = restored_manager.request(continued_path+"/actions", {"version": continued["version"], "action": "approve", "comment": "Synthetic restored demo workflow"})
+            assert continued["status"] == "approved" and continued["version"] == 4
+        assert restored.request(f"/api/v1/stations/{station['id']}")["status"] == "operating"
+        assert restored.request(application_path)["payload"] == application["payload"]
+        assert restored.request(download) == payload
+        print("Application restore: original edited/history/material proof retained; acceptance and commissioning continue through typed edit/submit/review responses.", flush=True)
         target.run("exec", "-T", "api", "python", "-c", role_check)
         target.tool("python", "-m", "app.backup_integrity")
         print(

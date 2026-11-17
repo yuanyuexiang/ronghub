@@ -8,7 +8,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 
-from app import article_assets, content
+from app import article_assets, content, reply_documents
 from app.authorization import CONTENT_ACTIONS, authorize_business_write, require
 from app.contracts import (
     ContentArticle,
@@ -19,7 +19,7 @@ from app.contracts import (
     ContentReplyCreated,
     NoticeRecordPage,
 )
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.models import (
     Article,
     ArticleAction,
@@ -38,6 +38,7 @@ router = APIRouter(prefix="/api/v1/content", tags=["content"])
 
 
 class ArticleInput(BaseModel):
+    portal_public: bool = False
     kind: str
     title: str = Field(min_length=1, max_length=150)
     body: str = Field("", max_length=20000)
@@ -50,13 +51,26 @@ class ArticleInput(BaseModel):
 
     @model_validator(mode="after")
     def validate_article(self):
-        if self.kind not in {"announcement", "news", "contact", "notice"} or self.audience not in {
+        if self.kind not in {
+            "announcement",
+            "news",
+            "contact",
+            "notice",
+            "protocol",
+        } or self.audience not in {
             "all",
             "regulator",
             "association",
             "operator",
         }:
             raise ValueError("不支持的内容类型或受众")
+        if self.portal_public and (
+            self.kind not in {"announcement", "news", "contact"}
+            or self.audience != "all"
+            or self.operator_id is not None
+            or self.recipient_ids is not None
+        ):
+            raise ValueError("门户公开仅支持面向全体、无定向目标的公告/资讯/联系方式")
         if self.operator_id is not None and self.audience != "operator":
             raise ValueError("定向企业内容的受众必须为运营商")
         if self.recipient_ids is not None:
@@ -106,7 +120,8 @@ class BatchInput(BaseModel):
 
 
 class ReplyInput(BaseModel):
-    body: str = Field(min_length=1, max_length=4000)
+    body: str = Field("", max_length=4000)
+    rich_document: RichDocument | None = None
     contact_name: str | None = Field(None, max_length=100)
     contact_phone: str | None = Field(None, max_length=80)
 
@@ -149,6 +164,8 @@ def create(body: ArticleInput, request: Request, user: Actor, db: DB):
     authorize_business_write(db, user, request, "content.create")
     require(db, user, "content.manage")
     content.demo_only()
+    if body.portal_public:
+        require(db, user, "content.public")
     if user.role != "regulator":
         raise HTTPException(403, "仅监管人员可管理内容")
     if body.operator_id is not None and not db.get(Operator, body.operator_id):
@@ -162,8 +179,9 @@ def create(body: ArticleInput, request: Request, user: Actor, db: DB):
     )
     db.add(article)
     content.record(db, user, article, "create")
+    result = ContentArticle.model_validate(content.output(article))
     db.commit()
-    return content.output(article)
+    return result
 
 
 @router.post("/batch-actions", response_model=ContentBatchResult)
@@ -196,7 +214,7 @@ def batch_actions(body: BatchInput, request: Request, user: Actor, db: DB):
 
 @router.get("/notice-records", response_model=NoticeRecordPage)
 def notice_records(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     manage: bool = False,
     q: str = Query("", max_length=150),
@@ -284,7 +302,10 @@ def notice_statement(db, user, manage, q, state, replied, article_id):
     responses={200: {"content": {"text/csv": {"schema": {"type": "string"}}}}},
 )
 def export_articles(
-    user: Actor, db: SnapshotDB, q: str = Query("", max_length=150), include_deleted: bool = False
+    user: SnapshotActor,
+    db: SnapshotDB,
+    q: str = Query("", max_length=150),
+    include_deleted: bool = False,
 ):
     export_guard(db, user)
     stmt = content.visible(
@@ -321,7 +342,7 @@ def export_articles(
     responses={200: {"content": {"text/csv": {"schema": {"type": "string"}}}}},
 )
 def export_notice_records(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     q: str = Query("", max_length=150),
     state: str = Query("", pattern="^(|scheduled|visible|withdrawn)$"),
@@ -455,7 +476,7 @@ def operator_options(
 
 
 @router.get("/{article_id}", response_model=ContentDetail)
-def detail(article_id: int, user: Actor, db: DB, manage: bool = False):
+def detail(article_id: int, user: SnapshotActor, db: SnapshotDB, manage: bool = False):
     a = content.access(db, user, article_id, manage)
     replies = content.replies_visible(
         select(ArticleReply).where(ArticleReply.article_id == a.id), user
@@ -470,6 +491,7 @@ def detail(article_id: int, user: Actor, db: DB, manage: bool = False):
                 "operator_name": db.get(Operator, r.operator_id).name,
                 "actor_name": db.get(User, r.actor_id).username,
                 "body": r.body,
+                "rich_document": r.rich_document,
                 "contact_name": r.contact_name,
                 "contact_phone": r.contact_phone,
                 "created_at": r.created_at.isoformat(),
@@ -504,6 +526,8 @@ def edit(article_id: int, body: EditInput, request: Request, user: Actor, db: DB
     authorize_business_write(db, user, request, "content.edit")
     require(db, user, "content.manage")
     content.demo_only()
+    if body.portal_public:
+        require(db, user, "content.public")
     a = content.access(db, user, article_id, True, True)
     if a.version != body.version or a.status != "draft":
         raise HTTPException(409, "内容已更新或已发布，不能修改")
@@ -518,8 +542,9 @@ def edit(article_id: int, body: EditInput, request: Request, user: Actor, db: DB
         setattr(a, key, value)
     a.version += 1
     content.record(db, user, a, "edit")
+    result = ContentArticle.model_validate(content.output(a))
     db.commit()
-    return content.output(a)
+    return result
 
 
 @router.post("/{article_id}/actions", response_model=ContentArticle)
@@ -543,19 +568,22 @@ def reply(article_id: int, body: ReplyInput, request: Request, user: Actor, db: 
     a = content.access(db, user, article_id, False, True)
     if user.role != "operator" or user.operator_id is None or a.kind != "notice":
         raise HTTPException(403, "仅所属企业可回复通知")
-    if not body.body.strip():
-        raise HTTPException(422, "请填写回复内容")
+    text, document = reply_documents.prepare(body.body, body.rich_document)
+    document = reply_documents.bind_images(document, [])
     r = ArticleReply(
         article_id=a.id,
         operator_id=user.operator_id,
         actor_id=user.id,
-        body=body.body.strip(),
+        body=text,
+        rich_document=document,
         contact_name=body.contact_name,
         contact_phone=body.contact_phone,
     )
     db.add(r)
+    db.flush()
+    result = ContentReplyCreated.model_validate({"id": r.id})
     db.commit()
-    return {"id": r.id}
+    return result
 
 
 def delivery_outputs(db, article, user, manage):

@@ -33,12 +33,19 @@ with engine.begin() as c:
     user=add('users',username='legacy-owner',password_hash=passwords.hash(data['password']),role='operator',operator_id=op,enabled=True,role_profile_id=profile,allowed_districts=['鼓楼区'])
     reg=add('users',username='legacy-regulator',password_hash=passwords.hash(data['password']),role='regulator',enabled=True)
     station=add('stations',operator_id=op,source='legacy-fixture',external_id='legacy-1',name='Legacy station',district='鼓楼区',address='Fixture address',status='pending',connectors=2,power_kw='120.25',version=3,synced_at=stamp)
+    inspection=add('inspection_tasks',station_id=station,operator_id=op,title='Legacy inspection',description='Legacy plain requirement',severity='major',due_at=stamp,status='replied',version=2,created_by=reg,created_at=stamp,is_demo=True)
+    add('inspection_actions',task_id=inspection,actor_id=user,action='reply',comment='Legacy plain feedback',created_at=stamp)
+    inspection_without_reply=add('inspection_tasks',station_id=station,operator_id=op,title='Legacy missing feedback',description='No historical reply evidence',severity='major',due_at=stamp,status='closed',version=2,created_by=reg,created_at=stamp,is_demo=True)
+    equipment=add('equipment',station_id=station,external_id='legacy-device',name='Legacy device',power_kw='60.25')
+    connector=add('connectors',equipment_id=equipment,external_id='legacy-terminal',status='unknown')
     application=add('station_applications',station_id=station,operator_id=op,applicant_id=user,kind='access',status='submitted',payload={'note':'legacy evidence'},version=2,rule_version='demo-workflow-v1',created_at=stamp,updated_at=stamp)
     content=b'%PDF-1.4\nLegacy recovery evidence\n%%EOF\n'
     key='a'*48
     Path(settings.storage_path,key).write_bytes(content)
     attachment=add('attachments',application_id=application,uploaded_by=user,storage_key=key,filename='legacy-proof.pdf',content_type='application/pdf',size=len(content),sha256=hashlib.sha256(content).hexdigest(),created_at=stamp)
     article=add('articles',kind='announcement',title='Legacy plain text',body='<b>literal text</b>',audience='all',status='published',published_at=stamp,version=2,created_by=reg,created_at=stamp,is_demo=True)
+    notice=add('articles',kind='notice',title='Legacy plain reply',body='Legacy request',audience='operator',status='published',published_at=stamp,version=2,created_by=reg,created_at=stamp,is_demo=True)
+    reply=add('article_replies',article_id=notice,operator_id=op,actor_id=user,body='<b>literal reply</b>',created_at=stamp)
     standard=add('rating_standards',code='LEGACY',version=1,name='Legacy example',rules={},is_demo=True,enabled=True,created_at=stamp)
     application_rating=add('rating_applications',station_id=station,operator_id=op,standard_id=standard,status='withdrawn',version=2,initial_scores={},current_scores={},calculation={'total':None,'stars':None},rule_snapshot={},evidence_note='',is_demo=True,created_at=stamp)
     add('rating_actions',application_id=application_rating,actor_id=user,action='withdraw',comment='Historical action without transition snapshot',payload={},created_at=stamp)
@@ -46,7 +53,7 @@ with engine.begin() as c:
     old_claim=add('subsidy_claims',station_id=station,operator_id=op,policy_id=old_policy,start_date=date(2026,11,1),end_date=date(2026,11,2),status='approved',total_kwh='10',base_amount='1.00',adjusted_amount='1.00',snapshot={},version=3,is_demo=True,created_at=stamp)
     add('subsidy_actions',claim_id=old_claim,actor_id=reg,action='approve',comment='Historical record without statement/evidence snapshot',delta='0.00',created_at=stamp)
     add('login_sessions',token_hash=hashlib.sha256(data['token'].encode()).hexdigest(),user_id=user,csrf='legacy-csrf',expires_at=stamp+timedelta(hours=1))
-print(json.dumps({'operator':op,'user':user,'station':station,'application':application,'attachment':attachment,'article':article,'rating':application_rating,'subsidy':old_claim,'digest':hashlib.sha256(content).hexdigest()}))
+print(json.dumps({'operator':op,'user':user,'station':station,'equipment':equipment,'connector':connector,'application':application,'inspection':inspection,'inspection_without_reply':inspection_without_reply,'attachment':attachment,'article':article,'notice':notice,'reply':reply,'rating':application_rating,'subsidy':old_claim,'digest':hashlib.sha256(content).hexdigest()}))
 """
 
 
@@ -151,6 +158,13 @@ print('Historical state upgraded without invented proofs or recipients.')
         print(proof.stdout.decode().strip(), flush=True)
         manager = Client(target.values["PUBLIC_ORIGIN"], target)
         manager.login("legacy-regulator", password)
+        assert manager.request("/api/v1/alerts/period-facts")["total"]==0
+        assert manager.request("/api/v1/alerts/configured-observations")["total"]==0
+        notification_defaults=manager.request("/api/v1/alerts/notifications/preferences")
+        assert all(row["version"]==0 and row["in_app_enabled"] is None and row["sms_enabled"] is False for row in notification_defaults["items"])
+        assert manager.request("/api/v1/alerts/notifications/recipients")["total"]==0
+        assert manager.request("/api/v1/alerts/notifications/deliveries")["total"]==0
+
         owner = Client(target.values["PUBLIC_ORIGIN"], target)
         owner.login("legacy-owner", password)
         identity = owner.request("/api/v1/auth/me")
@@ -159,12 +173,38 @@ print('Historical state upgraded without invented proofs or recipients.')
         stations = owner.request("/api/v1/stations")["items"]
         assert len(stations) == 1 and stations[0]["id"] == expected["station"]
         assert str(stations[0]["power_kw"]) == "120.25"
+        station_profile = owner.request(f"/api/v1/stations/{expected['station']}")
+        assert all(value is None for value in station_profile["facilities"].values())
+        assert station_profile["contact_accessible"] is False and station_profile["contact"] is None
+        assert station_profile["source_first_reported_at"] is None
+        owner.request(f"/api/v1/stations/{expected['station']}/energy-history?start_date=2026-11-01&end_date=2026-11-03",expected=403)
+        owner.request(f"/api/v1/stations/{expected['station']}/flow",expected=403)
+        old_devices = owner.request(f"/api/v1/stations/{expected['station']}/equipment/query")
+        assert old_devices["total"] == old_devices["station_connector_count"] == 1
+        old_device = old_devices["items"][0]
+        assert old_device["id"] == expected["equipment"] and old_device["external_id"] == "legacy-device"
+        assert all(old_device[key] is None for key in ["equipment_type", "model_name", "source_unique_code", "manufactured_on"])
+        old_terminals = owner.request(f"/api/v1/stations/{expected['station']}/equipment/{old_device['id']}/connectors")["items"]
+        assert old_terminals[0]["id"] == expected["connector"] and old_terminals[0]["name"] is None and old_terminals[0]["interface_type"] is None
+        print("Legacy device and terminal identities preserved; new profile fields remain unknown.", flush=True)
+        print("Legacy source facilities remain unknown; station-only profile gains no contact capability.", flush=True)
+
         owner.request("/api/v1/staff-applications", expected=403)
+        owner.request("/api/v1/hazards", expected=403)
+        assert manager.request("/api/v1/hazards")["total"] == 0
+        assert manager.request("/api/v1/protocols")["total"] == 0
+        assert manager.request("/api/v1/public/articles")["total"] == 0
+        manager.request(f"/api/v1/public/articles/{expected['article']}", expected=404)
+        owner.request("/api/v1/protocols", expected=403)
+        print("Legacy inspections are not reclassified as independent hazards; existing custom profile gains no hazard grant.", flush=True)
         article = manager.request(f"/api/v1/content/{expected['article']}?manage=true")
         assert (
             article["body"] == "<b>literal text</b>"
             and article["rich_document"] is None
         )
+        legacy_reply = manager.request(f"/api/v1/content/{expected['notice']}?manage=true")["replies"][0]
+        assert legacy_reply["id"] == expected["reply"] and legacy_reply["body"] == "<b>literal reply</b>"
+        assert legacy_reply["rich_document"] is None and legacy_reply["images"] == []
         legacy_standard = manager.request("/api/v1/ratings/standards")["items"][0]
         assert legacy_standard["activation_state"]=="legacy_unknown" and legacy_standard["effective_on"] is None
         assert legacy_standard["rules"]["configuration_version"] is None
@@ -187,6 +227,32 @@ print('Historical state upgraded without invented proofs or recipients.')
         assert manager.request(f"/api/v1/ratings/applications?record_id={expected['rating']}&submitted_from=2026-11-15")["total"] == 0
         legacy_process = manager.request(f"/api/v1/ratings/applications/process/export?record_id={expected['rating']}")
         assert "旧记录未留存" in legacy_process.decode("utf-8-sig")
+        old_flow = manager.request(f"/api/v1/stations/{expected['station']}/flow")
+        assert old_flow["source_first_reported_at"] is None and old_flow["source_first_connected_at"] is None
+        assert old_flow["last_access_approved_at"] is None and old_flow["reporting_state"] is None
+        old_action_page = manager.request(f"/api/v1/stations/{expected['station']}/flow/{expected['application']}/actions")
+        assert old_action_page["total"] == 0
+        old_inspection = manager.request(f"/api/v1/inspections/{expected['inspection']}")
+        assert old_inspection["rich_document"] is None
+        assert old_inspection["plan_id"] is None and old_inspection["due_at"] is not None
+        assert manager.request("/api/v1/inspection-plans")["total"] == 0
+        owner.request("/api/v1/inspection-plans",expected=403)
+        assert old_inspection["history"][0]["rich_document"] is None
+        assert old_inspection["history"][0]["contact"] is None and old_inspection["history"][0]["performed_at"] is None
+        old_execution = manager.request(f"/api/v1/inspections?record_id={expected['inspection']}&execution_state=reported")["items"][0]
+        assert old_execution["last_reported_performed_at"] is None and old_execution["last_reply_submitted_at"] is not None
+        unknown_execution = manager.request(f"/api/v1/inspections?record_id={expected['inspection_without_reply']}&execution_state=unknown")["items"][0]
+        assert unknown_execution["last_reply_id"] is None and unknown_execution["last_reply_submitted_at"] is None and unknown_execution["last_reported_performed_at"] is None
+        print("Legacy feedback clocks remain distinct; closed records without reply evidence retain unknown execution state.",flush=True)
+
+        legacy_submissions = manager.request(f"/api/v1/applications/{expected['application']}/submissions")
+        assert legacy_submissions["items"] == [] and legacy_submissions["total"] == 0
+        legacy_materials = manager.request(f"/api/v1/applications/{expected['application']}/attachments")["items"]
+        assert len(legacy_materials) == 1
+        assert legacy_materials[0]["category"] is None and legacy_materials[0]["revision"] == 1
+        old_energy = manager.request(f"/api/v1/stations/{expected['station']}/energy-history?start_date=2026-11-01&end_date=2026-11-03")
+        assert old_energy["streams"] == []
+        print("Legacy source first-report/approval proof and missing energy remain unknown; old station-only role gains no statistics or workflow access.",flush=True)
         material = manager.request(
             f"/api/v1/attachments/{expected['attachment']}/download"
         )

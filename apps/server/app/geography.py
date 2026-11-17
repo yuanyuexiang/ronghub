@@ -108,7 +108,8 @@ def query(db, user, filters):
         stars = case((Station.id.is_(None), None), else_=None)
     stmt = stmt.add_columns(stars.label("effective_stars"))
     if filters.get("q"):
-        stmt = stmt.where(Station.name.ilike("%" + filters["q"] + "%"))
+        literal = filters["q"].replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        stmt = stmt.where(Station.name.ilike("%" + literal + "%", escape="\\"))
     for key in (
         "district",
         "operator_id",
@@ -143,6 +144,19 @@ def count(db, stmt):
     return db.scalar(
         select(func.count()).select_from(stmt.with_only_columns(Station.id).subquery())
     )
+
+
+def list_query(db, user, filters, bounds, location):
+    stmt = query(db, user, filters)
+    if location == "view":
+        return in_view(stmt, bounds)
+    if location == "mapped":
+        return stmt.where(mappable())
+    if location == "unlocated":
+        return stmt.where(~mappable())
+    if location == "all":
+        return stmt
+    raise HTTPException(422, "不支持的位置筛选")
 
 
 def output(row):

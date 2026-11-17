@@ -19,7 +19,7 @@ from app import subsidy_evidence as evidence
 from app.authorization import authorize_business_write, require
 from app.business_contracts import SubsidyAnnualResult, SubsidyAnnualStations
 from app.config import settings
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.models import Audit, Equipment, Station, SubsidyAnnualBatch, SubsidyAttachment
 from app.reporting import SnapshotDB
 from app.scopes import station_scope
@@ -69,7 +69,7 @@ def equipment_totals():
 
 @router.get("/annual-stations", response_model=SubsidyAnnualStations)
 def stations(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     q: str = Query("", max_length=150),
     district: str = Query("", max_length=80),

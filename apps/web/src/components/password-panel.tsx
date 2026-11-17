@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { apiFetch } from "../lib/api-fetch";
+import { typedApi, apiError } from "../lib/typed-api";
 export function PasswordPanel({
   csrf,
   required,
@@ -34,24 +34,17 @@ export function PasswordPanel({
           }
           setBusy(true);
           try {
-            const response = await apiFetch("/api/v1/auth/password", {
-              method: "POST",
+            const result = await typedApi.POST("/api/v1/auth/password", {
               headers: {
-                "Content-Type": "application/json",
                 "x-csrf-token": csrf,
               },
-              body: JSON.stringify({
+              body: {
                 current_password: current,
                 new_password: next,
-              }),
+              },
             });
-            const data = await response.json();
-            if (!response.ok)
-              throw new Error(
-                typeof data.detail === "string"
-                  ? data.detail
-                  : "请检查密码长度",
-              );
+            if (!result.data)
+              throw new Error(apiError(result.error, "请检查密码长度"));
             setCurrent("");
             setNext("");
             setConfirm("");
@@ -148,29 +141,23 @@ export function AdminPasswordReset({
           }
           setBusy(true);
           try {
-            const response = await apiFetch(
-              `/api/v1/accounts/${account.id}/password-reset`,
+            const result = await typedApi.POST(
+              "/api/v1/accounts/{user_id}/password-reset",
               {
-                method: "POST",
+                params: { path: { user_id: account.id } },
                 headers: {
-                  "Content-Type": "application/json",
                   "x-csrf-token": csrf,
                 },
-                body: JSON.stringify({
+                body: {
                   version: account.version,
                   admin_password: password,
                   temporary_password: temporary,
                   reason,
-                }),
+                },
               },
             );
-            const data = await response.json();
-            if (!response.ok)
-              throw new Error(
-                typeof data.detail === "string"
-                  ? data.detail
-                  : "重置失败，请检查输入",
-              );
+            if (!result.data)
+              throw new Error(apiError(result.error, "重置失败，请检查输入"));
             setPassword("");
             setTemporary("");
             setConfirm("");

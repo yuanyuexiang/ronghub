@@ -1,4 +1,8 @@
 "use client";
+import {
+  ApplicationEvidencePanel,
+  type ApplicationReviewState,
+} from "./application-evidence-panel";
 import { usePageRefresh } from "./page-refresh";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { useCapability } from "./permissions";
@@ -40,6 +44,7 @@ const statuses: Record<string, string> = {
 const actions: Record<string, string> = {
   create: "创建申请",
   edit: "编辑申请",
+  material_category: "材料分类更新",
   submit: "提交审核",
   withdraw: "撤回申请",
   approve: "审核通过",
@@ -69,6 +74,10 @@ export function ApplicationPanel({
     [editorBusy, setEditorBusy] = useState(false),
     [detail, setDetail] = useState<Application | null>(null),
     [comment, setComment] = useState("");
+  const [editorDirty, setEditorDirty] = useState(false);
+  const canSource = useCapability("stations.read");
+  const [materialRevision, setMaterialRevision] = useState(0);
+  const [review, setReview] = useState<ApplicationReviewState | null>(null);
   const [query, setQuery] = useState(initialQuery),
     [draft, setDraft] = useState(initialQuery);
   const [total, setTotal] = useState(0),
@@ -175,6 +184,10 @@ export function ApplicationPanel({
   }
   async function act(action: string) {
     if (!detail || busy || materialBusy || editorBusy) return;
+    if (action === "submit" && editorDirty) {
+      setError("请先保存申请信息后再提交");
+      return;
+    }
     const selectedSequence = detailSequence.current;
     setBusy(true);
     try {
@@ -183,7 +196,18 @@ export function ApplicationPanel({
         {
           params: { path: { application_id: detail.id } },
           headers: { "x-csrf-token": csrf },
-          body: { action, version: detail.version, comment },
+          body: {
+            action,
+            version: detail.version,
+            comment,
+            review_token:
+              action === "submit" &&
+              review?.applicationId === detail.id &&
+              review.version === detail.version &&
+              review.revision === materialRevision
+                ? review.token
+                : null,
+          },
         },
       );
       if (!data) throw new Error(apiError(error, "处理失败"));
@@ -191,6 +215,7 @@ export function ApplicationPanel({
       if (detailSequence.current === selectedSequence) await open(detail.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "处理失败");
+      setMaterialRevision((old) => old + 1);
     } finally {
       setBusy(false);
     }
@@ -432,6 +457,7 @@ export function ApplicationPanel({
                     csrf={csrf}
                     parentBusy={busy || materialBusy}
                     onBusy={setEditorBusy}
+                    onDirty={setEditorDirty}
                     onSaved={async () => {
                       await load();
                       if (detailSequence.current === renderedDetailSequence)
@@ -451,6 +477,11 @@ export function ApplicationPanel({
                   ["draft", "rejected"].includes(detail.status)
                 }
                 csrf={csrf}
+                categories={
+                  review?.applicationId === detail.id ? review.categories : {}
+                }
+                onChanged={() => setMaterialRevision((old) => old + 1)}
+                applicationVersion={detail.version}
               />
               <section className="materials">
                 <h3>提交内容</h3>
@@ -505,12 +536,27 @@ export function ApplicationPanel({
                   当前记录无可执行操作，可查看材料和处理历史。
                 </p>
               )}
+              {editorDirty && (
+                <p className="muted">申请信息有未保存修改，请先保存后提交。</p>
+              )}
               <div className="action-row">
                 {canSubmit &&
                   role === "operator" &&
                   ["draft", "rejected"].includes(detail.status) && (
                     <button
-                      disabled={busy || materialBusy || editorBusy}
+                      disabled={
+                        busy ||
+                        materialBusy ||
+                        editorBusy ||
+                        editorDirty ||
+                        (canSource &&
+                          (!review ||
+                            review.applicationId !== detail.id ||
+                            review.version !== detail.version ||
+                            review.revision !== materialRevision ||
+                            review.busy ||
+                            !review.token))
+                      }
                       className="outline"
                       onClick={() => act("submit")}
                     >
@@ -556,6 +602,16 @@ export function ApplicationPanel({
                   )}
               </div>
             </div>
+          </div>
+          <div className="application-evidence-container">
+            <ApplicationEvidencePanel
+              key={`evidence-${detail.id}`}
+              applicationId={detail.id}
+              version={detail.version}
+              status={detail.status}
+              revision={materialRevision}
+              onReview={setReview}
+            />
           </div>
         </div>
       )}

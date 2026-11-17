@@ -10,7 +10,7 @@ from fastapi.responses import Response
 
 from app import quality, runtime
 from app.contracts import MeterSourcePage, QualityReport
-from app.dependencies import Actor
+from app.dependencies import SnapshotActor
 from app.models import Audit
 from app.reporting import SnapshotDB
 from app.routers.statistics import csv_cell
@@ -52,7 +52,7 @@ Filters = Annotated[dict, Depends(filters)]
 
 @router.get("/sources", response_model=MeterSourcePage)
 def sources(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     q: str = Query("", max_length=50),
     district: str = Query("", max_length=50),
@@ -65,7 +65,7 @@ def sources(
 
 @router.get("", response_model=QualityReport)
 def report(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     params: Filters,
     page: int = Query(1, ge=1, le=2147483647),
@@ -76,6 +76,7 @@ def report(
 
 def export_columns():
     columns = [
+        ("record_kind", "记录类型"),
         ("group_by", "分组方式"),
         ("group_key", "分组编号"),
         ("group_label", "当前分组名称"),
@@ -89,6 +90,7 @@ def export_columns():
         ("is_demo", "演示标识"),
         ("selected_station_count", "当前查询台账站数"),
         ("station_count", "本组当前台账站数"),
+        ("inventory_equipment_count", "当前台账设备数(非历史设备规模)"),
         ("stations_with_runtime", "本组有运行区间的站数"),
         ("observed_object_count", "本组观测源对象数(非设备总数)"),
         ("observed_object_window_seconds", "观测对象乘查询秒数(非可用时长)"),
@@ -138,20 +140,27 @@ def export_columns():
     response_class=Response,
     responses={200: {"content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}}}},
 )
-def export(user: Actor, db: SnapshotDB, params: Filters):
-    report = quality.report(db, user, params, 1, 10000, exporting=True)
+def export(user: SnapshotActor, db: SnapshotDB, params: Filters):
+    report = QualityReport.model_validate(
+        quality.report(db, user, params, 1, 10000, exporting=True)
+    ).model_dump()
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     columns = export_columns()
     writer.writerow([label for _, label in columns])
     rows = 0
-    for group in report["items"]:
+    groups = [("分组明细", group) for group in report["items"]]
+    if report["selected_station_count"]:
+        groups.append(("查询总计", report["summary"]))
+    for kind, group in groups:
         for stream in group["streams"] or [None]:
             record = {
                 **report,
+                "record_kind": kind,
                 "group_key": group["key"],
                 "group_label": group["label"],
                 "station_count": group["station_count"],
+                "inventory_equipment_count": group["inventory_equipment_count"],
             }
             if stream:
                 record.update(stream)
@@ -178,10 +187,14 @@ def export(user: Actor, db: SnapshotDB, params: Filters):
                 )
             writer.writerow([csv_cell(record.get(key)) for key, _ in columns])
             rows += 1
-    db.add(Audit(user_id=user.id, action="statistics.quality.export", detail={"rows": rows}))
-    db.commit()
-    return Response(
+    result = Response(
         "\ufeff" + buffer.getvalue(),
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="ronghub-quality-observations.csv"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="ronghub-quality-observations.csv"',
+            "Cache-Control": "no-store",
+        },
     )
+    db.add(Audit(user_id=user.id, action="statistics.quality.export", detail={"rows": rows}))
+    db.commit()
+    return result

@@ -1,19 +1,36 @@
 "use client";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 export function DraftEditor({
   application,
   csrf,
   onSaved,
   parentBusy,
   onBusy,
+  onDirty,
 }: {
   application: ApiSchemas["StationApplicationRecord"];
   csrf: string;
   onSaved: () => Promise<void>;
   parentBusy: boolean;
   onBusy: (busy: boolean) => void;
+  onDirty: (dirty: boolean) => void;
 }) {
+  const rawContact = application.payload.contact;
+  const contact =
+    rawContact && typeof rawContact === "object" && !Array.isArray(rawContact)
+      ? rawContact
+      : null;
+  const [contactName, setContactName] = useState(
+    contact && "name" in contact && typeof contact.name === "string"
+      ? contact.name
+      : "",
+  );
+  const [contactPhone, setContactPhone] = useState(
+    contact && "phone" in contact && typeof contact.phone === "string"
+      ? contact.phone
+      : "",
+  );
   const [note, setNote] = useState(
       typeof application.payload.note === "string"
         ? application.payload.note
@@ -31,6 +48,36 @@ export function DraftEditor({
     ),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const originalNote =
+    typeof application.payload.note === "string"
+      ? application.payload.note
+      : "";
+  const originalName =
+    typeof application.payload.name === "string"
+      ? application.payload.name
+      : "";
+  const originalAddress =
+    typeof application.payload.address === "string"
+      ? application.payload.address
+      : "";
+  const originalContactName =
+    contact && "name" in contact && typeof contact.name === "string"
+      ? contact.name
+      : "";
+  const originalContactPhone =
+    contact && "phone" in contact && typeof contact.phone === "string"
+      ? contact.phone
+      : "";
+  const dirty =
+    note !== originalNote ||
+    name !== originalName ||
+    address !== originalAddress ||
+    contactName !== originalContactName ||
+    contactPhone !== originalContactPhone;
+  useEffect(() => {
+    onDirty(dirty);
+  }, [dirty, onDirty]);
+  useEffect(() => () => onDirty(false), [onDirty]);
   async function save() {
     if (busy || parentBusy) return;
     setBusy(true);
@@ -45,6 +92,8 @@ export function DraftEditor({
           body: {
             version: application.version,
             note,
+            contact_name: contactName || null,
+            contact_phone: contactPhone || null,
             name: application.kind === "change" ? name : null,
             address: application.kind === "change" ? address : null,
           },
@@ -70,6 +119,26 @@ export function DraftEditor({
           maxLength={2000}
           value={note}
           onChange={(e) => setNote(e.target.value)}
+        />
+      </label>
+      <label>
+        本次申请联系人（可选，与联系方式同时填写）
+        <input
+          aria-label="申请联系人"
+          value={contactName}
+          onChange={(e) => setContactName(e.target.value)}
+          maxLength={100}
+          disabled={busy || parentBusy}
+        />
+      </label>
+      <label>
+        本次申请联系方式
+        <input
+          aria-label="申请联系方式"
+          value={contactPhone}
+          onChange={(e) => setContactPhone(e.target.value)}
+          maxLength={80}
+          disabled={busy || parentBusy}
         />
       </label>
       {application.kind === "change" && (

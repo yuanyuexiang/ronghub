@@ -11,7 +11,7 @@ from app import rating
 from app import standard_lifecycle as lifecycle
 from app.authorization import authorize_business_write
 from app.business_contracts import RatingStandardResponse, RatingWeightPlan
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.models import RatingApplication, RatingStandard, RatingStandardDraft, now
 from app.rating_draft_contracts import (
     Id,
@@ -37,7 +37,7 @@ def writing(db, user, request):
 
 @router.get("/standard-drafts", response_model=RatingDraftPage)
 def listing(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     status: Literal["draft", "published", "deleted"] = "draft",
     q: str = Query("", max_length=150),

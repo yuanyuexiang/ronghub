@@ -8,6 +8,12 @@ export const typedApi = createClient<paths>({
   credentials: "same-origin",
   fetch: (request) => apiFetch(request),
 });
+// Applicant-cookie expiry must not expire an unrelated business login.
+export const enrollmentApi = createClient<paths>({
+  credentials: "same-origin",
+});
+// Public projections never carry a business cookie or trigger private-session expiry handling.
+export const publicApi = createClient<paths>({ credentials: "omit" });
 export type ApiSchemas = components["schemas"];
 export function apiError(error: unknown, fallback: string): string {
   if (

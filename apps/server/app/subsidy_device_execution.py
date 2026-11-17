@@ -336,8 +336,18 @@ def verify(db, claim, station):
             )
             for row in rows
         ]
-        if [line.model_dump(mode="json") for line in current] != [line.snapshot for line in lines]:
-            raise HTTPException(409, "设备原始观测已修订，请核对历史补差；未重算原申请")
+        try:
+            frozen = [DeviceLineCalculation.model_validate(line.snapshot) for line in lines]
+        except ValidationError as error:
+            raise HTTPException(409, "设备核算明细损坏，未提交操作") from error
+        for observed, saved in zip(current, frozen, strict=True):
+            # Decimal wire strings may differ in scale while retaining the exact value.
+            same_money = Decimal(observed.rate) == Decimal(saved.rate) and Decimal(
+                observed.amount
+            ) == Decimal(saved.amount)
+            normalized = saved.model_copy(update={"rate": observed.rate, "amount": observed.amount})
+            if not same_money or observed != normalized:
+                raise HTTPException(409, "设备原始观测已修订，请核对历史补差；未重算原申请")
         if (
             calculation.eligible_rows != sum(line.eligible for line in current)
             or calculation.excluded_rows != sum(not line.eligible for line in current)

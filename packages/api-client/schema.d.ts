@@ -90,6 +90,265 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alerts/configured-observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_api_v1_alerts_configured_observations_get"];
+        put?: never;
+        /** Observe */
+        post: operations["observe_api_v1_alerts_configured_observations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/configured-observations/equipment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Equipment Options */
+        get: operations["equipment_options_api_v1_alerts_configured_observations_equipment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/configured-observations/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Station Options */
+        get: operations["station_options_api_v1_alerts_configured_observations_stations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/configured-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_api_v1_alerts_configured_rules_get"];
+        put?: never;
+        /** Create */
+        post: operations["create_api_v1_alerts_configured_rules_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/configured-rules/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_api_v1_alerts_configured_rules_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/configured-rules/{rule_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Archive */
+        delete: operations["archive_api_v1_alerts_configured_rules__rule_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/configured-rules/{rule_id}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Availability */
+        patch: operations["availability_api_v1_alerts_configured_rules__rule_id__availability_patch"];
+        trace?: never;
+    };
+    "/api/v1/alerts/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export */
+        get: operations["export_api_v1_alerts_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/notifications/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Deliveries */
+        get: operations["deliveries_api_v1_alerts_notifications_deliveries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preferences */
+        get: operations["preferences_api_v1_alerts_notifications_preferences_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/notifications/preferences/{category}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Preference */
+        put: operations["set_preference_api_v1_alerts_notifications_preferences__category__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/notifications/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recipients */
+        get: operations["recipients_api_v1_alerts_notifications_recipients_get"];
+        put?: never;
+        /** Create Recipient */
+        post: operations["create_recipient_api_v1_alerts_notifications_recipients_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/notifications/recipients/{recipient_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Recipient */
+        delete: operations["delete_recipient_api_v1_alerts_notifications_recipients__recipient_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Recipient */
+        patch: operations["update_recipient_api_v1_alerts_notifications_recipients__recipient_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/alerts/notifications/routings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Routings */
+        get: operations["routings_api_v1_alerts_notifications_routings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/period-facts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_api_v1_alerts_period_facts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/alerts/rules": {
         parameters: {
             query?: never;
@@ -224,6 +483,125 @@ export interface paths {
         put?: never;
         /** Upload */
         post: operations["upload_api_v1_applications__application_id__attachments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/attachments/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current Archive */
+        get: operations["current_archive_api_v1_applications__application_id__attachments_archive_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/attachments/{attachment_id}/category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Category */
+        patch: operations["category_api_v1_applications__application_id__attachments__attachment_id__category_patch"];
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/review-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Context */
+        get: operations["context_api_v1_applications__application_id__review_context_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_api_v1_applications__application_id__submissions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/submissions/{submission_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_v1_applications__application_id__submissions__submission_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/submissions/{submission_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historical Archive */
+        get: operations["historical_archive_api_v1_applications__application_id__submissions__submission_id__archive_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/submissions/{submission_id}/materials/{attachment_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historical File */
+        get: operations["historical_file_api_v1_applications__application_id__submissions__submission_id__materials__attachment_id__download_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -394,6 +772,57 @@ export interface paths {
         put?: never;
         /** Request Binding */
         post: operations["request_binding_api_v1_auth_phone_challenges_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/phone/change/challenges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start */
+        post: operations["start_api_v1_auth_phone_change_challenges_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/phone/change/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm */
+        post: operations["confirm_api_v1_auth_phone_change_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/phone/change/new-challenges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue New */
+        post: operations["issue_new_api_v1_auth_phone_change_new_challenges_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -846,6 +1275,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Report */
+        get: operations["report_api_v1_dashboard_operations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/enrollment": {
         parameters: {
             query?: never;
@@ -984,6 +1430,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hazards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_api_v1_hazards_get"];
+        put?: never;
+        /** Create */
+        post: operations["create_api_v1_hazards_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hazards/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export */
+        get: operations["export_api_v1_hazards_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hazards/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Candidates */
+        get: operations["candidates_api_v1_hazards_stations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hazards/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_v1_hazards__case_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hazards/{case_id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Action */
+        post: operations["action_api_v1_hazards__case_id__actions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hazards/{case_id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload */
+        post: operations["upload_api_v1_hazards__case_id__attachments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hazards/{case_id}/attachments/{attachment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove */
+        delete: operations["remove_api_v1_hazards__case_id__attachments__attachment_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hazards/{case_id}/attachments/{attachment_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download */
+        get: operations["download_api_v1_hazards__case_id__attachments__attachment_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -995,6 +1578,77 @@ export interface paths {
         get: operations["health_api_v1_health_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inspection-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_api_v1_inspection_plans_get"];
+        put?: never;
+        /** Create */
+        post: operations["create_api_v1_inspection_plans_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inspection-plans/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stations */
+        get: operations["stations_api_v1_inspection_plans_stations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inspection-plans/{plan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_v1_inspection_plans__plan_id__get"];
+        /** Edit */
+        put: operations["edit_api_v1_inspection_plans__plan_id__put"];
+        post?: never;
+        /** Remove */
+        delete: operations["remove_api_v1_inspection_plans__plan_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inspection-plans/{plan_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish */
+        post: operations["publish_api_v1_inspection_plans__plan_id__publish_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1013,6 +1667,23 @@ export interface paths {
         put?: never;
         /** Create */
         post: operations["create_api_v1_inspections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inspections/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export */
+        get: operations["export_api_v1_inspections_export_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1114,6 +1785,23 @@ export interface paths {
         };
         /** Points */
         get: operations["points_api_v1_map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/map/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export */
+        get: operations["export_api_v1_map_export_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1318,6 +2006,108 @@ export interface paths {
         };
         /** Export */
         get: operations["export_api_v1_orders_time_slots_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_api_v1_protocols_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/{article_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_v1_protocols__article_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_api_v1_public_articles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/articles/{article_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_v1_public_articles__article_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/articles/{article_id}/attachments/{attachment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download */
+        get: operations["download_api_v1_public_articles__article_id__attachments__attachment_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Info */
+        get: operations["info_api_v1_public_info_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1879,6 +2669,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/stations/{station_id}/energy-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Energy History */
+        get: operations["energy_history_api_v1_stations__station_id__energy_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/stations/{station_id}/equipment": {
         parameters: {
             query?: never;
@@ -1888,6 +2695,74 @@ export interface paths {
         };
         /** Station Equipment */
         get: operations["station_equipment_api_v1_stations__station_id__equipment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stations/{station_id}/equipment/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Query */
+        get: operations["query_api_v1_stations__station_id__equipment_query_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stations/{station_id}/equipment/{equipment_id}/connectors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connectors */
+        get: operations["connectors_api_v1_stations__station_id__equipment__equipment_id__connectors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stations/{station_id}/flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Flow */
+        get: operations["flow_api_v1_stations__station_id__flow_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stations/{station_id}/flow/{application_id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Actions */
+        get: operations["actions_api_v1_stations__station_id__flow__application_id__actions_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1922,6 +2797,40 @@ export interface paths {
         };
         /** Export Analysis */
         get: operations["export_analysis_api_v1_statistics_analysis_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/statistics/charging-subsidy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Report */
+        get: operations["report_api_v1_statistics_charging_subsidy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/statistics/charging-subsidy/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export */
+        get: operations["export_api_v1_statistics_charging_subsidy_export_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2393,6 +3302,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subsidy/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_api_v1_subsidy_statistics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subsidy/statistics/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export */
+        get: operations["export_api_v1_subsidy_statistics_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subsidy/statistics/operators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Operators */
+        get: operations["operators_api_v1_subsidy_statistics_operators_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/operators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Operator Choices */
+        get: operations["operator_choices_api_v1_sync_operators_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sync/tasks": {
         parameters: {
             query?: never;
@@ -2499,12 +3476,88 @@ export interface components {
             /** Stations With Order Observations */
             stations_with_order_observations: number;
         };
+        /** AlertDetail */
+        AlertDetail: {
+            /** Acknowledge Note */
+            acknowledge_note: string;
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            configuration_evidence?: components["schemas"]["EventEvidence"] | null;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Last Observed At */
+            last_observed_at: string;
+            /** Last Value */
+            last_value: string;
+            /** Notices */
+            notices: components["schemas"]["AlertNoticeResponse"][];
+            /** Occurrences */
+            occurrences: number;
+            /** Opened At */
+            opened_at: string;
+            /** Recovered At */
+            recovered_at: string | null;
+            rule_snapshot: components["schemas"]["AlertRuleSnapshot"];
+            /** Station Id */
+            station_id: number;
+            /** Status */
+            status: string;
+            /** Target */
+            target: string;
+            /** Version */
+            version: number;
+        };
+        /** AlertEventResponse */
+        AlertEventResponse: {
+            /** Acknowledge Note */
+            acknowledge_note: string;
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            configuration_evidence?: components["schemas"]["EventEvidence"] | null;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Last Observed At */
+            last_observed_at: string;
+            /** Last Value */
+            last_value: string;
+            /** Occurrences */
+            occurrences: number;
+            /** Opened At */
+            opened_at: string;
+            /** Recovered At */
+            recovered_at: string | null;
+            rule_snapshot: components["schemas"]["AlertRuleSnapshot"];
+            /** Station Id */
+            station_id: number;
+            /** Status */
+            status: string;
+            /** Target */
+            target: string;
+            /** Version */
+            version: number;
+        };
+        /** AlertNoticeResponse */
+        AlertNoticeResponse: {
+            /** Channel */
+            channel: string;
+            /** Created At */
+            created_at: string;
+            /** Message */
+            message: string;
+            /** Phase */
+            phase: string;
+        };
         /** AlertQueueItem */
         AlertQueueItem: {
             /** Acknowledge Note */
             acknowledge_note: string;
             /** Acknowledged At */
             acknowledged_at: string | null;
+            configuration_evidence?: components["schemas"]["EventEvidence"] | null;
             /** Id */
             id: number;
             /** Is Demo */
@@ -2552,6 +3605,7 @@ export interface components {
         AlertRuleSnapshot: {
             /** Code */
             code: string;
+            configuration?: components["schemas"]["Configuration-Output"] | null;
             /** Metric */
             metric: string;
             /** Notifications Enabled */
@@ -2564,6 +3618,30 @@ export interface components {
             unit: string;
             /** Version */
             version: number;
+        };
+        /** ApplicationAttachmentItem */
+        ApplicationAttachmentItem: {
+            /** Category */
+            category: string | null;
+            /** Content Type */
+            content_type: string;
+            /** Created At */
+            created_at: string;
+            /** Filename */
+            filename: string;
+            /** Id */
+            id: number;
+            /** Revision */
+            revision: number;
+            /** Sha256 */
+            sha256: string;
+            /** Size */
+            size: number;
+        };
+        /** ApplicationAttachmentList */
+        ApplicationAttachmentList: {
+            /** Items */
+            items: components["schemas"]["ApplicationAttachmentItem"][];
         };
         /** ApplicationMaterialItem */
         ApplicationMaterialItem: {
@@ -2580,10 +3658,23 @@ export interface components {
             /** Size */
             size: number;
         };
-        /** ApplicationMaterialList */
-        ApplicationMaterialList: {
-            /** Items */
-            items: components["schemas"]["ApplicationMaterialItem"][];
+        /** ApprovalCounts */
+        ApprovalCounts: {
+            /** Approval Rate Pct */
+            approval_rate_pct?: null;
+            /** Approved */
+            approved: number;
+            /**
+             * Notice
+             * @default 当前接入申请状态计数，不是去重场站通过率；正式审核通过率的分母及退回重报口径待确认。
+             */
+            notice: string;
+            /** Other */
+            other: number;
+            /** Rejected */
+            rejected: number;
+            /** Submitted */
+            submitted: number;
         };
         /** ArticleInput */
         ArticleInput: {
@@ -2601,6 +3692,11 @@ export interface components {
             kind: string;
             /** Operator Id */
             operator_id?: number | null;
+            /**
+             * Portal Public
+             * @default false
+             */
+            portal_public: boolean;
             /** Recipient Ids */
             recipient_ids?: number[] | null;
             rich_document?: components["schemas"]["RichDocument-Input"] | null;
@@ -2696,6 +3792,8 @@ export interface components {
             contact_phone?: string | null;
             /** Files */
             files: string[];
+            /** Rich Document */
+            rich_document?: string | null;
         };
         /** Body_upload_api_v1_applications__application_id__attachments_post */
         Body_upload_api_v1_applications__application_id__attachments_post: {
@@ -2711,6 +3809,11 @@ export interface components {
         };
         /** Body_upload_api_v1_enrollment_me_attachments_post */
         Body_upload_api_v1_enrollment_me_attachments_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_upload_api_v1_hazards__case_id__attachments_post */
+        Body_upload_api_v1_hazards__case_id__attachments_post: {
             /** File */
             file: string;
         };
@@ -2733,14 +3836,20 @@ export interface components {
             /** Version */
             version: number;
         };
-        /** CategoryInput */
-        CategoryInput: {
+        /** CategoryResult */
+        CategoryResult: {
+            /** Application Id */
+            application_id: number;
+            /** Application Version */
+            application_version: number;
+            material: components["schemas"]["ApplicationAttachmentItem"];
+        };
+        /** ChangeConfirm */
+        ChangeConfirm: {
+            /** Challenge Id */
+            challenge_id: string;
             /** Code */
             code: string;
-            /** Name */
-            name: string;
-            /** Weight */
-            weight: number | string;
         };
         /** ChangeInput */
         ChangeInput: {
@@ -2748,6 +3857,22 @@ export interface components {
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /** ChangeNew */
+        ChangeNew: {
+            /** Old Challenge Id */
+            old_challenge_id: string;
+            /** Old Code */
+            old_code: string;
+            /** Phone */
+            phone: string;
+        };
+        /** ChangeStart */
+        ChangeStart: {
+            /** Current Password */
+            current_password: string;
+            /** Phone Version */
+            phone_version: number;
         };
         /** ChargingOrderItem */
         ChargingOrderItem: {
@@ -2812,6 +3937,75 @@ export interface components {
             source_completeness_verified: false;
             /** Total */
             total: number;
+        };
+        /** ChargingReport */
+        ChargingReport: {
+            /** Cross Period Claim Count */
+            cross_period_claim_count: number;
+            /** Current Equipment Count */
+            current_equipment_count: number;
+            /**
+             * Dimension
+             * @enum {string}
+             */
+            dimension: "station" | "equipment";
+            /** End At */
+            end_at: string;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /** Items */
+            items: components["schemas"]["ReportRow"][];
+            /** Legacy Claim Count */
+            legacy_claim_count: number;
+            /**
+             * Notice
+             * @default 订单按北京时间开始时间归属周期，仅计已完成订单的已知电量/源报时长/消费，不认证来源完整或支付；来源与演示标识分开。补贴仅计完整落入周期的已批准/登记发放申请，跨周期不拆金额。设备仅列冻结系数前汇算，不分摊星级系数或人工差额；调整后及登记发放金额见场站补贴。登记发放不代表银行到账。未匹配现台账的源桩引用单列，不当作一个已确认设备。
+             */
+            notice: string;
+            /** Orders */
+            orders: components["schemas"]["OrderStream"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /**
+             * Period
+             * @enum {string}
+             */
+            period: "day" | "month" | "year";
+            /**
+             * Period Date
+             * Format: date
+             */
+            period_date: string;
+            /** Q */
+            q: string;
+            /** Selected Station Count */
+            selected_station_count: number;
+            /**
+             * Source Completeness Verified
+             * @default false
+             * @constant
+             */
+            source_completeness_verified: false;
+            /** Start At */
+            start_at: string;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** Station Subsidies */
+            station_subsidies: components["schemas"]["StationSubsidy"][];
+            /** Subsidies */
+            subsidies: components["schemas"]["SubsidyStream"][];
+            /** Total */
+            total: number;
+            /** Unmatched Order Groups */
+            unmatched_order_groups: number;
         };
         /** ClaimInput */
         ClaimInput: {
@@ -2932,6 +4126,64 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** Configuration */
+        "Configuration-Input": {
+            /**
+             * Configuration Version
+             * @constant
+             */
+            configuration_version: 1;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "gte" | "lte";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "device_temperature" | "device_current" | "device_leakage" | "station_utilization" | "station_fault" | "station_offline";
+            /**
+             * Period
+             * @enum {string}
+             */
+            period: "instant" | "natural_week" | "natural_month";
+            /** Recover Value */
+            recover_value: number | string;
+            /** Thresholds */
+            thresholds: {
+                [key: string]: number | string;
+            };
+        };
+        /** Configuration */
+        "Configuration-Output": {
+            /**
+             * Configuration Version
+             * @constant
+             */
+            configuration_version: 1;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "gte" | "lte";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "device_temperature" | "device_current" | "device_leakage" | "station_utilization" | "station_fault" | "station_offline";
+            /**
+             * Period
+             * @enum {string}
+             */
+            period: "instant" | "natural_week" | "natural_month";
+            /** Recover Value */
+            recover_value: string;
+            /** Thresholds */
+            thresholds: {
+                [key: string]: string;
+            };
+        };
         /** ConfirmInput */
         ConfirmInput: {
             /** Challenge Id */
@@ -2945,8 +4197,19 @@ export interface components {
             external_id: string;
             /** Id */
             id: number;
+            /** Interface Type */
+            interface_type: string | null;
+            /** Name */
+            name: string | null;
             /** Status */
             status: string;
+        };
+        /** Contact */
+        Contact: {
+            /** Name */
+            name: string | null;
+            /** Phone */
+            phone: string | null;
         };
         /** ContactInput */
         ContactInput: {
@@ -2989,9 +4252,11 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "announcement" | "news" | "contact" | "notice";
+            kind: "announcement" | "news" | "contact" | "notice" | "protocol";
             /** Operator Id */
             operator_id: number | null;
+            /** Portal Public */
+            portal_public: boolean;
             /** Published At */
             published_at: string | null;
             rich_document?: components["schemas"]["RichDocument-Output"] | null;
@@ -3066,9 +4331,11 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "announcement" | "news" | "contact" | "notice";
+            kind: "announcement" | "news" | "contact" | "notice" | "protocol";
             /** Operator Id */
             operator_id: number | null;
+            /** Portal Public */
+            portal_public: boolean;
             /** Published At */
             published_at: string | null;
             /** Recipient Ids */
@@ -3146,6 +4413,7 @@ export interface components {
             operator_id: number;
             /** Operator Name */
             operator_name: string;
+            rich_document?: components["schemas"]["RichDocument-Output"] | null;
         };
         /** ContentReplyCreated */
         ContentReplyCreated: {
@@ -3226,6 +4494,48 @@ export interface components {
             subsidies_pending?: number | null;
             /** Subsidy Total */
             subsidy_total?: string | null;
+        };
+        /** DeliveryPage */
+        DeliveryPage: {
+            /** Items */
+            items: components["schemas"]["DeliveryResponse"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** DeliveryResponse */
+        DeliveryResponse: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "station_metric" | "device_charging" | "device_offline" | "device_fault" | "energy_power" | "unconnected_device";
+            /** Created At */
+            created_at: string;
+            /** Event Id */
+            event_id: number;
+            /** Id */
+            id: number;
+            /** Masked Phone */
+            masked_phone: string;
+            /** Phase */
+            phase: string;
+            /** Recipient Id */
+            recipient_id: number;
+            /** Recipient Name */
+            recipient_name: string;
+            /** Recipient Version */
+            recipient_version: number;
+            /** Routing Id */
+            routing_id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "simulated" | "provider_disabled";
         };
         /** DeviceClaimCalculation */
         DeviceClaimCalculation: {
@@ -3473,6 +4783,10 @@ export interface components {
         DraftEditInput: {
             /** Address */
             address?: string | null;
+            /** Contact Name */
+            contact_name?: string | null;
+            /** Contact Phone */
+            contact_phone?: string | null;
             /** Name */
             name?: string | null;
             /**
@@ -3550,10 +4864,367 @@ export interface components {
              */
             stars: string;
         };
+        /** EnergyComparison */
+        EnergyComparison: {
+            /** Basis */
+            basis: string;
+            /** Delta Kwh */
+            delta_kwh: string | null;
+            /** Observed Change Percent */
+            observed_change_percent: string | null;
+            period: components["schemas"]["EnergyWindow"];
+            /**
+             * Source Completeness Verified
+             * @constant
+             */
+            source_completeness_verified: false;
+            /** Unavailable Reason */
+            unavailable_reason: string | null;
+        };
+        /** EnergyComparisons */
+        EnergyComparisons: {
+            period_over_period: components["schemas"]["EnergyComparison"];
+            year_over_year: components["schemas"]["EnergyComparison"];
+        };
+        /** EnergyDay */
+        EnergyDay: {
+            /** Day */
+            day: string;
+            /** Kwh */
+            kwh: string | null;
+            /** Records */
+            records: number;
+            /** Stations */
+            stations: number;
+        };
+        /** EnergyDimensionRanking */
+        EnergyDimensionRanking: {
+            /** Connectors */
+            connectors: number;
+            /** Key */
+            key: string;
+            /** Kwh */
+            kwh: string | null;
+            /** Name */
+            name: string;
+            /** Power Kw */
+            power_kw: string;
+            /** Station Count */
+            station_count: number;
+        };
+        /** EnergyPeriod */
+        EnergyPeriod: {
+            comparisons: components["schemas"]["EnergyComparisons"];
+            /** Complete Daily Observations */
+            complete_daily_observations: boolean;
+            /** Duplicate Records */
+            duplicate_records: number;
+            /** End Date */
+            end_date: string;
+            /** Ended */
+            ended: boolean;
+            /** Expected Station Days */
+            expected_station_days: number;
+            /** Kwh */
+            kwh: string | null;
+            /** Observed Days */
+            observed_days: number;
+            /** Period */
+            period: string;
+            /** Records */
+            records: number;
+            /** Requested Days */
+            requested_days: number;
+            /** Source Count */
+            source_count: number;
+            /** Start Date */
+            start_date: string;
+            /** Station Days */
+            station_days: number;
+        };
+        /** EnergyStationRanking */
+        EnergyStationRanking: {
+            /** Connectors */
+            connectors: number;
+            /** District */
+            district: string;
+            /** Id */
+            id: number;
+            /** Kwh */
+            kwh: string | null;
+            /** Name */
+            name: string;
+            /** Operator */
+            operator: string;
+            /** Operator Id */
+            operator_id: number;
+            /** Power Kw */
+            power_kw: string;
+            /** Status */
+            status: string;
+        };
+        /** EnergyStatistics */
+        EnergyStatistics: {
+            /** Basis */
+            basis: string;
+            /** Comparison Date Basis */
+            comparison_date_basis: string;
+            comparisons: components["schemas"]["EnergyComparisons"];
+            /** Connectors */
+            connectors: number;
+            coverage: components["schemas"]["EnergyWindow"];
+            /** Daily */
+            daily: components["schemas"]["EnergyDay"][];
+            /**
+             * Dimension
+             * @enum {string}
+             */
+            dimension: "station" | "district" | "operator";
+            /** Dimension Ranking */
+            dimension_ranking: components["schemas"]["EnergyDimensionRanking"][];
+            /** End Date */
+            end_date: string;
+            /** Energy Date Basis */
+            energy_date_basis: string;
+            /** Generated At */
+            generated_at: string;
+            /**
+             * Granularity
+             * @enum {string}
+             */
+            granularity: "day" | "month" | "year";
+            /** Observed Days */
+            observed_days: number;
+            /** Power Kw */
+            power_kw: string;
+            previous_period: components["schemas"]["EnergyWindow"];
+            /** Ranking */
+            ranking: components["schemas"]["EnergyStationRanking"][];
+            /** Requested Days */
+            requested_days: number;
+            /** Start Date */
+            start_date: string;
+            /** Station Count */
+            station_count: number;
+            /** Status Distribution */
+            status_distribution: {
+                [key: string]: number;
+            };
+            /** Timeline */
+            timeline: components["schemas"]["EnergyPeriod"][];
+            /**
+             * Timezone
+             * @constant
+             */
+            timezone: "Asia/Shanghai";
+            /** Total Kwh */
+            total_kwh: string | null;
+            unavailable: components["schemas"]["EnergyUnavailable"];
+        };
+        /** EnergyUnavailable */
+        EnergyUnavailable: {
+            /** Charging Hours */
+            charging_hours: string;
+            /** Online Rate */
+            online_rate: string;
+            /** Order Count */
+            order_count: string;
+            /** Utilization */
+            utilization: string;
+        };
+        /** EnergyWindow */
+        EnergyWindow: {
+            /** Complete Daily Observations */
+            complete_daily_observations: boolean;
+            /** Duplicate Records */
+            duplicate_records: number;
+            /** End Date */
+            end_date: string;
+            /** Ended */
+            ended: boolean;
+            /** Expected Station Days */
+            expected_station_days: number;
+            /** Kwh */
+            kwh: string | null;
+            /** Observed Days */
+            observed_days: number;
+            /** Records */
+            records: number;
+            /** Requested Days */
+            requested_days: number;
+            /** Source Count */
+            source_count: number;
+            /** Start Date */
+            start_date: string;
+            /** Station Days */
+            station_days: number;
+        };
+        /** EnrollmentHistory */
+        EnrollmentHistory: {
+            /** Action */
+            action: string;
+            /** Comment */
+            comment: string;
+            /** Created At */
+            created_at: string;
+        };
+        /** EnrollmentMaterial */
+        EnrollmentMaterial: {
+            /** Content Type */
+            content_type: string;
+            /** Created At */
+            created_at: string;
+            /** Filename */
+            filename: string;
+            /** Id */
+            id: number;
+            /** Sha256 */
+            sha256: string;
+            /** Size */
+            size: number;
+            /** Submitted Version */
+            submitted_version: number | null;
+        };
+        /** EnrollmentMaterials */
+        EnrollmentMaterials: {
+            /** Items */
+            items: components["schemas"]["EnrollmentMaterial"][];
+        };
+        /** EnrollmentProgress */
+        EnrollmentProgress: {
+            /** Company Name */
+            company_name: string;
+            /** Contacts */
+            contacts: components["schemas"]["CompanyContact"][];
+            /** Created At */
+            created_at: string;
+            /** Credit Code */
+            credit_code: string;
+            /** Csrf Token */
+            csrf_token: string;
+            /** History */
+            history: components["schemas"]["EnrollmentHistory"][];
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Operator Id */
+            operator_id: number | null;
+            /** Registration Address */
+            registration_address: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "submitted" | "rejected" | "approved";
+            /** User Id */
+            user_id: number | null;
+            /** Username */
+            username: string;
+            /** Version */
+            version: number;
+        };
+        /** EnrollmentRecord */
+        EnrollmentRecord: {
+            /** Company Name */
+            company_name: string;
+            /** Contacts */
+            contacts: components["schemas"]["CompanyContact"][];
+            /** Created At */
+            created_at: string;
+            /** Credit Code */
+            credit_code: string;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Operator Id */
+            operator_id: number | null;
+            /** Registration Address */
+            registration_address: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "submitted" | "rejected" | "approved";
+            /** User Id */
+            user_id: number | null;
+            /** Username */
+            username: string;
+            /** Version */
+            version: number;
+        };
+        /** EnrollmentSessionResponse */
+        EnrollmentSessionResponse: {
+            /** Company Name */
+            company_name: string;
+            /** Contacts */
+            contacts: components["schemas"]["CompanyContact"][];
+            /** Created At */
+            created_at: string;
+            /** Credit Code */
+            credit_code: string;
+            /** Csrf Token */
+            csrf_token: string;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Operator Id */
+            operator_id: number | null;
+            /** Registration Address */
+            registration_address: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "submitted" | "rejected" | "approved";
+            /** User Id */
+            user_id: number | null;
+            /** Username */
+            username: string;
+            /** Version */
+            version: number;
+        };
+        /** EquipmentEvidence */
+        EquipmentEvidence: {
+            /** External Id */
+            external_id: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
         /** EquipmentItem */
         EquipmentItem: {
             /** Connectors */
             connectors: components["schemas"]["ConnectorItem"][];
+            /** Equipment Type */
+            equipment_type: ("dc" | "ac" | "ac_dc" | "wireless" | "ordered" | "v2g" | "other") | null;
+            /** External Id */
+            external_id: string;
+            /** Id */
+            id: number;
+            /** Manufactured On */
+            manufactured_on: string | null;
+            /** Model Name */
+            model_name: string | null;
+            /** Name */
+            name: string;
+            /** Power Kw */
+            power_kw: string;
+            /** Source Unique Code */
+            source_unique_code: string | null;
+        };
+        /** EquipmentList */
+        EquipmentList: {
+            /** Items */
+            items: components["schemas"]["EquipmentItem"][];
+        };
+        /** EquipmentOption */
+        EquipmentOption: {
+            /** External Id */
+            external_id: string;
             /** Id */
             id: number;
             /** Name */
@@ -3561,15 +5232,80 @@ export interface components {
             /** Power Kw */
             power_kw: string;
         };
-        /** EquipmentList */
-        EquipmentList: {
-            /** Items */
-            items: components["schemas"]["EquipmentItem"][];
-        };
         /** ErrorResponse */
         ErrorResponse: {
             /** Detail */
             detail: string | components["schemas"]["ValidationIssue"][];
+        };
+        /** EventEvidence */
+        EventEvidence: {
+            /** Current Level */
+            current_level: ("general" | "severe" | "critical") | null;
+            /**
+             * Evidence Version
+             * @constant
+             */
+            evidence_version: 1;
+            first: components["schemas"]["ObservationEvidence"];
+            /** First Observation Id */
+            first_observation_id: number;
+            /**
+             * Highest Level
+             * @enum {string}
+             */
+            highest_level: "general" | "severe" | "critical";
+            latest: components["schemas"]["ObservationEvidence"];
+            /** Latest Observation Id */
+            latest_observation_id: number;
+        };
+        /** EvidenceMaterial */
+        EvidenceMaterial: {
+            /** Category */
+            category: string | null;
+            /** Content Type */
+            content_type: string;
+            /** Created At */
+            created_at: string;
+            /** Filename */
+            filename: string;
+            /** Id */
+            id: number;
+            /** Sha256 */
+            sha256: string;
+            /** Size */
+            size: number;
+        };
+        /** ExecutionContact */
+        ExecutionContact: {
+            /** Name */
+            name?: string | null;
+            /** Phone */
+            phone?: string | null;
+        };
+        /** Facilities */
+        Facilities: {
+            /** Business Hours */
+            business_hours: string | null;
+            /** Commissioned On */
+            commissioned_on: string | null;
+            /** Electricity Tariff */
+            electricity_tariff: ("commercial" | "general_industrial" | "large_industrial" | "other") | null;
+            /** Filing Code */
+            filing_code: string | null;
+            /** Independent Connection */
+            independent_connection: boolean | null;
+            /** Parking Fee Description */
+            parking_fee_description: string | null;
+            /** Parking Fee Type */
+            parking_fee_type: ("free" | "paid" | "limited_free" | "charging_discount" | "onsite") | null;
+            /** Parking Spaces */
+            parking_spaces: number | null;
+            /** Supply Capacity */
+            supply_capacity: string | null;
+            /** Supply Capacity Unit */
+            supply_capacity_unit: ("unknown" | "kW" | "kVA") | null;
+            /** Supply Type */
+            supply_type: ("direct" | "transferred") | null;
         };
         /** FaultEventItem */
         FaultEventItem: {
@@ -3694,6 +5430,221 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** HazardActionInput */
+        HazardActionInput: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "start" | "reply" | "close";
+            /** Comment */
+            comment: string;
+            contact?: components["schemas"]["ExecutionContact"] | null;
+            /** Performed At */
+            performed_at?: string | null;
+            rich_document?: components["schemas"]["RichDocument-Input"] | null;
+            /** Version */
+            version: number;
+        };
+        /** HazardCandidate */
+        HazardCandidate: {
+            /** District */
+            district: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Operator Id */
+            operator_id: number;
+            /** Operator Name */
+            operator_name: string;
+        };
+        /** HazardCandidates */
+        HazardCandidates: {
+            /** Items */
+            items: components["schemas"]["HazardCandidate"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** HazardCreateInput */
+        HazardCreateInput: {
+            /** Description */
+            description: string;
+            /**
+             * Due At
+             * Format: date-time
+             */
+            due_at: string;
+            /** Operator Id */
+            operator_id: number;
+            rich_document?: components["schemas"]["RichDocument-Input"] | null;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "normal" | "major";
+            /** Station Id */
+            station_id: number;
+            /** Title */
+            title: string;
+        };
+        /** HazardDetail */
+        HazardDetail: {
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /**
+             * Due At
+             * Format: date-time
+             */
+            due_at: string;
+            /** History */
+            history: components["schemas"]["HazardHistory"][];
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Materials */
+            materials: components["schemas"]["InspectionMaterialItem"][];
+            /** Operator Id */
+            operator_id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Overdue */
+            overdue: boolean;
+            /**
+             * Progress
+             * @enum {string}
+             */
+            progress: "not_started" | "in_progress" | "completed";
+            rich_document: components["schemas"]["RichDocument-Output"] | null;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "normal" | "major";
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "tracking" | "closed";
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+        };
+        /** HazardHistory */
+        HazardHistory: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "publish" | "start" | "reply" | "close";
+            /** Comment */
+            comment: string;
+            contact: components["schemas"]["ExecutionContact"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Performed At */
+            performed_at: string | null;
+            rich_document: components["schemas"]["RichDocument-Output"] | null;
+        };
+        /** HazardPage */
+        HazardPage: {
+            /** Items */
+            items: components["schemas"]["HazardSummary"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /**
+             * Query At
+             * Format: date-time
+             */
+            query_at: string;
+            /** Total */
+            total: number;
+        };
+        /** HazardSummary */
+        HazardSummary: {
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /**
+             * Due At
+             * Format: date-time
+             */
+            due_at: string;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Operator Id */
+            operator_id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Overdue */
+            overdue: boolean;
+            /**
+             * Progress
+             * @enum {string}
+             */
+            progress: "not_started" | "in_progress" | "completed";
+            rich_document: components["schemas"]["RichDocument-Output"] | null;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "normal" | "major";
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "tracking" | "closed";
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+        };
+        /** HealthResponse */
+        HealthResponse: {
+            /** Demo Mode */
+            demo_mode: boolean;
+            /**
+             * Status
+             * @constant
+             */
+            status: "ok";
+        };
         /** IndicatorBand */
         IndicatorBand: {
             /** Label */
@@ -3742,6 +5693,53 @@ export interface components {
             /** Weight */
             weight: number | string;
         };
+        /** InspectionDetailResponse */
+        InspectionDetailResponse: {
+            /** Created At */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Due At */
+            due_at: string | null;
+            /** History */
+            history: components["schemas"]["InspectionHistoryItem"][];
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Operator Id */
+            operator_id: number;
+            /** Overdue */
+            overdue: boolean;
+            /** Plan Id */
+            plan_id: number | null;
+            rich_document: components["schemas"]["RichDocument-Output"] | null;
+            /** Severity */
+            severity: string;
+            /** Station Id */
+            station_id: number;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+        };
+        /** InspectionHistoryItem */
+        InspectionHistoryItem: {
+            /** Action */
+            action: string;
+            /** Comment */
+            comment: string;
+            contact: components["schemas"]["ExecutionContact"] | null;
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Performed At */
+            performed_at: string | null;
+            rich_document: components["schemas"]["RichDocument-Output"] | null;
+        };
         /** InspectionMaterialItem */
         InspectionMaterialItem: {
             /** Action Id */
@@ -3764,6 +5762,142 @@ export interface components {
             /** Items */
             items: components["schemas"]["InspectionMaterialItem"][];
         };
+        /** InspectionPlanCreate */
+        InspectionPlanCreate: {
+            /**
+             * Request Key
+             * Format: uuid
+             */
+            request_key: string;
+        };
+        /** InspectionPlanDetail */
+        InspectionPlanDetail: {
+            /** Created At */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Due At */
+            due_at: string | null;
+            /** Id */
+            id: number;
+            /** Published At */
+            published_at: string | null;
+            /** Published Count */
+            published_count: number;
+            rich_document: components["schemas"]["RichDocument-Output"] | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "published" | "deleted";
+            /** Target Count */
+            target_count: number;
+            /** Targets */
+            targets: components["schemas"]["InspectionPlanTarget"][];
+            /** Title */
+            title: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** InspectionPlanEdit */
+        InspectionPlanEdit: {
+            /** Description */
+            description: string;
+            /** Due At */
+            due_at: string | null;
+            rich_document?: components["schemas"]["RichDocument-Input"] | null;
+            /** Station Ids */
+            station_ids: number[];
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+        };
+        /** InspectionPlanPage */
+        InspectionPlanPage: {
+            /** Items */
+            items: components["schemas"]["InspectionPlanSummary"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** InspectionPlanStationOption */
+        InspectionPlanStationOption: {
+            /** District */
+            district: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Operator Name */
+            operator_name: string;
+        };
+        /** InspectionPlanStationPage */
+        InspectionPlanStationPage: {
+            /** Items */
+            items: components["schemas"]["InspectionPlanStationOption"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** InspectionPlanSummary */
+        InspectionPlanSummary: {
+            /** Created At */
+            created_at: string;
+            /** Due At */
+            due_at: string | null;
+            /** Id */
+            id: number;
+            /** Published At */
+            published_at: string | null;
+            /** Published Count */
+            published_count: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "published" | "deleted";
+            /** Target Count */
+            target_count: number;
+            /** Title */
+            title: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** InspectionPlanTarget */
+        InspectionPlanTarget: {
+            /** Accessible */
+            accessible: boolean;
+            /** District */
+            district: string | null;
+            /** Operator Name */
+            operator_name: string | null;
+            /** Recipient Changed */
+            recipient_changed: boolean | null;
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string | null;
+            /** Task Id */
+            task_id: number | null;
+            /** Task Status */
+            task_status: string | null;
+        };
+        /** InspectionPlanVersion */
+        InspectionPlanVersion: {
+            /** Version */
+            version: number;
+        };
         /** InspectionQueueItem */
         InspectionQueueItem: {
             /** Created At */
@@ -3771,17 +5905,31 @@ export interface components {
             /** Description */
             description: string;
             /** Due At */
-            due_at: string;
+            due_at: string | null;
+            /**
+             * Execution State
+             * @enum {string}
+             */
+            execution_state: "reported" | "not_reported" | "unknown";
             /** Id */
             id: number;
             /** Is Demo */
             is_demo: boolean;
+            /** Last Reply Id */
+            last_reply_id: number | null;
+            /** Last Reply Submitted At */
+            last_reply_submitted_at: string | null;
+            /** Last Reported Performed At */
+            last_reported_performed_at: string | null;
             /** Operator Id */
             operator_id: number;
             /** Operator Name */
             operator_name: string;
             /** Overdue */
             overdue: boolean;
+            /** Plan Id */
+            plan_id: number | null;
+            rich_document: components["schemas"]["RichDocument-Output"] | null;
             /** Severity */
             severity: string;
             /** Station Id */
@@ -3808,6 +5956,103 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** InspectionTaskResponse */
+        InspectionTaskResponse: {
+            /** Created At */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Due At */
+            due_at: string | null;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Operator Id */
+            operator_id: number;
+            /** Overdue */
+            overdue: boolean;
+            /** Plan Id */
+            plan_id: number | null;
+            rich_document: components["schemas"]["RichDocument-Output"] | null;
+            /** Severity */
+            severity: string;
+            /** Station Id */
+            station_id: number;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+        };
+        /** InventoryConnectorPage */
+        InventoryConnectorPage: {
+            /** Equipment Id */
+            equipment_id: number;
+            /** Inventory Total */
+            inventory_total: number;
+            /** Items */
+            items: components["schemas"]["ConnectorItem"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Station Id */
+            station_id: number;
+            /** Total */
+            total: number;
+        };
+        /** InventoryDevice */
+        InventoryDevice: {
+            /** Connector Count */
+            connector_count: number;
+            /** Equipment Type */
+            equipment_type: ("dc" | "ac" | "ac_dc" | "wireless" | "ordered" | "v2g" | "other") | null;
+            /** External Id */
+            external_id: string;
+            /** Id */
+            id: number;
+            /** Manufactured On */
+            manufactured_on: string | null;
+            /** Matching Connectors */
+            matching_connectors: number;
+            /** Model Name */
+            model_name: string | null;
+            /** Name */
+            name: string;
+            /** Power Kw */
+            power_kw: string;
+            /** Source Unique Code */
+            source_unique_code: string | null;
+        };
+        /** InventoryDevicePage */
+        InventoryDevicePage: {
+            /** Connector Status Options */
+            connector_status_options: {
+                [key: string]: string;
+            };
+            /** Equipment Type Options */
+            equipment_type_options: {
+                [key: string]: string;
+            };
+            /** Items */
+            items: components["schemas"]["InventoryDevice"][];
+            /** Matching Connector Count */
+            matching_connector_count: number;
+            /** Notice */
+            notice: string;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Station Connector Count */
+            station_connector_count: number;
+            /** Station Equipment Count */
+            station_equipment_count: number;
+            /** Total */
+            total: number;
+        };
         /** IssueInput */
         IssueInput: {
             /** Captcha Answer */
@@ -3829,6 +6074,49 @@ export interface components {
             purpose: "login" | "recovery";
         };
         JsonValue: unknown;
+        /** LegacyAlertRule */
+        LegacyAlertRule: {
+            /** Code */
+            code: string;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Metric */
+            metric: string;
+            /** Name */
+            name: string;
+            /** Notifications Enabled */
+            notifications_enabled: boolean;
+            /** Recover Value */
+            recover_value: string;
+            /** Trigger Value */
+            trigger_value: string;
+            /** Unit */
+            unit: string;
+            /** Version */
+            version: number;
+        };
+        /** LegacyAlertRules */
+        LegacyAlertRules: {
+            /** Items */
+            items: components["schemas"]["LegacyAlertRule"][];
+        };
+        /** LegacyRuleCreated */
+        LegacyRuleCreated: {
+            /** Id */
+            id: number;
+        };
+        /** LegacySampleResult */
+        LegacySampleResult: {
+            /** Event Id */
+            event_id: number | null;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "ignored_stale" | "opened" | "merged" | "recovered" | "normal";
+        };
         /** LoginCaptcha */
         LoginCaptcha: {
             /** Captcha Id */
@@ -3885,6 +6173,219 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** MapClassifications */
+        MapClassifications: {
+            /** Construction Site */
+            construction_site: {
+                [key: string]: string;
+            };
+            /** Site State */
+            site_state: {
+                [key: string]: string;
+            };
+            /** Source Sync State */
+            source_sync_state: {
+                [key: string]: string;
+            };
+            /** Usage Type */
+            usage_type: {
+                [key: string]: string;
+            };
+        };
+        /** MapClusterPoint */
+        MapClusterPoint: {
+            /** Bounds */
+            bounds: [
+                number,
+                number,
+                number,
+                number
+            ];
+            /** Count */
+            count: number;
+            /** Key */
+            key: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "cluster";
+            /** Latitude */
+            latitude: string;
+            /** Longitude */
+            longitude: string;
+        };
+        /** MapOptions */
+        MapOptions: {
+            classifications: components["schemas"]["MapClassifications"];
+        };
+        /** MapResponse */
+        MapResponse: {
+            /** Aggregation */
+            aggregation: string;
+            /** Cell Count */
+            cell_count: number;
+            /**
+             * Coordinate System
+             * @constant
+             */
+            coordinate_system: "wgs84";
+            /** Generated At */
+            generated_at: string;
+            /** In View */
+            in_view: number;
+            /** Items */
+            items: (components["schemas"]["MapStationPoint"] | components["schemas"]["MapClusterPoint"])[];
+            /** Mappable */
+            mappable: number;
+            /** Matching */
+            matching: number;
+            /** Runtime Basis */
+            runtime_basis: string;
+            /** Truncated */
+            truncated: boolean;
+            /** Unplottable */
+            unplottable: number;
+            /** Zoom */
+            zoom: number;
+        };
+        /** MapStation */
+        MapStation: {
+            /** Address */
+            address: string;
+            /** Connectors */
+            connectors: number;
+            /** Construction Site */
+            construction_site: string;
+            /** Coordinate System */
+            coordinate_system: string;
+            /** District */
+            district: string;
+            /** Effective Stars */
+            effective_stars: number | null;
+            /** Id */
+            id: number;
+            /** Latitude */
+            latitude: string | null;
+            /** Location Is Demo */
+            location_is_demo: boolean;
+            /** Longitude */
+            longitude: string | null;
+            /** Missing Connector Snapshots */
+            missing_connector_snapshots: number;
+            /** Name */
+            name: string;
+            /** Observed Connectors */
+            observed_connectors: number;
+            /** Operator Id */
+            operator_id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Power Kw */
+            power_kw: string;
+            /** Runtime State */
+            runtime_state: string;
+            /** Site State */
+            site_state: string;
+            /** Source First Connected At */
+            source_first_connected_at: string | null;
+            /** Source Sync State */
+            source_sync_state: string;
+            /** Station Type */
+            station_type: string;
+            /** Status */
+            status: string;
+            /** Synced At */
+            synced_at: string;
+            /** Unplottable Reason */
+            unplottable_reason: string | null;
+            /** Usage Type */
+            usage_type: string;
+        };
+        /** MapStationPage */
+        MapStationPage: {
+            /** Items */
+            items: components["schemas"]["MapStation"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** MapStationPoint */
+        MapStationPoint: {
+            /** Address */
+            address: string;
+            /** Connectors */
+            connectors: number;
+            /** Construction Site */
+            construction_site: string;
+            /** Coordinate System */
+            coordinate_system: string;
+            /** District */
+            district: string;
+            /** Effective Stars */
+            effective_stars: number | null;
+            /** Id */
+            id: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "station";
+            /** Latitude */
+            latitude: string | null;
+            /** Location Is Demo */
+            location_is_demo: boolean;
+            /** Longitude */
+            longitude: string | null;
+            /** Missing Connector Snapshots */
+            missing_connector_snapshots: number;
+            /** Name */
+            name: string;
+            /** Observed Connectors */
+            observed_connectors: number;
+            /** Operator Id */
+            operator_id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Power Kw */
+            power_kw: string;
+            /** Runtime State */
+            runtime_state: string;
+            /** Site State */
+            site_state: string;
+            /** Source First Connected At */
+            source_first_connected_at: string | null;
+            /** Source Sync State */
+            source_sync_state: string;
+            /** Station Type */
+            station_type: string;
+            /** Status */
+            status: string;
+            /** Synced At */
+            synced_at: string;
+            /** Unplottable Reason */
+            unplottable_reason: string | null;
+            /** Usage Type */
+            usage_type: string;
+        };
+        /** Member */
+        Member: {
+            /** Affected Seconds */
+            affected_seconds: string | null;
+            /** Equipment External Id */
+            equipment_external_id: string;
+            /** Equipment Name */
+            equipment_name?: string | null;
+            /** Expected Seconds */
+            expected_seconds: string | null;
+            /** Observed Seconds */
+            observed_seconds: string | null;
+            /** Unknown Seconds */
+            unknown_seconds: string | null;
+        };
         /** MeterSourceOption */
         MeterSourceOption: {
             /** Source */
@@ -3902,6 +6403,18 @@ export interface components {
             page_size: number;
             /** Total */
             total: number;
+        };
+        /** MonthObservation */
+        MonthObservation: {
+            /** Kwh */
+            kwh: string | null;
+            /**
+             * Month
+             * Format: date
+             */
+            month: string;
+            /** Records */
+            records: number;
         };
         /** NoticeContact */
         NoticeContact: {
@@ -3985,10 +6498,236 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** ObservationEquipmentPage */
+        ObservationEquipmentPage: {
+            /** Items */
+            items: components["schemas"]["EquipmentOption"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** ObservationEvidence */
+        ObservationEvidence: {
+            /** Comparison Value */
+            comparison_value: string | null;
+            configuration: components["schemas"]["Configuration-Output"];
+            /** Coverage Complete */
+            coverage_complete: boolean;
+            equipment: components["schemas"]["EquipmentEvidence"] | null;
+            /**
+             * Evidence Version
+             * @constant
+             */
+            evidence_version: 1;
+            /**
+             * Is Demo
+             * @constant
+             */
+            is_demo: true;
+            /** Observed At */
+            observed_at: string;
+            /** Operator Id */
+            operator_id: number;
+            /** Period End */
+            period_end: string | null;
+            /** Period Start */
+            period_start: string | null;
+            /** Rated Current A */
+            rated_current_a: string | null;
+            /** Rule Code */
+            rule_code: string;
+            /** Rule Id */
+            rule_id: number;
+            /** Rule Version */
+            rule_version: number;
+            /**
+             * Source Basis
+             * @enum {string}
+             */
+            source_basis: "manual_demo_v1" | "adapter_period_demo_v1";
+            source_period?: components["schemas"]["SourcePeriodProof"] | null;
+            /** Station External Id */
+            station_external_id: string;
+            /** Station Id */
+            station_id: number;
+            /** Station Source */
+            station_source: string;
+            /** Value */
+            value: string | null;
+        };
+        /** ObservationInput */
+        ObservationInput: {
+            /** Coverage Complete */
+            coverage_complete: boolean;
+            /** Equipment Id */
+            equipment_id?: number | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Period End */
+            period_end?: string | null;
+            /** Period Start */
+            period_start?: string | null;
+            /** Rated Current A */
+            rated_current_a?: number | string | null;
+            /**
+             * Request Key
+             * Format: uuid
+             */
+            request_key: string;
+            /** Rule Id */
+            rule_id: number;
+            /** Station Id */
+            station_id: number;
+            /** Value */
+            value: number | string | null;
+        };
+        /** ObservationPage */
+        ObservationPage: {
+            /** Items */
+            items: components["schemas"]["ObservationRow"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** ObservationResult */
+        ObservationResult: {
+            /** Comparison Value */
+            comparison_value: string | null;
+            /** Event Id */
+            event_id: number | null;
+            /**
+             * Is Demo
+             * @constant
+             */
+            is_demo: true;
+            /** Level */
+            level: ("general" | "severe" | "critical") | null;
+            /** Observation Id */
+            observation_id: number;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "opened" | "merged" | "recovered" | "normal" | "unknown_coverage" | "ignored_stale";
+            /** Request Key */
+            request_key: string;
+        };
+        /** ObservationRow */
+        ObservationRow: {
+            /** Created At */
+            created_at: string;
+            /** Created By */
+            created_by: number | null;
+            evidence: components["schemas"]["ObservationEvidence"];
+            /** Id */
+            id: number;
+            /** Operator Id */
+            operator_id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Request Key */
+            request_key: string;
+            result: components["schemas"]["ObservationResult"];
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+        };
+        /** ObservationStationPage */
+        ObservationStationPage: {
+            /** Items */
+            items: components["schemas"]["StationOption"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
         /** OkResponse */
         OkResponse: {
             /** Ok */
             ok: boolean;
+        };
+        /** OperationsDashboard */
+        OperationsDashboard: {
+            approvals: components["schemas"]["ApprovalCounts"] | null;
+            /** Approved Company Records */
+            approved_company_records: number | null;
+            /** Current Equipment */
+            current_equipment: number;
+            /** Current Equipment Power Kw */
+            current_equipment_power_kw: string;
+            /** Current Stations */
+            current_stations: number;
+            /** Districts */
+            districts: components["schemas"]["StockGroup"][];
+            /** End At */
+            end_at: string;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /** Energy */
+            energy: components["schemas"]["PeriodEnergy"][] | null;
+            /** Energy Trend */
+            energy_trend: components["schemas"]["TrendStream"][] | null;
+            /**
+             * Notice
+             * @default 场站分布为当前授权台账状态，不反推历史库存或累计接入历史。订单按北京开始时间归属且仅汇总已完成的已知指标；日电量按业务日分来源独立统计，不互相补造，缺观测不填零。最近12个月截至所选日期，首月从月初起，末月可能未结束。企业审核计数只含留存的通过记录，不把旧台账当审核证明。
+             */
+            notice: string;
+            /** Operators With Stations */
+            operators_with_stations: number;
+            /** Orders */
+            orders: components["schemas"]["OrderStream"][] | null;
+            /**
+             * Period
+             * @enum {string}
+             */
+            period: "day" | "month" | "year";
+            /**
+             * Period Date
+             * Format: date
+             */
+            period_date: string;
+            /**
+             * Source Completeness Verified
+             * @default false
+             * @constant
+             */
+            source_completeness_verified: false;
+            /** Start At */
+            start_at: string;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** Station Types */
+            station_types: components["schemas"]["StockGroup"][];
+            /** Statuses */
+            statuses: components["schemas"]["StockGroup"][];
+            /**
+             * Trend End Date
+             * Format: date
+             */
+            trend_end_date: string;
+            /**
+             * Trend Start Date
+             * Format: date
+             */
+            trend_start_date: string;
         };
         /** OperatorItem */
         OperatorItem: {
@@ -4002,6 +6741,15 @@ export interface components {
             /** Items */
             items: components["schemas"]["OperatorItem"][];
         };
+        /** OrderMetric */
+        OrderMetric: {
+            /** Known Orders */
+            known_orders: number;
+            /** Missing Orders */
+            missing_orders: number;
+            /** Value */
+            value: string | null;
+        };
         /** OrderMetricCoverage */
         OrderMetricCoverage: {
             /** Known Orders */
@@ -4010,6 +6758,22 @@ export interface components {
             missing_orders: number;
             /** Value */
             value: string | null;
+        };
+        /** OrderStream */
+        OrderStream: {
+            amount: components["schemas"]["OrderMetric"];
+            /** Completed Orders */
+            completed_orders: number;
+            /** Duration Hours */
+            readonly duration_hours: string | null;
+            duration_seconds: components["schemas"]["OrderMetric"];
+            /** Is Demo */
+            is_demo: boolean;
+            kwh: components["schemas"]["OrderMetric"];
+            /** Observed Orders */
+            observed_orders: number;
+            /** Source */
+            source: string;
         };
         /** OrderSummaryItem */
         OrderSummaryItem: {
@@ -4164,12 +6928,91 @@ export interface components {
             /** Slots */
             slots: components["schemas"]["OrderTimeSlotPoint"][];
         };
+        /** PasswordChanged */
+        PasswordChanged: {
+            /** Ok */
+            ok: boolean;
+            /** Reauthenticate */
+            reauthenticate: boolean;
+        };
         /** PasswordRecovered */
         PasswordRecovered: {
             /** Ok */
             ok: boolean;
             /** Reauthenticate */
             reauthenticate: boolean;
+        };
+        /** PasswordResetResult */
+        PasswordResetResult: {
+            /** Must Change Password */
+            must_change_password: boolean;
+            /** Ok */
+            ok: boolean;
+            /** User Id */
+            user_id: number;
+            /** Version */
+            version: number;
+        };
+        /** PeriodEnergy */
+        PeriodEnergy: {
+            /** Duplicate Station Days */
+            duplicate_station_days: number;
+            /** Kwh */
+            kwh: string;
+            /** Observed Station Days */
+            observed_station_days: number;
+            /** Records */
+            records: number;
+            /** Source */
+            source: string;
+        };
+        /** PeriodFactPage */
+        PeriodFactPage: {
+            /** Items */
+            items: components["schemas"]["PeriodFactResponse"][];
+            /** Notice */
+            notice: string;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** PeriodFactResponse */
+        PeriodFactResponse: {
+            /** Denominator Seconds */
+            denominator_seconds: string | null;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Numerator Seconds */
+            numerator_seconds: string | null;
+            /** Operator Id */
+            operator_id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Percent */
+            percent: string | null;
+            /** Quality Reason */
+            quality_reason: string | null;
+            /** Source */
+            source: string;
+            source_record: components["schemas"]["SourcePeriod"];
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /** Synced At */
+            synced_at: string;
+            /**
+             * Verified
+             * @constant
+             */
+            verified: false;
+            /** Version */
+            version: number;
         };
         /** PermissionCatalogEntry */
         PermissionCatalogEntry: {
@@ -4230,6 +7073,88 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** PortalInfo */
+        PortalInfo: {
+            /** Demo Mode */
+            demo_mode: boolean;
+            /** Site Name */
+            site_name: string;
+        };
+        /** PreferenceInput */
+        PreferenceInput: {
+            /** In App Enabled */
+            in_app_enabled: boolean;
+            /** Sms Enabled */
+            sms_enabled: boolean;
+            /** Version */
+            version: number;
+        };
+        /** PreferenceList */
+        PreferenceList: {
+            /** Items */
+            items: components["schemas"]["PreferenceResponse"][];
+            /** Notice */
+            notice: string;
+            /**
+             * Sms Mode
+             * @enum {string}
+             */
+            sms_mode: "disabled" | "demo";
+        };
+        /** PreferenceResponse */
+        PreferenceResponse: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "station_metric" | "device_charging" | "device_offline" | "device_fault" | "energy_power" | "unconnected_device";
+            /** In App Enabled */
+            in_app_enabled: boolean | null;
+            /** Label */
+            label: string;
+            /** Legacy Behavior */
+            legacy_behavior: boolean;
+            /** Sms Enabled */
+            sms_enabled: boolean;
+            /** Updated At */
+            updated_at: string | null;
+            /** Updated By */
+            updated_by: number | null;
+            /** Version */
+            version: number;
+        };
+        /** Preview */
+        Preview: {
+            configuration: components["schemas"]["Configuration-Input"];
+            /** Coverage Complete */
+            coverage_complete: boolean;
+            /** Period End */
+            period_end?: string | null;
+            /** Period Start */
+            period_start?: string | null;
+            /** Rated Current A */
+            rated_current_a?: number | string | null;
+            /** Value */
+            value: number | string | null;
+        };
+        /** PreviewResponse */
+        PreviewResponse: {
+            /** Comparison Value */
+            comparison_value: string | null;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Level */
+            level: ("general" | "severe" | "critical") | null;
+            /** Notice */
+            notice: string;
+            /** Unit */
+            unit: string;
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "unknown" | "normal" | "alert";
+        };
         /** ProfileEdit */
         ProfileEdit: {
             /** Base Role */
@@ -4240,6 +7165,54 @@ export interface components {
             permissions: string[];
             /** Version */
             version: number;
+        };
+        /** ProtocolDetail */
+        ProtocolDetail: {
+            /** Attachment Count */
+            attachment_count: number;
+            /** Attachments */
+            attachments: components["schemas"]["ContentAttachment"][];
+            /** Body */
+            body: string;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+            rich_document: components["schemas"]["RichDocument-Output"] | null;
+            /** Title */
+            title: string;
+        };
+        /** ProtocolPage */
+        ProtocolPage: {
+            /** Items */
+            items: components["schemas"]["ProtocolSummary"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** ProtocolSummary */
+        ProtocolSummary: {
+            /** Attachment Count */
+            attachment_count: number;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+            /** Title */
+            title: string;
         };
         /** ProvisionInput */
         ProvisionInput: {
@@ -4253,6 +7226,77 @@ export interface components {
             temporary_password: string;
             /** Username */
             username: string;
+        };
+        /** PublicArticleDetail */
+        PublicArticleDetail: {
+            /** Attachments */
+            attachments: components["schemas"]["PublicAttachment"][];
+            /** Body */
+            body: string;
+            /** Excerpt */
+            excerpt: string;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "announcement" | "news" | "contact";
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+            rich_document: components["schemas"]["RichDocument-Output"] | null;
+            /** Title */
+            title: string;
+        };
+        /** PublicArticlePage */
+        PublicArticlePage: {
+            /** Items */
+            items: components["schemas"]["PublicArticleSummary"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** PublicArticleSummary */
+        PublicArticleSummary: {
+            /** Excerpt */
+            excerpt: string;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "announcement" | "news" | "contact";
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+            /** Title */
+            title: string;
+        };
+        /** PublicAttachment */
+        PublicAttachment: {
+            /** Content Type */
+            content_type: string;
+            /** Filename */
+            filename: string;
+            /** Id */
+            id: number;
+            /** Sha256 */
+            sha256: string;
+            /** Size */
+            size: number;
         };
         /** QualityFaults */
         QualityFaults: {
@@ -4271,6 +7315,8 @@ export interface components {
         };
         /** QualityGroup */
         QualityGroup: {
+            /** Inventory Equipment Count */
+            inventory_equipment_count: number;
             /** Key */
             key: string;
             /** Label */
@@ -4326,6 +7372,7 @@ export interface components {
             source_completeness_verified: false;
             /** Start At */
             start_at: string;
+            summary: components["schemas"]["QualityGroup"];
             /**
              * Timezone
              * @default Asia/Shanghai
@@ -4779,6 +7826,53 @@ export interface components {
             /** Total Bytes */
             total_bytes: number;
         };
+        /** RatingPublication */
+        RatingPublication: {
+            /** Address */
+            address: string;
+            /** District */
+            district: string;
+            /** Effective Stars */
+            effective_stars: number | null;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Kind */
+            kind: string;
+            /** Operator Name */
+            operator_name: string;
+            /** Published At */
+            published_at: string | null;
+            /** Result State */
+            result_state: string;
+            /** Show Association Mark */
+            show_association_mark: boolean;
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /** Valid Until */
+            valid_until: string | null;
+        };
+        /** RatingPublicationPage */
+        RatingPublicationPage: {
+            /** Items */
+            items: components["schemas"]["RatingPublication"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Scope */
+            scope: string;
+            /**
+             * Timezone
+             * @constant
+             */
+            timezone: "Asia/Shanghai";
+            /** Total */
+            total: number;
+        };
         /** RatingQueueItem */
         RatingQueueItem: {
             /** Before Result */
@@ -4957,6 +8051,67 @@ export interface components {
             /** Items */
             items: components["schemas"]["RatingWeightItem"][];
         };
+        /** RecipientInput */
+        RecipientInput: {
+            /** Categories */
+            categories: ("station_metric" | "device_charging" | "device_offline" | "device_fault" | "energy_power" | "unconnected_device")[];
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+        };
+        /** RecipientPage */
+        RecipientPage: {
+            /** Items */
+            items: components["schemas"]["RecipientResponse"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** RecipientResponse */
+        RecipientResponse: {
+            /** Categories */
+            categories: ("station_metric" | "device_charging" | "device_offline" | "device_fault" | "energy_power" | "unconnected_device")[];
+            /** Created At */
+            created_at: string;
+            /** Deleted */
+            deleted: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Id */
+            id: number;
+            /** Masked Phone */
+            masked_phone: string;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** RecipientUpdate */
+        RecipientUpdate: {
+            /** Categories */
+            categories: ("station_metric" | "device_charging" | "device_offline" | "device_fault" | "energy_power" | "unconnected_device")[];
+            /** Enabled */
+            enabled: boolean;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Version */
+            version: number;
+        };
         /** RecoverInput */
         RecoverInput: {
             /** Challenge Id */
@@ -4966,14 +8121,105 @@ export interface components {
             /** New Password */
             new_password: string;
         };
+        /** RegistrationDetail */
+        RegistrationDetail: {
+            /** Attachments */
+            attachments: components["schemas"]["ApplicationMaterialItem"][];
+            /** Company Name */
+            company_name: string;
+            /** Contacts */
+            contacts: components["schemas"]["CompanyContact"][];
+            /** Created At */
+            created_at: string;
+            /** Credit Code */
+            credit_code: string;
+            /** History */
+            history: components["schemas"]["EnrollmentHistory"][];
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Operator Id */
+            operator_id: number | null;
+            /** Registration Address */
+            registration_address: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "submitted" | "rejected" | "approved";
+            /** User Id */
+            user_id: number | null;
+            /** Username */
+            username: string;
+            /** Version */
+            version: number;
+        };
+        /** RegistrationOptions */
+        RegistrationOptions: {
+            /** Items */
+            items: components["schemas"]["RegistrationRoleOption"][];
+        };
+        /** RegistrationPage */
+        RegistrationPage: {
+            /** Items */
+            items: components["schemas"]["EnrollmentRecord"][];
+            /** Total */
+            total: number;
+        };
+        /** RegistrationRoleOption */
+        RegistrationRoleOption: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Version */
+            version: number;
+        };
         /** ReplyInput */
         ReplyInput: {
-            /** Body */
+            /**
+             * Body
+             * @default
+             */
             body: string;
             /** Contact Name */
             contact_name?: string | null;
             /** Contact Phone */
             contact_phone?: string | null;
+            rich_document?: components["schemas"]["RichDocument-Input"] | null;
+        };
+        /** ReportRow */
+        ReportRow: {
+            /** District */
+            district: string;
+            /** Equipment External Id */
+            equipment_external_id?: string | null;
+            /** Equipment Id */
+            equipment_id?: number | null;
+            /** Equipment Name */
+            equipment_name?: string | null;
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "station" | "equipment" | "source_reference";
+            /** Operator Id */
+            operator_id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Orders */
+            orders: components["schemas"]["OrderStream"][];
+            /** Reference Source */
+            reference_source?: string | null;
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /** Subsidies */
+            subsidies: components["schemas"]["SubsidyStream"][];
         };
         /** ResetInput */
         ResetInput: {
@@ -4985,6 +8231,36 @@ export interface components {
             temporary_password: string;
             /** Version */
             version: number;
+        };
+        /** ReviewContent */
+        ReviewContent: {
+            /** Materials */
+            materials: components["schemas"]["EvidenceMaterial"][];
+            /** Payload */
+            payload: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Schema Version */
+            schema_version: number;
+            source_profile: components["schemas"]["SourceProfile"] | null;
+        };
+        /** ReviewContext */
+        ReviewContext: {
+            /** Application Id */
+            application_id: number;
+            /** Application Version */
+            application_version: number;
+            /** Category Options */
+            category_options: {
+                [key: string]: string;
+            };
+            content: components["schemas"]["ReviewContent"];
+            /** Notice */
+            notice: string;
+            /** Review Token */
+            review_token: string | null;
+            /** Source Accessible */
+            source_accessible: boolean;
         };
         /** RichDocument */
         "RichDocument-Input": {
@@ -5086,6 +8362,65 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** RoutingPage */
+        RoutingPage: {
+            /** Items */
+            items: components["schemas"]["RoutingResponse"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** RoutingResponse */
+        RoutingResponse: {
+            /** Category */
+            category: ("station_metric" | "device_charging" | "device_offline" | "device_fault" | "energy_power" | "unconnected_device") | null;
+            /** Created At */
+            created_at: string;
+            /** Event Id */
+            event_id: number;
+            /** Id */
+            id: number;
+            /** In App Enabled */
+            in_app_enabled: boolean;
+            /** Notice Id */
+            notice_id: number | null;
+            /** Phase */
+            phase: string;
+            /** Preference Version */
+            preference_version: number | null;
+            /** Sms Enabled */
+            sms_enabled: boolean;
+            /**
+             * Sms Status
+             * @enum {string}
+             */
+            sms_status: "not_requested" | "no_recipients" | "simulated" | "provider_disabled";
+        };
+        /** RuleControl */
+        RuleControl: {
+            /** Enabled */
+            enabled: boolean;
+            /** Revision */
+            revision: number;
+        };
+        /** RuleCreate */
+        RuleCreate: {
+            /** Code */
+            code: string;
+            configuration: components["schemas"]["Configuration-Input"];
+            /** Name */
+            name: string;
+            /**
+             * Notifications Enabled
+             * @default true
+             */
+            notifications_enabled: boolean;
+            /** Version */
+            version: number;
+        };
         /** RuleInput */
         RuleInput: {
             /** Code */
@@ -5105,6 +8440,62 @@ export interface components {
             trigger_value: number | string;
             /** Unit */
             unit: string;
+            /** Version */
+            version: number;
+        };
+        /** RulePage */
+        RulePage: {
+            /** Items */
+            items: components["schemas"]["RuleResponse"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** RuleResponse */
+        RuleResponse: {
+            /** Archived */
+            archived: boolean;
+            /**
+             * Automatic Status
+             * @enum {string}
+             */
+            automatic_status: "instant_manual" | "disabled" | "superseded" | "missing_start" | "eligible";
+            /** Code */
+            code: string;
+            configuration: components["schemas"]["Configuration-Output"];
+            /** Created At */
+            created_at: string | null;
+            /** Created By */
+            created_by: number | null;
+            /** Created By Name */
+            created_by_name: string | null;
+            /** Enabled */
+            enabled: boolean;
+            /** Execution Supported */
+            execution_supported: boolean;
+            /** Id */
+            id: number;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Monitor From */
+            monitor_from: string | null;
+            /** Name */
+            name: string;
+            /** Notifications Enabled */
+            notifications_enabled: boolean;
+            /** Revision */
+            revision: number;
+            /** Unit */
+            unit: string;
+            /** Updated At */
+            updated_at: string | null;
+            /** Updated By */
+            updated_by: number | null;
+            /** Updated By Name */
+            updated_by_name: string | null;
             /** Version */
             version: number;
         };
@@ -5362,6 +8753,115 @@ export interface components {
              */
             source_updated_at: string;
         };
+        /** SourcePeriod */
+        SourcePeriod: {
+            /**
+             * Basis
+             * @constant
+             */
+            basis: "source_declared_equipment_service_seconds_v1";
+            /** Equipment External Ids */
+            equipment_external_ids: string[];
+            /** External Id */
+            external_id: string;
+            /** Members */
+            members: components["schemas"]["Member"][];
+            /** Members Complete */
+            members_complete: boolean;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "station_utilization" | "station_fault" | "station_offline";
+            /**
+             * Period
+             * @enum {string}
+             */
+            period: "natural_week" | "natural_month";
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /**
+             * Source Updated At
+             * Format: date-time
+             */
+            source_updated_at: string;
+        };
+        /** SourcePeriodProof */
+        SourcePeriodProof: {
+            /** Denominator Seconds */
+            denominator_seconds: string | null;
+            /** Fact Id */
+            fact_id: number;
+            /** Fact Version */
+            fact_version: number;
+            /** Numerator Seconds */
+            numerator_seconds: string | null;
+            /** Quality Reason */
+            quality_reason: ("incomplete_members" | "unknown_service" | "partial_coverage" | "unknown_states" | "no_service_denominator") | null;
+            /** Source */
+            source: string;
+            source_record: components["schemas"]["SourcePeriod"];
+        };
+        /** SourceProfile */
+        SourceProfile: {
+            /** Address */
+            address: string;
+            /** Connectors */
+            connectors: number;
+            /** Construction Site */
+            construction_site: string;
+            /** Coordinate System */
+            coordinate_system: string;
+            /** District */
+            district: string;
+            /** External Id */
+            external_id: string;
+            facilities: components["schemas"]["Facilities"];
+            /** Latitude */
+            latitude: string | null;
+            /** Location Is Demo */
+            location_is_demo: boolean;
+            /** Longitude */
+            longitude: string | null;
+            /** Operator Id */
+            operator_id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Platform Status */
+            platform_status: string;
+            /** Power Kw */
+            power_kw: string;
+            /** Site State */
+            site_state: string;
+            /** Source */
+            source: string;
+            /** Source First Connected At */
+            source_first_connected_at: string | null;
+            /** Source First Reported At */
+            source_first_reported_at: string | null;
+            /** Source Sync State */
+            source_sync_state: string;
+            /** Source Synced At */
+            source_synced_at: string;
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /** Station Type */
+            station_type: string;
+            /** Station Version */
+            station_version: number;
+            /** Usage Type */
+            usage_type: string;
+        };
         /** StaffActionRecord */
         StaffActionRecord: {
             /** Action */
@@ -5561,7 +9061,7 @@ export interface components {
         /** StandardInput */
         StandardInput: {
             /** Categories */
-            categories?: components["schemas"]["CategoryInput"][];
+            categories?: components["schemas"]["app__routers__rating__CategoryInput"][];
             /** Code */
             code: string;
             /** Indicators */
@@ -5655,12 +9155,16 @@ export interface components {
             address: string;
             /** Construction Site */
             construction_site: string;
+            contact: components["schemas"]["Contact"] | null;
+            /** Contact Accessible */
+            contact_accessible: boolean;
             /** Coordinate System */
             coordinate_system: string;
             /** District */
             district: string;
             /** External Id */
             external_id: string;
+            facilities: components["schemas"]["Facilities"];
             /** Id */
             id: number;
             /** Latitude */
@@ -5681,6 +9185,8 @@ export interface components {
             source: string;
             /** Source First Connected At */
             source_first_connected_at: string | null;
+            /** Source First Reported At */
+            source_first_reported_at: string | null;
             /** Source Sync State */
             source_sync_state: string;
             /** Station Type */
@@ -5693,6 +9199,147 @@ export interface components {
             usage_type: string;
             /** Version */
             version: number;
+        };
+        /** StationEnergyDay */
+        StationEnergyDay: {
+            /** Day */
+            day: string;
+            /** Excluded Records */
+            excluded_records: number;
+            /** Kwh */
+            kwh: string | null;
+            /** Records */
+            records: number;
+        };
+        /** StationEnergyHistory */
+        StationEnergyHistory: {
+            /** End Date */
+            end_date: string;
+            /** Generated At */
+            generated_at: string;
+            /** Notice */
+            notice: string;
+            /** Requested Days */
+            requested_days: number;
+            /**
+             * Source Completeness Verified
+             * @constant
+             */
+            source_completeness_verified: false;
+            /** Start Date */
+            start_date: string;
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /** Streams */
+            streams: components["schemas"]["StationEnergySource"][];
+            /**
+             * Timezone
+             * @constant
+             */
+            timezone: "Asia/Shanghai";
+        };
+        /** StationEnergySource */
+        StationEnergySource: {
+            /** Days */
+            days: components["schemas"]["StationEnergyDay"][];
+            /** Excluded Records */
+            excluded_records: number;
+            /** Extra Records On Observed Days */
+            extra_records_on_observed_days: number;
+            /** Kwh */
+            kwh: string | null;
+            /** Missing Days */
+            missing_days: number;
+            /** Observed Days */
+            observed_days: number;
+            /** Records */
+            records: number;
+            /** Source */
+            source: string;
+        };
+        /** StationFlowAction */
+        StationFlowAction: {
+            /** Action */
+            action: string;
+            /** Actor Id */
+            actor_id: number;
+            /** Actor Username */
+            actor_username: string;
+            /** Comment */
+            comment: string;
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: number;
+        };
+        /** StationFlowActions */
+        StationFlowActions: {
+            /** Application Id */
+            application_id: number;
+            /** Items */
+            items: components["schemas"]["StationFlowAction"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Station Id */
+            station_id: number;
+            /** Total */
+            total: number;
+        };
+        /** StationFlowApplication */
+        StationFlowApplication: {
+            /** Action Count */
+            action_count: number;
+            /** Applicant Id */
+            applicant_id: number;
+            /** Applicant Username */
+            applicant_username: string;
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Kind */
+            kind: string;
+            /** Last Approved At */
+            last_approved_at: string | null;
+            /** Last Submitted At */
+            last_submitted_at: string | null;
+            /** Status */
+            status: string;
+        };
+        /** StationFlowPage */
+        StationFlowPage: {
+            /** Items */
+            items: components["schemas"]["StationFlowApplication"][];
+            /** Last Access Approved At */
+            last_access_approved_at: string | null;
+            /** Notice */
+            notice: string;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Platform Status */
+            platform_status: string;
+            /** Reporting State */
+            reporting_state: string | null;
+            /** Source First Connected At */
+            source_first_connected_at: string | null;
+            /** Source First Reported At */
+            source_first_reported_at: string | null;
+            /** Source Sync State */
+            source_sync_state: string;
+            /** Source Synced At */
+            source_synced_at: string;
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /** Total */
+            total: number;
         };
         /** StationItem */
         StationItem: {
@@ -5717,6 +9364,13 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** StationOption */
+        StationOption: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
         /** StationPage */
         StationPage: {
             /** Items */
@@ -5728,6 +9382,105 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** StationSubsidy */
+        StationSubsidy: {
+            /** Operator Name */
+            operator_name: string;
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /** Streams */
+            streams: components["schemas"]["SubsidyStream"][];
+        };
+        /** StatisticPage */
+        StatisticPage: {
+            /**
+             * Dimension
+             * @enum {string}
+             */
+            dimension: "operator" | "station" | "equipment" | "device_day";
+            /** End Date */
+            end_date: string;
+            /** Items */
+            items: components["schemas"]["StatisticRow"][];
+            /** Notice */
+            notice: string;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Start Date */
+            start_date: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "accepted" | "approved" | "disbursed" | "submitted" | "draft";
+            /** Total */
+            total: number;
+            totals: components["schemas"]["StatisticTotals"];
+        };
+        /** StatisticRow */
+        StatisticRow: {
+            /** Adjusted Amount */
+            adjusted_amount: string | null;
+            /** Adjustment Amount */
+            adjustment_amount: string | null;
+            /** Base Amount */
+            base_amount: string;
+            /** Claim Count */
+            claim_count: number;
+            /** Credit Code */
+            credit_code: string | null;
+            /** Day */
+            day: string | null;
+            /** Device Rows */
+            device_rows: number;
+            /** Eligible Kwh */
+            eligible_kwh: string;
+            /** Equipment External Id */
+            equipment_external_id: string | null;
+            /** Equipment Id */
+            equipment_id: number | null;
+            /** Equipment Name */
+            equipment_name: string | null;
+            /** Initial Amount */
+            initial_amount: string | null;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Operator Id */
+            operator_id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Source */
+            source: string | null;
+            /** Station Code */
+            station_code: string | null;
+            /** Station Id */
+            station_id: number | null;
+            /** Station Name */
+            station_name: string | null;
+        };
+        /** StatisticTotals */
+        StatisticTotals: {
+            /** Adjusted Amount */
+            adjusted_amount: string;
+            /** Adjustment Amount */
+            adjustment_amount: string;
+            /** Base Amount */
+            base_amount: string;
+            /** Claim Count */
+            claim_count: number;
+            /** Device Claim Count */
+            device_claim_count: number;
+            /** Eligible Kwh */
+            eligible_kwh: string;
+            /** Initial Amount */
+            initial_amount: string;
+            /** Legacy Claim Count */
+            legacy_claim_count: number;
+        };
         /** StatusInput */
         StatusInput: {
             /** Enabled */
@@ -5736,6 +9489,71 @@ export interface components {
             reason: string;
             /** Version */
             version: number;
+        };
+        /** StockGroup */
+        StockGroup: {
+            /** Count */
+            count: number;
+            /** Key */
+            key: string;
+            /** Share Pct */
+            share_pct: string | null;
+        };
+        /** SubmissionDetail */
+        SubmissionDetail: {
+            /** Actor Id */
+            actor_id: number;
+            /** Actor Username */
+            actor_username: string;
+            /** Application Id */
+            application_id: number;
+            content: components["schemas"]["ReviewContent"];
+            /** Content Digest */
+            content_digest: string | null;
+            /** Id */
+            id: number;
+            /** Material Count */
+            material_count: number;
+            /** Notice */
+            notice: string;
+            /** Source Accessible */
+            source_accessible: boolean;
+            /** Source Reviewed */
+            source_reviewed: boolean;
+            /** Submitted At */
+            submitted_at: string;
+            /** Submitted Version */
+            submitted_version: number;
+        };
+        /** SubmissionItem */
+        SubmissionItem: {
+            /** Actor Id */
+            actor_id: number;
+            /** Actor Username */
+            actor_username: string;
+            /** Application Id */
+            application_id: number;
+            /** Id */
+            id: number;
+            /** Material Count */
+            material_count: number;
+            /** Source Reviewed */
+            source_reviewed: boolean;
+            /** Submitted At */
+            submitted_at: string;
+            /** Submitted Version */
+            submitted_version: number;
+        };
+        /** SubmissionPage */
+        SubmissionPage: {
+            /** Items */
+            items: components["schemas"]["SubmissionItem"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
         };
         /** SubsidyAnnualInput */
         SubsidyAnnualInput: {
@@ -6225,6 +10043,21 @@ export interface components {
             rounding?: string | null;
             submission?: components["schemas"]["SubsidySubmissionPacket"] | null;
         };
+        /** SubsidyStream */
+        SubsidyStream: {
+            /** Adjusted Amount */
+            adjusted_amount: string | null;
+            /** Base Amount */
+            base_amount: string;
+            /** Claim Count */
+            claim_count: number;
+            /** Disbursed Amount */
+            disbursed_amount: string | null;
+            /** Disbursed Claim Count */
+            disbursed_claim_count: number | null;
+            /** Is Demo */
+            is_demo: boolean;
+        };
         /** SubsidySubmissionPacket */
         SubsidySubmissionPacket: {
             /** Materials */
@@ -6234,12 +10067,47 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** SyncAccepted */
+        SyncAccepted: {
+            /** Id */
+            id: number;
+            /** Status */
+            status: string;
+        };
         /** SyncInput */
         SyncInput: {
             /** Operator Id */
             operator_id: number;
             /** Request Key */
             request_key: string;
+        };
+        /** SyncTaskItem */
+        SyncTaskItem: {
+            /** Attempts */
+            attempts: number;
+            /** Created At */
+            created_at: string;
+            /** Error */
+            error: string | null;
+            /** Id */
+            id: number;
+            /** Operator Id */
+            operator_id: number;
+            /** Request Key */
+            request_key: string;
+            /** Result */
+            result: {
+                [key: string]: number;
+            } | null;
+            /** Source */
+            source: string;
+            /** Status */
+            status: string;
+        };
+        /** SyncTaskList */
+        SyncTaskList: {
+            /** Items */
+            items: components["schemas"]["SyncTaskItem"][];
         };
         /** TaskInput */
         TaskInput: {
@@ -6250,6 +10118,7 @@ export interface components {
              * Format: date-time
              */
             due_at: string;
+            rich_document?: components["schemas"]["RichDocument-Input"] | null;
             /** Severity */
             severity: string;
             /** Station Id */
@@ -6263,6 +10132,13 @@ export interface components {
             minimum: number | string;
             /** Stars */
             stars: number;
+        };
+        /** TrendStream */
+        TrendStream: {
+            /** Months */
+            months: components["schemas"]["MonthObservation"][];
+            /** Source */
+            source: string;
         };
         /** ValidationIssue */
         ValidationIssue: {
@@ -6282,6 +10158,15 @@ export interface components {
             /** Permissions */
             permissions: string[];
         };
+        /** CategoryInput */
+        app__routers__application_evidence__CategoryInput: {
+            /** Category */
+            category?: string | null;
+            /** Revision */
+            revision: number;
+            /** Version */
+            version: number;
+        };
         /** ActionInput */
         app__routers__applications__ActionInput: {
             /** Action */
@@ -6291,6 +10176,8 @@ export interface components {
              * @default
              */
             comment: string;
+            /** Review Token */
+            review_token?: string | null;
             /** Version */
             version: number;
         };
@@ -6367,6 +10254,11 @@ export interface components {
             kind: string;
             /** Operator Id */
             operator_id?: number | null;
+            /**
+             * Portal Public
+             * @default false
+             */
+            portal_public: boolean;
             /** Recipient Ids */
             recipient_ids?: number[] | null;
             rich_document?: components["schemas"]["RichDocument-Input"] | null;
@@ -6409,6 +10301,10 @@ export interface components {
             action: string;
             /** Comment */
             comment: string;
+            contact?: components["schemas"]["ExecutionContact"] | null;
+            /** Performed At */
+            performed_at?: string | null;
+            rich_document?: components["schemas"]["RichDocument-Input"] | null;
             /** Version */
             version: number;
         };
@@ -6454,6 +10350,15 @@ export interface components {
             standard_id: number;
             /** Station Id */
             station_id: number;
+        };
+        /** CategoryInput */
+        app__routers__rating__CategoryInput: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Weight */
+            weight: number | string;
         };
         /** EditInput */
         app__routers__rating__EditInput: {
@@ -6875,7 +10780,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["PasswordResetResult"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -6942,6 +10847,7 @@ export interface operations {
                 q?: string;
                 status?: string;
                 acknowledged?: boolean | null;
+                category?: ("station_metric" | "device_charging" | "device_offline" | "device_fault" | "energy_power" | "unconnected_device" | "unknown") | null;
                 rule_id?: number | null;
                 record_id?: number | null;
                 start_at?: string | null;
@@ -7022,6 +10928,1544 @@ export interface operations {
             };
         };
     };
+    listing_api_v1_alerts_configured_observations_get: {
+        parameters: {
+            query?: {
+                station_id?: number | null;
+                rule_id?: number | null;
+                event_id?: number | null;
+                request_key?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    observe_api_v1_alerts_configured_observations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObservationInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationResult"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    equipment_options_api_v1_alerts_configured_observations_equipment_get: {
+        parameters: {
+            query: {
+                station_id: number;
+                q?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationEquipmentPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    station_options_api_v1_alerts_configured_observations_stations_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationStationPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listing_api_v1_alerts_configured_rules_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                kind?: ("device_temperature" | "device_current" | "device_leakage" | "station_utilization" | "station_fault" | "station_offline") | null;
+                enabled?: boolean | null;
+                include_archived?: boolean;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RulePage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_api_v1_alerts_configured_rules_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuleCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    preview_api_v1_alerts_configured_rules_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Preview"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    archive_api_v1_alerts_configured_rules__rule_id__delete: {
+        parameters: {
+            query: {
+                revision: number;
+            };
+            header?: never;
+            path: {
+                rule_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    availability_api_v1_alerts_configured_rules__rule_id__availability_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuleControl"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_api_v1_alerts_export_get: {
+        parameters: {
+            query: {
+                start_at: string;
+                end_at: string;
+                q?: string;
+                status?: string;
+                acknowledged?: boolean | null;
+                category?: ("station_metric" | "device_charging" | "device_offline" | "device_fault" | "energy_power" | "unconnected_device" | "unknown") | null;
+                rule_id?: number | null;
+                record_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deliveries_api_v1_alerts_notifications_deliveries_get: {
+        parameters: {
+            query?: {
+                event_id?: number | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    preferences_api_v1_alerts_notifications_preferences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferenceList"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_preference_api_v1_alerts_notifications_preferences__category__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category: "station_metric" | "device_charging" | "device_offline" | "device_fault" | "energy_power" | "unconnected_device";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferenceInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferenceResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    recipients_api_v1_alerts_notifications_recipients_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_recipient_api_v1_alerts_notifications_recipients_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipientInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_recipient_api_v1_alerts_notifications_recipients__recipient_id__delete: {
+        parameters: {
+            query: {
+                version: number;
+            };
+            header?: never;
+            path: {
+                recipient_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_recipient_api_v1_alerts_notifications_recipients__recipient_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipientUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    routings_api_v1_alerts_notifications_routings_get: {
+        parameters: {
+            query?: {
+                event_id?: number | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listing_api_v1_alerts_period_facts_get: {
+        parameters: {
+            query?: {
+                station_id?: number | null;
+                metric?: ("station_utilization" | "station_fault" | "station_offline") | null;
+                period?: ("natural_week" | "natural_month") | null;
+                start?: string | null;
+                end?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodFactPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     rules_api_v1_alerts_rules_get: {
         parameters: {
             query?: never;
@@ -7037,7 +12481,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["LegacyAlertRules"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -7117,7 +12561,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["LegacyRuleCreated"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -7197,7 +12641,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["LegacySampleResult"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -7275,7 +12719,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["AlertDetail"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -7357,7 +12801,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["AlertEventResponse"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -7840,7 +13284,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApplicationMaterialList"];
+                    "application/json": components["schemas"]["ApplicationAttachmentList"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -7922,7 +13366,567 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApplicationMaterialItem"];
+                    "application/json": components["schemas"]["ApplicationAttachmentItem"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    current_archive_api_v1_applications__application_id__attachments_archive_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    category_api_v1_applications__application_id__attachments__attachment_id__category_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: number;
+                attachment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["app__routers__application_evidence__CategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryResult"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    context_api_v1_applications__application_id__review_context_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewContext"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listing_api_v1_applications__application_id__submissions_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                application_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    detail_api_v1_applications__application_id__submissions__submission_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: number;
+                submission_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionDetail"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    historical_archive_api_v1_applications__application_id__submissions__submission_id__archive_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: number;
+                submission_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    historical_file_api_v1_applications__application_id__submissions__submission_id__materials__attachment_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: number;
+                submission_id: number;
+                attachment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                    "image/jpeg": string;
+                    "image/png": string;
                 };
             };
             /** @description Login required or invalid credentials */
@@ -8552,7 +14556,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["PasswordChanged"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -8770,6 +14774,246 @@ export interface operations {
             /** @description SMS provider unavailable; no implicit demo fallback */
             503: {
                 headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    start_api_v1_auth_phone_change_challenges_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsIssued"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    confirm_api_v1_auth_phone_change_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneBound"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    issue_new_api_v1_auth_phone_change_new_challenges_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeNew"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsIssued"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10999,7 +17243,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ContentReplyCreated"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -11081,7 +17325,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "image/jpeg": string;
+                    "image/png": string;
                 };
             };
             /** @description Login required or invalid credentials */
@@ -11218,6 +17463,85 @@ export interface operations {
             };
         };
     };
+    report_api_v1_dashboard_operations_get: {
+        parameters: {
+            query?: {
+                period?: "day" | "month" | "year";
+                period_date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationsDashboard"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     create_api_v1_enrollment_post: {
         parameters: {
             query?: never;
@@ -11237,7 +17561,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["EnrollmentSessionResponse"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -11317,7 +17641,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["EnrollmentSessionResponse"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -11393,7 +17717,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["OkResponse"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -11469,7 +17793,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["EnrollmentProgress"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -11549,7 +17873,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["EnrollmentRecord"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -11625,7 +17949,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["EnrollmentMaterials"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -11705,7 +18029,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ApplicationMaterialItem"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -11783,7 +18107,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["OkResponse"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -11861,7 +18185,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/pdf": string;
+                    "image/jpeg": string;
+                    "image/png": string;
                 };
             };
             /** @description Login required or invalid credentials */
@@ -11941,7 +18267,741 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["EnrollmentRecord"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listing_api_v1_hazards_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                q?: string;
+                status?: "" | "tracking" | "closed";
+                progress?: "" | "not_started" | "in_progress" | "completed";
+                severity?: "" | "normal" | "major";
+                overdue?: boolean | null;
+                created_from?: string | null;
+                created_to?: string | null;
+                record_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HazardPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_api_v1_hazards_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HazardCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HazardDetail"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_api_v1_hazards_export_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: "" | "tracking" | "closed";
+                progress?: "" | "not_started" | "in_progress" | "completed";
+                severity?: "" | "normal" | "major";
+                overdue?: boolean | null;
+                created_from?: string | null;
+                created_to?: string | null;
+                record_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    candidates_api_v1_hazards_stations_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HazardCandidates"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    detail_api_v1_hazards__case_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HazardDetail"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    action_api_v1_hazards__case_id__actions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HazardActionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HazardDetail"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    upload_api_v1_hazards__case_id__attachments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_api_v1_hazards__case_id__attachments_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectionMaterialItem"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_api_v1_hazards__case_id__attachments__attachment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+                attachment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    download_api_v1_hazards__case_id__attachments__attachment_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+                attachment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                    "image/jpeg": string;
+                    "image/png": string;
                 };
             };
             /** @description Login required or invalid credentials */
@@ -12017,7 +19077,570 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listing_api_v1_inspection_plans_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: "draft" | "published" | "deleted";
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectionPlanPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_api_v1_inspection_plans_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InspectionPlanCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectionPlanDetail"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    stations_api_v1_inspection_plans_stations_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectionPlanStationPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    detail_api_v1_inspection_plans__plan_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectionPlanDetail"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    edit_api_v1_inspection_plans__plan_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InspectionPlanEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectionPlanDetail"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_api_v1_inspection_plans__plan_id__delete: {
+        parameters: {
+            query: {
+                version: number;
+            };
+            header?: never;
+            path: {
+                plan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectionPlanDetail"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    publish_api_v1_inspection_plans__plan_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InspectionPlanVersion"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectionPlanDetail"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -12081,13 +19704,16 @@ export interface operations {
     listing_api_v1_inspections_get: {
         parameters: {
             query?: {
-                q?: string;
-                status?: string;
-                severity?: string;
-                overdue?: boolean | null;
-                record_id?: number | null;
                 page?: number;
                 page_size?: number;
+                q?: string;
+                status?: "" | "assigned" | "replied" | "returned" | "closed";
+                severity?: "" | "normal" | "major";
+                overdue?: boolean | null;
+                record_id?: number | null;
+                execution_state?: "" | "reported" | "not_reported" | "unknown";
+                created_from?: string | null;
+                created_to?: string | null;
             };
             header?: never;
             path?: never;
@@ -12181,7 +19807,92 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["InspectionTaskResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_api_v1_inspections_export_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: "" | "assigned" | "replied" | "returned" | "closed";
+                severity?: "" | "normal" | "major";
+                overdue?: boolean | null;
+                record_id?: number | null;
+                execution_state?: "" | "reported" | "not_reported" | "unknown";
+                created_from?: string | null;
+                created_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
             /** @description Login required or invalid credentials */
@@ -12259,7 +19970,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["InspectionDetailResponse"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -12341,7 +20052,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["InspectionTaskResponse"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -12757,7 +20468,102 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["MapResponse"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_api_v1_map_export_get: {
+        parameters: {
+            query?: {
+                location?: string;
+                q?: string;
+                district?: string;
+                operator_id?: number | null;
+                station_type?: string;
+                status?: string;
+                usage_type?: string;
+                construction_site?: string;
+                site_state?: string;
+                source_sync_state?: string;
+                runtime_state?: string;
+                min_power?: number | string | null;
+                max_power?: number | string | null;
+                stars?: number | null;
+                west?: number;
+                south?: number;
+                east?: number;
+                north?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
             /** @description Login required or invalid credentials */
@@ -12833,7 +20639,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["MapOptions"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -12930,7 +20736,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["MapStationPage"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -13773,6 +21579,482 @@ export interface operations {
                 };
                 content: {
                     "text/csv": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listing_api_v1_protocols_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProtocolPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    detail_api_v1_protocols__article_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                article_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProtocolDetail"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listing_api_v1_public_articles_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                kind?: "" | "announcement" | "news" | "contact";
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicArticlePage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    detail_api_v1_public_articles__article_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                article_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicArticleDetail"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    download_api_v1_public_articles__article_id__attachments__attachment_id__get: {
+        parameters: {
+            query?: {
+                inline?: boolean;
+            };
+            header?: never;
+            path: {
+                article_id: number;
+                attachment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
+                    "image/jpeg": string;
+                    "image/png": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    info_api_v1_public_info_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalInfo"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -14987,7 +23269,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["RatingPublicationPage"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -16027,7 +24309,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["RegistrationPage"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -16103,7 +24385,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["RegistrationOptions"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -16181,7 +24463,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["RegistrationDetail"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -16260,7 +24542,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/pdf": string;
+                    "image/jpeg": string;
+                    "image/png": string;
                 };
             };
             /** @description Login required or invalid credentials */
@@ -16342,7 +24626,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["EnrollmentRecord"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -17124,6 +25408,88 @@ export interface operations {
             };
         };
     };
+    energy_history_api_v1_stations__station_id__energy_history_get: {
+        parameters: {
+            query: {
+                start_date: string;
+                end_date: string;
+                source?: string;
+            };
+            header?: never;
+            path: {
+                station_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationEnergyHistory"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     station_equipment_api_v1_stations__station_id__equipment_get: {
         parameters: {
             query?: never;
@@ -17142,6 +25508,337 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EquipmentList"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    query_api_v1_stations__station_id__equipment_query_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                equipment_type?: string;
+                connector_status?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                station_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDevicePage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    connectors_api_v1_stations__station_id__equipment__equipment_id__connectors_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                connector_status?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                station_id: number;
+                equipment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryConnectorPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    flow_api_v1_stations__station_id__flow_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                station_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationFlowPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    actions_api_v1_stations__station_id__flow__application_id__actions_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                station_id: number;
+                application_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationFlowActions"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -17224,7 +25921,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["EnergyStatistics"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -17307,7 +26004,171 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "text/csv": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    report_api_v1_statistics_charging_subsidy_get: {
+        parameters: {
+            query: {
+                page?: number;
+                page_size?: number;
+                period_date: string;
+                period?: "day" | "month" | "year";
+                dimension?: "station" | "equipment";
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargingReport"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_api_v1_statistics_charging_subsidy_export_get: {
+        parameters: {
+            query: {
+                period_date: string;
+                period?: "day" | "month" | "year";
+                dimension?: "station" | "equipment";
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
             /** @description Login required or invalid credentials */
@@ -17388,7 +26249,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "text/csv": string;
                 };
             };
             /** @description Login required or invalid credentials */
@@ -19916,7 +28777,175 @@ export interface operations {
             };
         };
     };
-    sync_tasks_api_v1_sync_tasks_get: {
+    listing_api_v1_subsidy_statistics_get: {
+        parameters: {
+            query: {
+                page?: number;
+                page_size?: number;
+                start_date: string;
+                end_date: string;
+                dimension?: "operator" | "station" | "equipment" | "device_day";
+                status?: "accepted" | "approved" | "disbursed" | "submitted" | "draft";
+                operator_id?: number | null;
+                station_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatisticPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_api_v1_subsidy_statistics_export_get: {
+        parameters: {
+            query: {
+                start_date: string;
+                end_date: string;
+                dimension?: "operator" | "station" | "equipment" | "device_day";
+                status?: "accepted" | "approved" | "disbursed" | "submitted" | "draft";
+                operator_id?: number | null;
+                station_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    operators_api_v1_subsidy_statistics_operators_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -19931,7 +28960,161 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["OperatorList"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    operator_choices_api_v1_sync_operators_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorList"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    sync_tasks_api_v1_sync_tasks_get: {
+        parameters: {
+            query?: {
+                request_key?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncTaskList"];
                 };
             };
             /** @description Login required or invalid credentials */
@@ -20011,7 +29194,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["SyncAccepted"];
                 };
             };
             /** @description Login required or invalid credentials */

@@ -98,6 +98,73 @@ test("phone binding marks simulation, verifies code, revokes sessions and shows 
     const state = await (await page.request.get("/api/v1/auth/phone")).json();
     expect(state.verification_mode).toBe("demo");
     expect(state.phone).toBeUndefined();
+    await page
+      .getByRole("button", { name: "开始更换手机", exact: true })
+      .click();
+    await page.getByLabel("换绑当前密码", { exact: true }).fill(password);
+    const oldResponse = page.waitForResponse(
+      (r) =>
+        r.url().endsWith("/auth/phone/change/challenges") &&
+        r.request().method() === "POST",
+    );
+    await page
+      .getByRole("button", { name: "获取原手机验证码", exact: true })
+      .click();
+    const oldIssued = await oldResponse;
+    expect(oldIssued.status()).toBe(201);
+    const oldToken = (await oldIssued.json()).challenge_id;
+    const codeFor = (token: string) =>
+      JSON.parse(
+        execFileSync(
+          "uv",
+          ["run", "python", "-m", "app.sms_fixture", "--", token],
+          { cwd: "../server", encoding: "utf8" },
+        ),
+      ).code;
+    await page
+      .getByLabel("原手机换绑验证码", { exact: true })
+      .fill(codeFor(oldToken));
+    const newPhone = "138" + String(actor.id).padStart(8, "0");
+    await page.getByLabel("换绑新手机号", { exact: true }).fill(newPhone);
+    await page.getByRole("button", { name: "刷新数据", exact: true }).click();
+    await expect(page.getByLabel("换绑新手机号", { exact: true })).toHaveValue(
+      newPhone,
+    );
+    const nextResponse = page.waitForResponse(
+      (r) =>
+        r.url().endsWith("/auth/phone/change/new-challenges") &&
+        r.request().method() === "POST",
+    );
+    await page
+      .getByRole("button", { name: "核验原手机并获取新验证码", exact: true })
+      .click();
+    const next = await nextResponse;
+    expect(next.status()).toBe(201);
+    const nextToken = (await next.json()).challenge_id;
+    expect(
+      (await (await page.request.get("/api/v1/auth/phone")).json())
+        .phone_masked,
+    ).toBe(phone.slice(0, 3) + "****" + phone.slice(-4));
+    await page
+      .getByLabel("新手机换绑验证码", { exact: true })
+      .fill(codeFor(nextToken));
+    await page
+      .getByRole("region", { name: "账号手机换绑", exact: true })
+      .screenshot({ path: "../../.backups/phone-change-browser.png" });
+    await page
+      .getByRole("button", { name: "确认换绑并退出登录", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "登录工作台", exact: true }),
+    ).toBeVisible();
+    expect((await page.request.get("/api/v1/auth/me")).status()).toBe(401);
+    await login();
+    await page.getByRole("button", { name: "账号安全", exact: true }).click();
+    const changed = await (await page.request.get("/api/v1/auth/phone")).json();
+    expect(changed.phone_masked).toBe(
+      newPhone.slice(0, 3) + "****" + newPhone.slice(-4),
+    );
+    expect(changed.version).toBe(state.version + 1);
     await page.screenshot({
       path: "test-results/phone-binding.png",
       fullPage: true,

@@ -18,7 +18,7 @@ from app.business_contracts import (
 )
 from app.business_dates import Dates, apply_dates, submission_time
 from app.contracts import RatingQueuePage
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.models import (
     Operator,
     RatingAction,
@@ -238,7 +238,7 @@ def applications_statement(user, q="", status="", record_id=None, kind="", dates
 
 @router.get("/applications", response_model=RatingQueuePage)
 def applications(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     dates: Dates,
     q: str = Query("", max_length=150),
@@ -291,7 +291,7 @@ def create_application(body: ApplicationInput, user: Actor, db: DB, request: Req
 
 
 @router.get("/applications/{application_id}", response_model=RatingApplicationDetail)
-def detail(application_id: int, user: Actor, db: SnapshotDB):
+def detail(application_id: int, user: SnapshotActor, db: SnapshotDB):
     a = rating.access(db, user, application_id)
     station_name, station_status, operator_name = db.execute(
         select(Station.name, Station.status, Operator.name)

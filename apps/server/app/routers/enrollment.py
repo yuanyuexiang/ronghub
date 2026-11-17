@@ -8,7 +8,15 @@ from sqlalchemy.exc import IntegrityError
 
 from app import enrollment
 from app.config import settings
+from app.contracts import OkResponse
 from app.dependencies import DB, DUMMY_PASSWORD_HASH, passwords, token_hash
+from app.enrollment_contracts import (
+    EnrollmentMaterials,
+    EnrollmentProgress,
+    EnrollmentRecord,
+    EnrollmentSessionResponse,
+)
+from app.material_contracts import ApplicationMaterialItem, binary_responses
 from app.models import (
     EnrollmentSession,
     Operator,
@@ -17,6 +25,7 @@ from app.models import (
     RegistrationAttachment,
     User,
 )
+from app.reporting import SnapshotDB
 from app.routers.attachments import metadata
 from app.routers.companies import ContactInput
 from app.security import clear_account, throttle
@@ -88,7 +97,7 @@ def check_existing(db, body):
         raise HTTPException(409, "账号或企业已存在，请联系平台管理员")
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, response_model=EnrollmentSessionResponse)
 def create(body: CreateInput, request: Request, response: Response, db: DB):
     enrollment.demo_only()
     throttle(
@@ -105,14 +114,18 @@ def create(body: CreateInput, request: Request, response: Response, db: DB):
         db.flush()
         enrollment.record(db, r, "create")
         csrf = enrollment.establish(db, response, r)
+        result = EnrollmentSessionResponse.model_validate(
+            {**enrollment.output(r), "csrf_token": csrf}
+        )
         db.commit()
     except IntegrityError as e:
         db.rollback()
         raise HTTPException(409, "已有相同账号或企业的注册申请，请登录进度查询") from e
-    return {**enrollment.output(r), "csrf_token": csrf}
+    response.headers["Cache-Control"] = "no-store"
+    return result
 
 
-@router.post("/login")
+@router.post("/login", response_model=EnrollmentSessionResponse)
 def login(body: LoginInput, request: Request, response: Response, db: DB):
     enrollment.demo_only()
     throttle(
@@ -144,27 +157,34 @@ def login(body: LoginInput, request: Request, response: Response, db: DB):
         raise HTTPException(403, "请先登录业务平台修改临时密码")
     clear_account(db, "enroll:" + body.username)
     csrf = enrollment.establish(db, response, r)
+    result = EnrollmentSessionResponse.model_validate({**enrollment.output(r), "csrf_token": csrf})
     db.commit()
-    return {**enrollment.output(r), "csrf_token": csrf}
+    response.headers["Cache-Control"] = "no-store"
+    return result
 
 
-@router.get("/me")
-def me(request: Request, r: enrollment.Applicant, db: DB):
+@router.get("/me", response_model=EnrollmentProgress)
+def me(request: Request, response: Response, r: enrollment.SnapshotApplicant, db: SnapshotDB):
+    response.headers["Cache-Control"] = "no-store"
     session = db.get(EnrollmentSession, token_hash(request.cookies[enrollment.COOKIE]))
-    return {**enrollment.output(r), "csrf_token": session.csrf, "history": history(db, r)}
+    return EnrollmentProgress.model_validate(
+        {**enrollment.output(r), "csrf_token": session.csrf, "history": history(db, r)}
+    )
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=OkResponse)
 def logout(request: Request, response: Response, r: enrollment.Applicant, db: DB):
     session = db.get(EnrollmentSession, token_hash(request.cookies[enrollment.COOKIE]))
+    result = OkResponse(ok=True)
     db.delete(session)
     db.commit()
     response.delete_cookie(enrollment.COOKIE, path="/api/v1/enrollment")
-    return {"ok": True}
+    response.headers["Cache-Control"] = "no-store"
+    return result
 
 
-@router.patch("/me")
-def edit(body: EditInput, r: enrollment.Applicant, db: DB):
+@router.patch("/me", response_model=EnrollmentRecord)
+def edit(body: EditInput, response: Response, r: enrollment.Applicant, db: DB):
     r = enrollment.lock(db, r)
     enrollment.editable(r)
     if r.version != body.version:
@@ -174,15 +194,17 @@ def edit(body: EditInput, r: enrollment.Applicant, db: DB):
     r.version += 1
     try:
         enrollment.record(db, r, "edit")
+        result = EnrollmentRecord.model_validate(enrollment.output(r))
         db.commit()
     except IntegrityError as e:
         db.rollback()
         raise HTTPException(409, "已有相同企业注册申请") from e
-    return enrollment.output(r)
+    response.headers["Cache-Control"] = "no-store"
+    return result
 
 
-@router.post("/me/submit")
-def submit(body: SubmitInput, r: enrollment.Applicant, db: DB):
+@router.post("/me/submit", response_model=EnrollmentRecord)
+def submit(body: SubmitInput, response: Response, r: enrollment.Applicant, db: DB):
     r = enrollment.lock(db, r)
     enrollment.editable(r)
     if r.version != body.version:
@@ -204,12 +226,15 @@ def submit(body: SubmitInput, r: enrollment.Applicant, db: DB):
         .values(submitted_version=r.version)
     )
     enrollment.record(db, r, "submit")
+    result = EnrollmentRecord.model_validate(enrollment.output(r))
     db.commit()
-    return enrollment.output(r)
+    response.headers["Cache-Control"] = "no-store"
+    return result
 
 
-@router.get("/me/attachments")
-def attachments(r: enrollment.Applicant, db: DB):
+@router.get("/me/attachments", response_model=EnrollmentMaterials)
+def attachments(response: Response, r: enrollment.SnapshotApplicant, db: SnapshotDB):
+    response.headers["Cache-Control"] = "no-store"
     return {
         "items": [
             {**metadata(a), "submitted_version": a.submitted_version}
@@ -222,8 +247,8 @@ def attachments(r: enrollment.Applicant, db: DB):
     }
 
 
-@router.post("/me/attachments", status_code=201)
-def upload(file: UploadFile, r: enrollment.Applicant, db: DB):
+@router.post("/me/attachments", status_code=201, response_model=ApplicationMaterialItem)
+def upload(file: UploadFile, response: Response, r: enrollment.Applicant, db: DB):
     r = enrollment.lock(db, r)
     enrollment.editable(r)
     if (
@@ -239,15 +264,22 @@ def upload(file: UploadFile, r: enrollment.Applicant, db: DB):
     try:
         a = RegistrationAttachment(registration_id=r.id, **values)
         db.add(a)
+        db.flush()
+        result = ApplicationMaterialItem.model_validate(metadata(a))
         db.commit()
     except Exception:
         path.unlink(missing_ok=True)
         raise
-    return metadata(a)
+    response.headers["Cache-Control"] = "no-store"
+    return result
 
 
-@router.get("/me/attachments/{material_id}/download")
-def download(material_id: int, r: enrollment.Applicant, db: DB):
+@router.get(
+    "/me/attachments/{material_id}/download",
+    response_class=FileResponse,
+    responses=binary_responses("application/pdf", "image/png", "image/jpeg"),
+)
+def download(material_id: int, r: enrollment.SnapshotApplicant, db: SnapshotDB):
     a = db.get(RegistrationAttachment, material_id)
     if not a or a.registration_id != r.id:
         raise HTTPException(404, "材料不存在")
@@ -258,12 +290,16 @@ def download(material_id: int, r: enrollment.Applicant, db: DB):
         path,
         filename=a.filename,
         media_type=a.content_type,
-        headers={"Content-Security-Policy": "sandbox", "X-Content-Type-Options": "nosniff"},
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Security-Policy": "sandbox",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
-@router.delete("/me/attachments/{material_id}")
-def remove(material_id: int, r: enrollment.Applicant, db: DB):
+@router.delete("/me/attachments/{material_id}", response_model=OkResponse)
+def remove(material_id: int, response: Response, r: enrollment.Applicant, db: DB):
     r = enrollment.lock(db, r)
     enrollment.editable(r)
     a = db.get(RegistrationAttachment, material_id)
@@ -272,7 +308,9 @@ def remove(material_id: int, r: enrollment.Applicant, db: DB):
     if a.submitted_version is not None:
         raise HTTPException(409, "已提交的资质证据不可删除，可补充新材料")
     path = Path(settings.storage_path).resolve() / a.storage_key
+    result = OkResponse(ok=True)
     db.delete(a)
     db.commit()
     path.unlink(missing_ok=True)
-    return {"ok": True}
+    response.headers["Cache-Control"] = "no-store"
+    return result

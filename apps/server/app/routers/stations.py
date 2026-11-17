@@ -6,8 +6,9 @@ from sqlalchemy import func, select
 from app.authorization import permissions
 from app.config import settings
 from app.contracts import DashboardSummary, EquipmentList, OperatorList, StationDetail, StationPage
-from app.dependencies import DB, Actor, scope
+from app.dependencies import SnapshotActor, scope
 from app.models import Station, StationApplication
+from app.reporting import SnapshotDB
 from app.scopes import company_scope
 
 router = APIRouter()
@@ -15,18 +16,18 @@ router = APIRouter()
 
 @router.get("/api/v1/stations", response_model=StationPage)
 def stations(
-    user: Actor,
-    db: DB,
+    user: SnapshotActor,
+    db: SnapshotDB,
     q: str = Query("", max_length=150),
     status: str = Query("", max_length=40),
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=2147483647),
     page_size: int = Query(20, ge=1, le=100),
     district: str = Query("", max_length=50),
-    operator_id: int | None = None,
+    operator_id: int | None = Query(None, ge=1, le=2147483647),
 ):
     stmt = scope(select(Station), user)
     if q:
-        stmt = stmt.where(Station.name.ilike("%" + q + "%"))
+        stmt = stmt.where(Station.name.icontains(q, autoescape=True))
     if status:
         stmt = stmt.where(Station.status.in_(status.split(",")))
     if district:
@@ -58,11 +59,22 @@ def stations(
 
 
 @router.get("/api/v1/stations/{station_id}", response_model=StationDetail)
-def station(station_id: int, user: Actor, db: DB):
+def station(station_id: int, user: SnapshotActor, db: SnapshotDB):
     s = db.scalar(scope(select(Station).where(Station.id == station_id), user))
     if not s:
         raise HTTPException(404, "场站不存在或不可访问")
+    from app.station_facilities import public
+
+    can_contact = "companies.read" in permissions(db, user)
     return {
+        "facilities": public(s),
+        "contact_accessible": can_contact,
+        "contact": {"name": s.station_contact_name, "phone": s.station_contact_phone}
+        if can_contact
+        else None,
+        "source_first_reported_at": s.source_first_reported_at.isoformat()
+        if s.source_first_reported_at
+        else None,
         "source": s.source,
         "external_id": s.external_id,
         "id": s.id,
@@ -90,7 +102,7 @@ def station(station_id: int, user: Actor, db: DB):
 
 
 @router.get("/api/v1/dashboard", response_model=DashboardSummary, response_model_exclude_unset=True)
-def dashboard(user: Actor, db: DB):
+def dashboard(user: SnapshotActor, db: SnapshotDB):
     rows = list(db.scalars(scope(select(Station), user)))
     from app.dashboard import summary
 
@@ -115,29 +127,39 @@ def dashboard(user: Actor, db: DB):
 
 
 @router.get("/api/v1/stations/{station_id}/equipment", response_model=EquipmentList)
-def station_equipment(station_id: int, user: Actor, db: DB):
+def station_equipment(station_id: int, user: SnapshotActor, db: SnapshotDB):
     from app.models import Connector, Equipment
 
     if not db.scalar(scope(select(Station).where(Station.id == station_id), user)):
         raise HTTPException(404, "场站不存在或不可访问")
+    equipment = list(
+        db.scalars(
+            select(Equipment).where(Equipment.station_id == station_id).order_by(Equipment.id)
+        )
+    )
+    from app.device_metadata import connector_profile, equipment_profile
+
+    connectors = {}
+    for connector in db.scalars(
+        select(Connector)
+        .join(Equipment, Equipment.id == Connector.equipment_id)
+        .where(Equipment.station_id == station_id)
+        .order_by(Connector.id)
+    ):
+        connectors.setdefault(connector.equipment_id, []).append(connector_profile(connector))
     return {
         "items": [
             {
-                "id": e.id,
-                "name": e.name,
-                "power_kw": str(e.power_kw),
-                "connectors": [
-                    {"id": c.id, "external_id": c.external_id, "status": c.status}
-                    for c in db.scalars(select(Connector).where(Connector.equipment_id == e.id))
-                ],
+                **equipment_profile(e),
+                "connectors": connectors.get(e.id, []),
             }
-            for e in db.scalars(select(Equipment).where(Equipment.station_id == station_id))
+            for e in equipment
         ]
     }
 
 
 @router.get("/api/v1/operators", response_model=OperatorList)
-def operators(user: Actor, db: DB):
+def operators(user: SnapshotActor, db: SnapshotDB):
     from app.models import Operator
 
     stmt = company_scope(select(Operator), user)

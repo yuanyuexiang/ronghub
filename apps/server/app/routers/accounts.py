@@ -12,7 +12,7 @@ from app.account_contracts import (
 )
 from app.authorization import BASE, LABELS, normalize_grants, permissions, require
 from app.config import settings
-from app.dependencies import DB, Actor, passwords
+from app.dependencies import DB, Actor, SnapshotActor, passwords
 from app.models import Audit, Operator, RoleProfile, User
 from app.reporting import SnapshotDB
 from app.scopes import accounts_scope, company_scope, districts, require_global, validate_delegation
@@ -117,7 +117,15 @@ def validate_grant(db, user, role, grants):
     for cap in grants:
         if (
             cap.startswith(
-                ("subsidy.", "applications.", "ratings.", "inspections.", "alerts.", "content.")
+                (
+                    "subsidy.",
+                    "applications.",
+                    "ratings.",
+                    "inspections.",
+                    "hazards.",
+                    "alerts.",
+                    "content.",
+                )
             )
             and not cap.endswith(".read")
             or cap.endswith((".write", ".reply", ".status", ".export", ".review"))
@@ -152,7 +160,7 @@ def audit(db, user, action, oid, before, after):
 
 
 @router.get("/api/v1/roles", response_model=RoleCatalogResponse)
-def roles(user: Actor, db: SnapshotDB):
+def roles(user: SnapshotActor, db: SnapshotDB):
     admin(user)
     own = permissions(db, user)
     return {
@@ -238,7 +246,10 @@ def account_output(db, u):
 
 @router.get("/api/v1/accounts", response_model=ManagedAccountList)
 def accounts(
-    user: Actor, db: SnapshotDB, page: int = Query(1, ge=1), q: str = Query("", max_length=100)
+    user: SnapshotActor,
+    db: SnapshotDB,
+    page: int = Query(1, ge=1),
+    q: str = Query("", max_length=100),
 ):
     admin(user)
     stmt = accounts_scope(select(User), user)
@@ -254,7 +265,7 @@ def accounts(
 
 
 @router.get("/api/v1/accounts/options", response_model=RoleOptionsResponse)
-def account_options(user: Actor, db: SnapshotDB):
+def account_options(user: SnapshotActor, db: SnapshotDB):
     admin(user)
     own = permissions(db, user)
     return {

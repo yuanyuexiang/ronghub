@@ -9,7 +9,7 @@
 | `apps/server/` | Python/FastAPI后端；`app/`业务、`tests/`测试、`alembic/`迁移；API与Worker共享领域代码 |
 | `apps/web/` | Next.js/TypeScript三端Web工程 |
 | `packages/api-client/` | OpenAPI生成的TypeScript声明；客户端接入持续完善 |
-| `tests/e2e/` | 跨端及系统级验收测试 |
+| `tests/e2e/` | 预留系统验收材料；实际浏览器测试在`apps/web/tests/`，恢复脚本在`scripts/` |
 | `deploy/` | 部署配置及环境变量模板 |
 | `scripts/` | 开发、构建及维护脚本 |
 | `docs/requirements/` | 系统需求 |
@@ -25,11 +25,11 @@
 
 ## 开发状态
 
-首批FastAPI、Next.js及PostgreSQL工程已建立，依赖锁文件和迁移可用。启动及验证见`docs/project/本地开发.md`，进度见`docs/project/工作地图.md`。当前不是完整产品，客户接口及政策规则尚待确认；第三方底座未直接引入。
+核心业务本地模拟版本可运行，覆盖三端身份权限、场站流程、补贴评星、巡检告警、内容与分源统计。默认访问http://127.0.0.1:3080，启动见`docs/project/当前版本试用.md`，最新验证与剩余工作见`docs/project/工作地图.md`。原型逐项收口及客户接口、正式规则和验收仍在推进；第三方底座未直接引入。
 
 ## 原型预览
 
-在仓库根目录运行 `python3 -m http.server 8000 --bind 127.0.0.1`，访问 `http://127.0.0.1:8000/references/customer/福州监管/`。
+在仓库根目录运行 `python3 -m http.server 8088 --bind 127.0.0.1 --directory references/customer/福州监管`，访问 `http://127.0.0.1:8088/`。仅服务客户原型目录，避免与开发API的8000端口冲突。
 
 ## 开工阅读
 
@@ -42,3 +42,5 @@
 ## API契约
 
 从实际路由生成OpenAPI与前端类型，使用方式和未完成范围见[API契约说明](docs/api/README.md)。在 `apps/web` 运行 `pnpm api:generate` 更新，`pnpm api:check` 检查漂移。
+
+公开资讯门户：http://127.0.0.1:3080/portal；统一入口：/portal/login。现有内容默认不公开，匿名公开需要显式许可及独立权限。试用步骤和正式条件见[本地模拟阶段交接](docs/project/本地模拟阶段交接.md)。

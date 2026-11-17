@@ -26,12 +26,38 @@ test("regulator login, station search, durable sync view and logout", async ({
   await expect(
     page.getByLabel("同步运营商").locator("option").first(),
   ).toHaveText(/演示运营商/);
-  const created = page.waitForResponse(
-    (r) =>
-      r.url().endsWith("/api/v1/sync/tasks") && r.request().method() === "POST",
-  );
+  const attempts: { operator_id: number; request_key: string }[] = [];
+  let task: { id: number } | undefined;
+  // Commit both requests on the real server, then lose their browser responses.
+  await page.route("**/api/v1/sync/tasks", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    attempts.push(route.request().postDataJSON());
+    const response = await route.fetch();
+    expect(response.status()).toBe(202);
+    const accepted = await response.json();
+    if (task) expect(accepted.id).toBe(task.id);
+    task = accepted;
+    await route.abort("failed");
+  });
   await page.getByRole("button", { name: "发起模拟同步" }).click();
-  const task = await (await created).json();
+  const receipt = page.getByRole("complementary", { name: "同步请求回执" });
+  await expect(
+    page.getByRole("alert").filter({ hasText: "未收到提交回执" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("同步运营商")).toBeDisabled();
+  await page.getByRole("button", { name: "刷新", exact: true }).click();
+  await expect(receipt).toContainText(attempts[0].request_key);
+  await page.getByRole("button", { name: "按原编号重试同步" }).click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "未收到提交回执" }),
+  ).toBeVisible();
+  expect(attempts).toHaveLength(2);
+  expect(attempts[1]).toEqual(attempts[0]);
+  await page.getByRole("button", { name: "查询原编号任务" }).click();
+  await expect(receipt).toHaveCount(0);
+  await expect(page.getByLabel("同步运营商")).toBeEnabled();
+  expect(task).toBeDefined();
+  const taskId = task!.id;
   // Process this scenario's task, preserving the real lease/fencing path without
   // consuming unrelated queued work from concurrent integration checks.
   execFileSync(
@@ -41,7 +67,7 @@ test("regulator login, station search, durable sync view and logout", async ({
       "python",
       "-c",
       "import sys; from app.sync import claim, execute; task=claim(int(sys.argv[1])); assert task is not None and execute(task)",
-      String(task.id),
+      String(taskId),
     ],
     {
       cwd: "../server",
@@ -50,7 +76,7 @@ test("regulator login, station search, durable sync view and logout", async ({
   );
   await page.getByRole("button", { name: "刷新", exact: true }).click();
   await expect(
-    page.getByRole("row").filter({ hasText: `SYNC-${task.id}` }),
+    page.getByRole("row").filter({ hasText: `SYNC-${taskId}` }),
   ).toContainText("同步完成");
   await page.screenshot({
     path: "test-results/regulator-sync.png",
@@ -133,6 +159,8 @@ test("operator material submission and regulator approval across browser context
     await op
       .getByLabel("申请说明", { exact: true })
       .fill("浏览器验收：补充场站资质说明");
+    await op.getByLabel("申请联系人", { exact: true }).fill("浏览器申请联系人");
+    await op.getByLabel("申请联系方式", { exact: true }).fill("13800000001");
     const saved = op.waitForResponse(
       (r) =>
         r.url().endsWith(`/api/v1/applications/${application.id}`) &&
@@ -201,7 +229,24 @@ test("operator material submission and regulator approval across browser context
     await expect(
       op.getByRole("link", { name: "验收材料.pdf", exact: true }),
     ).toBeVisible();
-    await op.getByRole("button", { name: "提交审核", exact: true }).click();
+    const submit = op.getByRole("button", { name: "提交审核", exact: true });
+    await expect(submit).toBeDisabled();
+    const category = op.getByRole("combobox", { name: /^材料分类 / });
+    await category.selectOption("other");
+    await expect(category).toHaveValue("other");
+    await expect(op.getByLabel("申请说明", { exact: true })).toHaveValue(
+      "上传后未保存说明",
+    );
+    await expect(submit).toBeDisabled();
+    const updated = op.waitForResponse(
+      (r) =>
+        r.url().endsWith(`/api/v1/applications/${application.id}`) &&
+        r.request().method() === "PATCH",
+    );
+    await op.getByRole("button", { name: "保存申请信息", exact: true }).click();
+    expect((await updated).status()).toBe(200);
+    await expect(submit).toBeEnabled();
+    await submit.click();
     await expect(row).toContainText("待审核");
     await expect(op.getByLabel("上传申请材料")).toHaveCount(0);
     await reg.getByRole("button", { name: "场站申请", exact: true }).click();
@@ -209,7 +254,26 @@ test("operator material submission and regulator approval across browser context
       .getByRole("row")
       .filter({ hasText: `APP-${application.id}` });
     await review.getByRole("button", { name: "查看处理" }).click();
-    await expect(reg.getByRole("link", { name: "验收材料.pdf" })).toBeVisible();
+    const frozen = reg.getByRole("article", {
+      name: "冻结送审内容",
+      exact: true,
+    });
+    await expect(frozen).toContainText("上传后未保存说明");
+    await expect(frozen).toContainText("浏览器申请联系人");
+    await expect(frozen).toContainText("13800000001");
+    await expect(frozen).toContainText("提交前资料变更校验：已通过");
+    await expect(
+      frozen.getByRole("link", { name: "验收材料.pdf", exact: true }),
+    ).toBeVisible();
+    const proofDownload = await reg.request.get(
+      (await frozen
+        .getByRole("link", { name: "验收材料.pdf", exact: true })
+        .getAttribute("href")) as string,
+    );
+    expect(proofDownload.status()).toBe(200);
+    expect((await proofDownload.body()).toString()).toBe(
+      "%PDF-1.4\nBrowser fixture material",
+    );
     await reg.getByLabel("处理意见").fill("演示验收：资料核验通过");
     const approvalDone = reg.waitForResponse(
       (r) =>

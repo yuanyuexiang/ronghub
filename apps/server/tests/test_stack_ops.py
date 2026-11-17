@@ -103,3 +103,47 @@ def test_nonempty_restore_resumes_without_writing(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="Restore target not empty"):
         stack.restore(tmp_path)
     assert resumed == [["api"]]
+
+
+@pytest.mark.parametrize("recover", [True, False])
+def test_resume_handles_legacy_socket_timeout_and_keeps_readiness_deadline(monkeypatch, recover):
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    class LegacySocketTimeout(OSError):
+        pass
+
+    stack = object.__new__(ops.Stack)
+    stack.values = {"PUBLIC_ORIGIN": "http://127.0.0.1:12345"}
+    commands = []
+    monkeypatch.setattr(
+        stack,
+        "run",
+        lambda *args, **kwargs: commands.append(args) or SimpleNamespace(stdout=b"api\nedge\n"),
+    )
+    monkeypatch.setattr(ops.socket, "timeout", LegacySocketTimeout)
+    calls = []
+    ready = MagicMock()
+    ready.__enter__.return_value.status = 200
+
+    def open_health(url, timeout):
+        calls.append((url, timeout))
+        if not recover or len(calls) == 1:
+            raise LegacySocketTimeout("transient gateway read timeout")
+        return ready
+
+    monkeypatch.setattr(ops.urllib.request, "urlopen", open_health)
+    clock = iter([0, 1] if recover else [0, 61])
+    monkeypatch.setattr(ops.time, "monotonic", lambda: next(clock))
+    sleeps = []
+    monkeypatch.setattr(ops.time, "sleep", sleeps.append)
+    if recover:
+        stack.resume(["api", "worker"])
+        assert len(calls) == 2 and sleeps == [0.5]
+    else:
+        with pytest.raises(RuntimeError, match="gateway origin is not ready"):
+            stack.resume(["api", "worker"])
+        assert len(calls) == 1 and sleeps == []
+    assert all(path.endswith("/api/v1/health") and timeout == 3 for path, timeout in calls)
+    assert commands[0] == ("start", "--wait", "--wait-timeout", "120", "api", "worker")
+    assert all(command[0] in {"start", "ps"} for command in commands)

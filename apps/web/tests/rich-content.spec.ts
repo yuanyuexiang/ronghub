@@ -55,6 +55,11 @@ test("rich article headings, marks, links, tables and private assets publish con
     await editor.press("Enter");
     await reg.keyboard.insertText("官方说明");
     for (let i = 0; i < 4; i++) await editor.press("Shift+ArrowLeft");
+    await expect
+      .poll(() =>
+        editor.evaluate((el) => el.ownerDocument.getSelection()?.toString()),
+      )
+      .toBe("官方说明");
     await reg.getByRole("button", { name: "链接", exact: true }).click();
     await reg
       .getByLabel("正文链接地址", { exact: true })

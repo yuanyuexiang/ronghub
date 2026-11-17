@@ -9,13 +9,14 @@ from sqlalchemy import func, select
 from app.authorization import authorize_business_write
 from app.config import settings
 from app.contracts import OkResponse
-from app.dependencies import DB, Actor
+from app.dependencies import DB, Actor, SnapshotActor
 from app.material_contracts import (
-    ApplicationMaterialItem,
-    ApplicationMaterialList,
+    ApplicationAttachmentItem,
+    ApplicationAttachmentList,
     binary_responses,
 )
 from app.models import Attachment, StationApplication
+from app.reporting import SnapshotDB
 from app.scopes import records as scoped_records
 from app.storage import store_upload
 from app.workflows import allowed_demo_rules
@@ -27,7 +28,9 @@ def application_access(db, user, aid, write=False):
     stmt = scoped_records(select(StationApplication), StationApplication, user).where(
         StationApplication.id == aid
     )
-    a = db.scalar(stmt.with_for_update() if write else stmt)
+    a = db.scalar(
+        stmt.with_for_update().execution_options(populate_existing=True) if write else stmt
+    )
     if not a or (user.role == "operator" and a.operator_id != user.operator_id):
         raise HTTPException(404, "申请不存在或不可访问")
     if user.role not in {"operator", "regulator"}:
@@ -38,7 +41,7 @@ def application_access(db, user, aid, write=False):
 
 
 def metadata(a):
-    return {
+    result = {
         "id": a.id,
         "filename": a.filename,
         "size": a.size,
@@ -46,19 +49,23 @@ def metadata(a):
         "sha256": a.sha256,
         "created_at": a.created_at.isoformat(),
     }
+    if isinstance(a, Attachment):
+        result["category"] = a.category
+        result["revision"] = a.revision
+    return result
 
 
 @router.get(
-    "/api/v1/applications/{application_id}/attachments", response_model=ApplicationMaterialList
+    "/api/v1/applications/{application_id}/attachments", response_model=ApplicationAttachmentList
 )
-def list_attachments(application_id: int, user: Actor, db: DB):
+def list_attachments(application_id: int, user: SnapshotActor, db: SnapshotDB):
     application_access(db, user, application_id)
     return {
         "items": [
             metadata(a)
             for a in db.scalars(
                 select(Attachment)
-                .where(Attachment.application_id == application_id)
+                .where(Attachment.application_id == application_id, Attachment.active.is_(True))
                 .order_by(Attachment.id)
             )
         ]
@@ -68,7 +75,7 @@ def list_attachments(application_id: int, user: Actor, db: DB):
 @router.post(
     "/api/v1/applications/{application_id}/attachments",
     status_code=201,
-    response_model=ApplicationMaterialItem,
+    response_model=ApplicationAttachmentItem,
 )
 def upload(application_id: int, file: UploadFile, user: Actor, db: DB, request: Request):
     authorize_business_write(db, user, request, "applications.materials")
@@ -78,7 +85,7 @@ def upload(application_id: int, file: UploadFile, user: Actor, db: DB, request: 
         db.scalar(
             select(func.count())
             .select_from(Attachment)
-            .where(Attachment.application_id == application_id)
+            .where(Attachment.application_id == application_id, Attachment.active.is_(True))
         )
         >= 10
     ):
@@ -88,7 +95,7 @@ def upload(application_id: int, file: UploadFile, user: Actor, db: DB, request: 
         a = Attachment(application_id=application_id, uploaded_by=user.id, **values)
         db.add(a)
         db.flush()
-        result = ApplicationMaterialItem.model_validate(metadata(a))
+        result = ApplicationAttachmentItem.model_validate(metadata(a))
         db.commit()
     except Exception:
         db.rollback()
@@ -102,9 +109,9 @@ def upload(application_id: int, file: UploadFile, user: Actor, db: DB, request: 
     response_class=FileResponse,
     responses=binary_responses("application/pdf", "image/png", "image/jpeg"),
 )
-def download(attachment_id: int, user: Actor, db: DB):
+def download(attachment_id: int, user: SnapshotActor, db: SnapshotDB):
     a = db.get(Attachment, attachment_id)
-    if not a:
+    if not a or not a.active:
         raise HTTPException(404, "材料不存在")
     application_access(db, user, a.application_id)
     path = Path(settings.storage_path).resolve() / a.storage_key
@@ -123,11 +130,19 @@ def remove(attachment_id: int, user: Actor, db: DB, request: Request):
     authorize_business_write(db, user, request, "applications.materials")
     allowed_demo_rules()
     a = db.get(Attachment, attachment_id)
-    if not a:
+    if not a or not a.active:
         raise HTTPException(404, "材料不存在")
     application_access(db, user, a.application_id, write=True)
     path = Path(settings.storage_path).resolve() / a.storage_key
-    db.delete(a)
+    result = OkResponse.model_validate({"ok": True})
+    from app.application_evidence import material_was_submitted
+
+    retained = material_was_submitted(db, a)
+    if retained:
+        a.active = False
+    else:
+        db.delete(a)
     db.commit()
-    path.unlink(missing_ok=True)
-    return {"ok": True}
+    if not retained:
+        path.unlink(missing_ok=True)
+    return result

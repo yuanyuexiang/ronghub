@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from sqlalchemy import func, select
 
 from app.authorization import require
-from app.dependencies import Actor
+from app.dependencies import SnapshotActor
 from app.device_day_contracts import SubsidyDeviceDayPage
 from app.models import Audit, Equipment, Operator, Station, SubsidyDeviceDay
 from app.reporting import SnapshotDB
@@ -104,7 +104,7 @@ def output(row):
 
 @router.get("", response_model=SubsidyDeviceDayPage)
 def listing(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     start_date: date,
     end_date: date,
@@ -132,7 +132,7 @@ def listing(
 
 @router.get("/export", response_class=Response, responses=CSV)
 def export(
-    user: Actor,
+    user: SnapshotActor,
     db: SnapshotDB,
     start_date: date,
     end_date: date,

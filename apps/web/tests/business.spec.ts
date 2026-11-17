@@ -65,6 +65,9 @@ with zipfile.ZipFile(sys.argv[1]) as bundle:
 test("subsidy snapshot approval and association rating publication", async ({
   browser,
 }) => {
+  // Complete subsidy review, publication/report download, appeal and delisting
+  // across three contexts, including owned-fixture cleanup. Per-step deadlines stay unchanged.
+  test.setTimeout(60_000);
   const fixture = JSON.parse(
     execFileSync(
       "uv",
@@ -436,6 +439,8 @@ test("inspection assignment, enterprise reply and regulator review", async ({
     );
     expect(response.status(), await response.text()).toBe(201);
     const task = await response.json();
+    await expect(reg.getByLabel("巡检标题", { exact: true })).toHaveValue("");
+    await expect(reg.getByLabel("巡检要求", { exact: true })).toHaveText("");
     // Keep this workflow's task visible when another spec adds a page of history.
     await reg.getByLabel("巡检检索编号", { exact: true }).fill(String(task.id));
     await reg
@@ -500,10 +505,40 @@ test("inspection assignment, enterprise reply and regulator review", async ({
     );
     await op.getByRole("button", { name: "刷新数据", exact: true }).click();
     expect((await materialRefresh).status()).toBe(200);
-    await expect(op.getByLabel("巡检处理说明")).toHaveValue(
+    await expect(op.getByLabel("巡检处理说明")).toHaveText(
       "上传期间保留整改说明",
     );
     await op.getByLabel("巡检处理说明").fill("已完成设备防护整改");
+    await op.getByLabel("巡检执行联系人", { exact: true }).fill("现场执行人");
+    await op
+      .getByLabel("巡检执行联系方式", { exact: true })
+      .fill("13800000001");
+    await op
+      .getByLabel("巡检填报执行时间", { exact: true })
+      .fill("2026-11-01T10:30");
+    await op.getByLabel("巡检处理说明").press("ControlOrMeta+a");
+    await op.getByRole("button", { name: "加粗", exact: true }).click();
+    await expect(op.getByLabel("巡检处理说明").locator("strong")).toHaveText(
+      "已完成设备防护整改",
+    );
+    await op.getByLabel("巡检处理说明").locator("p").last().click();
+    await op.getByLabel("巡检处理说明").press("End");
+    await expect
+      .poll(() =>
+        op
+          .getByLabel("巡检处理说明")
+          .evaluate((el) => el.ownerDocument.getSelection()?.isCollapsed),
+      )
+      .toBe(true);
+    await op
+      .getByRole("button", { name: "插入回复图片：整改照片.png", exact: true })
+      .click();
+    await expect(op.getByLabel("巡检处理说明").locator("strong")).toHaveText(
+      "已完成设备防护整改",
+    );
+    await expect(
+      op.getByRole("button", { name: "提交整改回复", exact: true }),
+    ).toBeEnabled();
     await op.getByRole("button", { name: "提交整改回复" }).click();
     await expect(row).toContainText("待复核");
     await reg.getByRole("button", { name: "刷新任务", exact: true }).click();
@@ -513,6 +548,17 @@ test("inspection assignment, enterprise reply and regulator review", async ({
     await regRow.getByRole("button", { name: "处理任务" }).click();
     await expect(
       reg.getByText("已完成设备防护整改", { exact: true }),
+    ).toBeVisible();
+    await expect(reg.getByText("现场执行人", { exact: true })).toBeVisible();
+    await expect(reg.getByText("13800000001", { exact: true })).toBeVisible();
+    await expect(
+      reg
+        .getByRole("article")
+        .filter({ hasText: "现场执行人" })
+        .locator("strong"),
+    ).toHaveText("已完成设备防护整改");
+    await expect(
+      reg.getByRole("article").filter({ hasText: "现场执行人" }).locator("img"),
     ).toBeVisible();
     const evidence = reg.getByRole("link", { name: "整改照片.png" });
     await expect(evidence).toBeVisible();
@@ -526,6 +572,16 @@ test("inspection assignment, enterprise reply and regulator review", async ({
       path: "test-results/inspection-review.png",
       fullPage: true,
     });
+    await reg.setViewportSize({ width: 390, height: 844 });
+    expect(
+      await reg.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await reg
+      .getByRole("article")
+      .filter({ hasText: "现场执行人" })
+      .screenshot({ path: "test-results/inspection-execution-mobile.png" });
   } finally {
     await regContext.close();
     await opContext.close();
@@ -564,6 +620,10 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
     await login(op, "operator_a");
     await reg.getByRole("button", { name: "告警中心", exact: true }).click();
     await reg
+      .getByRole("navigation", { name: "告警工作区" })
+      .getByRole("button", { name: "规则配置", exact: true })
+      .click();
+    await reg
       .getByRole("button", { name: "演示样本验证", exact: true })
       .click();
     await pickStation(reg, "告警演示场站", fixture);
@@ -571,6 +631,10 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
       .getByLabel("告警监测对象")
       .fill("browser-target-" + fixture.station_id);
     async function sample(value: string) {
+      await reg
+        .getByRole("navigation", { name: "告警工作区" })
+        .getByRole("button", { name: "规则配置", exact: true })
+        .click();
       await reg.getByLabel("告警样本值").fill(value);
       const done = reg.waitForResponse(
         (r) =>
@@ -580,6 +644,10 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
       await reg.getByRole("button", { name: "提交演示样本" }).click();
       const response = await done;
       expect(response.status(), await response.text()).toBe(200);
+      await reg
+        .getByRole("navigation", { name: "告警工作区" })
+        .getByRole("button", { name: "事件跟踪", exact: true })
+        .click();
       return response.json();
     }
     const opened = await sample("40");
@@ -614,6 +682,10 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
       }),
     });
     await expect(owned).toContainText("已恢复");
+    await op
+      .getByRole("navigation", { name: "告警工作区" })
+      .getByRole("button", { name: "规则配置", exact: true })
+      .click();
     await expect(op.getByRole("button", { name: "演示样本验证" })).toHaveCount(
       0,
     );
@@ -695,6 +767,32 @@ test("published notice reaches the enterprise and scoped energy statistics expor
     });
     await visible.getByRole("button", { name: "查看内容" }).click();
     await op.getByLabel("通知回复", { exact: true }).fill("企业核查已完成");
+    await op.getByLabel("通知回复", { exact: true }).press("ControlOrMeta+a");
+    await op.getByRole("button", { name: "加粗", exact: true }).click();
+    await op.getByRole("button", { name: "链接", exact: true }).click();
+    await op
+      .getByLabel("正文链接地址", { exact: true })
+      .fill("https://example.com/reply-proof");
+    // Move to the contact field in the same event turn as applying a link.
+    // A deferred editor focus must not steal the next field's input.
+    await op
+      .getByRole("button", { name: "应用链接", exact: true })
+      .evaluate((button) => {
+        (button as HTMLButtonElement).click();
+        document
+          .querySelector<HTMLInputElement>('input[aria-label="回复联系人"]')!
+          .focus();
+      });
+    await op.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
+    await expect(op.getByLabel("回复联系人", { exact: true })).toBeFocused();
+    await expect(op.getByLabel("通知回复", { exact: true })).toHaveText(
+      "企业核查已完成",
+    );
     await op.getByLabel("回复联系人", { exact: true }).fill("张先生");
     await op.getByLabel("回复联系方式", { exact: true }).fill("0591-12345678");
     await op.getByLabel("通知回复图片", { exact: true }).setInputFiles({
@@ -705,6 +803,17 @@ test("published notice reaches the enterprise and scoped energy statistics expor
         "base64",
       ),
     });
+    await op.getByLabel("通知回复", { exact: true }).press("ControlOrMeta+a");
+    await op.getByLabel("通知回复", { exact: true }).press("ArrowRight");
+    await op
+      .getByRole("button", {
+        name: "插入回复图片：inspection.png",
+        exact: true,
+      })
+      .click();
+    await expect(
+      op.getByLabel("通知回复", { exact: true }).locator("img"),
+    ).toHaveCount(1);
     const replyCommitted = op.waitForResponse(
       (r) =>
         r.url().endsWith("/replies/with-images") &&
@@ -712,12 +821,19 @@ test("published notice reaches the enterprise and scoped energy statistics expor
     );
     await op.getByRole("button", { name: "提交通知回复" }).click();
     expect((await replyCommitted).status()).toBe(201);
-    // The textarea already contains this text; wait for the persisted reply element.
+    // Wait for the immutable rendered reply, independently of the editor.
     await expect(
       op
-        .locator(".timeline .article-body")
+        .locator(".timeline .rich-document, .timeline .article-body")
         .filter({ hasText: /^企业核查已完成$/ }),
     ).toBeVisible();
+    await expect(op.locator(".notice-reply .rich-document strong")).toHaveText(
+      "企业核查已完成",
+    );
+    await expect(op.locator(".notice-reply .rich-document a")).toHaveAttribute(
+      "href",
+      "https://example.com/reply-proof",
+    );
     await reg.getByRole("button", { name: "关闭内容详情" }).click();
     await row.getByRole("button", { name: "查看内容" }).click();
     await expect(

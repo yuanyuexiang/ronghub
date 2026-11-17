@@ -14,6 +14,10 @@ from app.models import (
     AlertCursor,
     AlertEvent,
     AlertNotice,
+    AlertNotificationRouting,
+    AlertPeriodEvaluation,
+    AlertPeriodFact,
+    AlertSmsDelivery,
     ApprovalAction,
     Article,
     ArticleAction,
@@ -23,11 +27,15 @@ from app.models import (
     Attachment,
     Audit,
     ChargingOrder,
+    ConfiguredAlertObservation,
     Connector,
     EnergyAllocation,
     EnergyRecord,
     Equipment,
     FaultEvent,
+    HazardAction,
+    HazardAttachment,
+    HazardCase,
     HourlyEnergyRecord,
     InspectionAction,
     InspectionAttachment,
@@ -67,6 +75,9 @@ def main():
     p.add_argument("--count", type=int, default=1, choices=range(1, 31))
     p.add_argument("--operating", action="store_true")
     p.add_argument("--located", action="store_true")
+    p.add_argument("--facilities", action="store_true")
+    p.add_argument("--device-inventory", action="store_true")
+    p.add_argument("--station-history", action="store_true")
     p.add_argument("--application-history", type=int, default=0, choices=range(151))
     p.add_argument("--business-dates", action="store_true")
     p.add_argument("--business-history", type=int, default=0, choices=range(151))
@@ -151,6 +162,27 @@ def main():
                     site_state="normal" if args.located else "unknown",
                     source_sync_state="active" if args.located else "unknown",
                 )
+                if args.facilities:
+                    from app.station_facilities import values as facility_values
+
+                    for field, value in facility_values(
+                        {
+                            "supply_type": "transferred",
+                            "electricity_tariff": "general_industrial",
+                            "supply_capacity": "160.125",
+                            "supply_capacity_unit": "unknown",
+                            "independent_connection": False,
+                            "parking_spaces": 0,
+                            "commissioned_on": "2024-02-29",
+                            "parking_fee_type": "charging_discount",
+                            "parking_fee_description": "演示停车说明，仅用于界面验证",
+                            "business_hours": "00:00–24:00（演示）",
+                            "filing_code": "DEMO-NOT-OFFICIAL",
+                            "station_contact_name": "演示场站联系人",
+                            "station_contact_phone": "DEMO-NOT-A-REAL-NUMBER",
+                        }
+                    ).items():
+                        setattr(station, field, value)
                 db.add(station)
                 db.flush()
                 if args.located:
@@ -162,6 +194,40 @@ def main():
                     db.add(
                         Connector(equipment_id=equipment.id, external_id=key, status="available")
                     )
+                if args.device_inventory:
+                    station.usage_type = "private_shared"
+                    station.construction_site = "fuel_station"
+                    for device_index in range(23):
+                        device = Equipment(
+                            station_id=station.id,
+                            external_id=f"device-{device_index:02}",
+                            name=f"设备查询演示{device_index:02}",
+                            power_kw=60,
+                            equipment_type="v2g"
+                            if device_index == 0
+                            else ("dc" if device_index == 22 else None),
+                            model_name="DEMO-V2G" if device_index == 0 else None,
+                            source_unique_code="DEMO-REPORTED" if device_index == 0 else None,
+                            manufactured_on=date(2024, 2, 29) if device_index == 0 else None,
+                        )
+                        db.add(device)
+                        db.flush()
+                        for terminal_index in range(
+                            23 if device_index == 0 else (1 if device_index == 22 else 0)
+                        ):
+                            db.add(
+                                Connector(
+                                    equipment_id=device.id,
+                                    external_id=f"terminal-{terminal_index:02}",
+                                    name=f"查询演示终端{terminal_index:02}",
+                                    interface_type="直流接口枪头（演示）"
+                                    if terminal_index == 0
+                                    else None,
+                                    status="reserved" if terminal_index % 2 else "charging",
+                                )
+                            )
+                    station.connectors = 24 + (1 if args.located else 0)
+                    station.power_kw = 1380 + (60 if args.located else 0)
                 if args.operating:
                     db.add(
                         EnergyRecord(
@@ -466,6 +532,62 @@ def main():
                         )
                         event_ids.append(result["event_id"])
                     fixture["event_ids"] = event_ids
+                if args.station_history:
+                    stamp = datetime(2026, 11, 1, tzinfo=UTC)
+                    station.source_first_connected_at = stamp
+                    station.source_first_reported_at = stamp + timedelta(minutes=5)
+                    station.source_sync_state = "active"
+                    station.status = "access_approved"
+                    for source, day, kwh, eligible in [
+                        ("browser-history-a", 1, "0.1", True),
+                        ("browser-history-a", 1, "0.2", True),
+                        ("browser-history-a", 2, "0", True),
+                        ("browser-history-a", 3, "9", False),
+                        ("browser-history-b", 1, "7.5", True),
+                    ]:
+                        db.add(
+                            EnergyRecord(
+                                station_id=station.id,
+                                source=source,
+                                external_id=secrets.token_hex(12),
+                                day=date(2026, 11, day),
+                                kwh=kwh,
+                                eligible=eligible,
+                            )
+                        )
+                    regulator = db.scalar(select(User).where(User.username == "regulator"))
+                    for index in range(23):
+                        created = stamp + timedelta(minutes=index)
+                        application = StationApplication(
+                            station_id=station.id,
+                            operator_id=user.operator_id,
+                            applicant_id=user.id,
+                            kind="access",
+                            status="approved" if index == 22 else "withdrawn",
+                            payload={"note": "演示流转记录"},
+                            created_at=created,
+                            updated_at=created + timedelta(seconds=25),
+                            version=26 if index == 22 else 3,
+                        )
+                        db.add(application)
+                        db.flush()
+                        entries = (
+                            ["create", *(["edit"] * 23), "submit", "approve"]
+                            if index == 22
+                            else ["create", "submit", "withdraw"]
+                        )
+                        for step, action in enumerate(entries):
+                            db.add(
+                                ApprovalAction(
+                                    application_id=application.id,
+                                    actor_id=regulator.id if action == "approve" else user.id,
+                                    action=action,
+                                    comment=f"演示历史动作{step}",
+                                    created_at=created + timedelta(seconds=step),
+                                )
+                            )
+                        if index == 22:
+                            fixture["flow_application_id"] = application.id
                 fixtures.append(fixture)
             print(
                 json.dumps(
@@ -574,6 +696,20 @@ def main():
             db.execute(delete(RatingAction).where(RatingAction.application_id.in_(rids)))
             db.execute(delete(RatingApplication).where(RatingApplication.station_id == station.id))
             db.execute(delete(EnergyRecord).where(EnergyRecord.station_id == station.id))
+            hids = select(HazardCase.id).where(HazardCase.station_id == station.id)
+            for attachment in db.scalars(
+                select(HazardAttachment).where(HazardAttachment.case_id.in_(hids))
+            ):
+                (Path(settings.storage_path).resolve() / attachment.storage_key).unlink(
+                    missing_ok=True
+                )
+                db.delete(attachment)
+            db.flush()
+            db.execute(
+                delete(Audit).where(Audit.action.like("hazards.%"), Audit.object_id.in_(hids))
+            )
+            db.execute(delete(HazardAction).where(HazardAction.case_id.in_(hids)))
+            db.execute(delete(HazardCase).where(HazardCase.station_id == station.id))
             tids = select(InspectionTask.id).where(InspectionTask.station_id == station.id)
             for attachment in db.scalars(
                 select(InspectionAttachment).where(InspectionAttachment.task_id.in_(tids))
@@ -586,7 +722,35 @@ def main():
             db.execute(delete(InspectionAction).where(InspectionAction.task_id.in_(tids)))
             db.execute(delete(InspectionTask).where(InspectionTask.station_id == station.id))
             events = select(AlertEvent.id).where(AlertEvent.station_id == station.id)
+            facts = select(AlertPeriodFact.id).where(AlertPeriodFact.station_id == station.id)
+            db.execute(
+                delete(AlertPeriodEvaluation).where(AlertPeriodEvaluation.fact_id.in_(facts))
+            )
+            db.execute(delete(AlertPeriodFact).where(AlertPeriodFact.station_id == station.id))
+            observation_ids = select(ConfiguredAlertObservation.id).where(
+                ConfiguredAlertObservation.station_id == station.id
+            )
+            db.execute(
+                delete(Audit).where(
+                    Audit.action == "alerts.observation.accept",
+                    Audit.object_id.in_(observation_ids),
+                )
+            )
+            db.execute(
+                delete(ConfiguredAlertObservation).where(
+                    ConfiguredAlertObservation.station_id == station.id
+                )
+            )
             db.execute(delete(AlertCursor).where(AlertCursor.station_id == station.id))
+            routing_ids = select(AlertNotificationRouting.id).where(
+                AlertNotificationRouting.event_id.in_(events)
+            )
+            db.execute(delete(AlertSmsDelivery).where(AlertSmsDelivery.routing_id.in_(routing_ids)))
+            db.execute(
+                delete(AlertNotificationRouting).where(
+                    AlertNotificationRouting.event_id.in_(events)
+                )
+            )
             db.execute(delete(AlertNotice).where(AlertNotice.event_id.in_(events)))
             db.execute(delete(AlertEvent).where(AlertEvent.station_id == station.id))
             articles = select(Article.id).where(

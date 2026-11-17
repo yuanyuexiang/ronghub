@@ -27,11 +27,9 @@ async function open(page: Page, id: number, operator: boolean) {
     .click();
   await page.getByLabel("巡检检索编号").fill(String(id));
   await page.getByRole("button", { name: "查询巡检记录", exact: true }).click();
-  const row = page
-    .getByRole("row")
-    .filter({
-      has: page.getByRole("cell", { name: `TASK-${id}`, exact: true }),
-    });
+  const row = page.getByRole("row").filter({
+    has: page.getByRole("cell", { name: `TASK-${id}`, exact: true }),
+  });
   await row.getByRole("button", { name: "处理任务", exact: true }).click();
   return row;
 }
@@ -77,13 +75,11 @@ test("inspection evidence, reply and closure can be assigned independently", asy
     await expect(
       materials.getByRole("button", { name: "提交整改回复", exact: true }),
     ).toHaveCount(0);
-    await materials
-      .getByLabel("上传整改材料", { exact: true })
-      .setInputFiles({
-        name: "独立材料.pdf",
-        mimeType: "application/pdf",
-        buffer: Buffer.from("%PDF-1.4\nfixture"),
-      });
+    await materials.getByLabel("上传整改材料", { exact: true }).setInputFiles({
+      name: "独立材料.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4\nfixture"),
+    });
     await expect(
       materials.getByRole("link", { name: "独立材料.pdf", exact: true }),
     ).toBeVisible();
@@ -97,6 +93,15 @@ test("inspection evidence, reply and closure can be assigned independently", asy
     await reply
       .getByLabel("巡检处理说明", { exact: true })
       .fill("已核对同企业材料岗位上传的整改证据");
+    await reply
+      .getByLabel("巡检执行联系人", { exact: true })
+      .fill("分岗执行人");
+    await reply
+      .getByLabel("巡检执行联系方式", { exact: true })
+      .fill("13800000001");
+    await reply
+      .getByLabel("巡检填报执行时间", { exact: true })
+      .fill("2026-11-01T10:00");
     await reply
       .getByRole("button", { name: "提交整改回复", exact: true })
       .click();

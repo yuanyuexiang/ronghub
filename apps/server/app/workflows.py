@@ -40,6 +40,7 @@ def create(db, user, station_id, kind, payload):
         station_scope(select(Station), user)
         .where(Station.id == station_id, Station.operator_id == user.operator_id)
         .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if not station:
         raise HTTPException(404, "场站不存在或不可访问")
@@ -52,6 +53,9 @@ def create(db, user, station_id, kind, payload):
         )
     ):
         raise HTTPException(409, "该场站已有未结束申请，请先处理或撤回")
+    from app.application_evidence import normalize_payload
+
+    payload = normalize_payload(payload)
     application = StationApplication(
         station_id=station_id,
         operator_id=user.operator_id,
@@ -74,12 +78,13 @@ def create(db, user, station_id, kind, payload):
     return application
 
 
-def act(db, user, application_id, action, version, comment):
+def act(db, user, application_id, action, version, comment, review_token=None):
     allowed_demo_rules()
     a = db.scalar(
         scoped_records(select(StationApplication), StationApplication, user)
         .where(StationApplication.id == application_id)
         .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if not a or (user.role == "operator" and a.operator_id != user.operator_id):
         raise HTTPException(404, "申请不存在或不可访问")
@@ -95,6 +100,10 @@ def act(db, user, application_id, action, version, comment):
             raise HTTPException(409, "当前状态不能提交")
         if action == "withdraw" and a.status not in {"draft", "submitted", "rejected"}:
             raise HTTPException(409, "当前状态不能撤回")
+        if action == "submit":
+            from app.application_evidence import capture
+
+            submitted_at = capture(db, user, a, review_token)
         a.status = "submitted" if action == "submit" else "withdrawn"
     elif action in {"approve", "reject"}:
         if user.role != "regulator":
@@ -104,7 +113,10 @@ def act(db, user, application_id, action, version, comment):
         if not comment.strip():
             raise HTTPException(422, "请填写审核意见")
         station = db.scalar(
-            station_scope(select(Station), user).where(Station.id == a.station_id).with_for_update()
+            station_scope(select(Station), user)
+            .where(Station.id == a.station_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
         if not station:
             raise HTTPException(404, "场站不存在或不在授权区域")
@@ -129,7 +141,15 @@ def act(db, user, application_id, action, version, comment):
         raise HTTPException(422, "不支持的操作")
     a.version += 1
     a.updated_at = now()
-    db.add(ApprovalAction(application_id=a.id, actor_id=user.id, action=action, comment=comment))
+    db.add(
+        ApprovalAction(
+            application_id=a.id,
+            actor_id=user.id,
+            action=action,
+            comment=comment,
+            **({"created_at": submitted_at} if action == "submit" else {}),
+        )
+    )
     after = state(a)
     if action in {"approve", "reject"}:
         after.update(station_status=station.status, station_version=station.version)

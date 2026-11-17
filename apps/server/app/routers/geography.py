@@ -1,11 +1,16 @@
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app import geography
-from app.dependencies import DB, Actor
+from app.authorization import require
+from app.dependencies import Actor, SnapshotActor
 from app.location import TYPES
+from app.map_export import csv_response
+from app.models import Audit
+from app.query_contracts import MapOptions, MapResponse, MapStationPage
+from app.reporting import SnapshotDB
 from app.station_metadata import OPTIONS
 
 router = APIRouter(prefix="/api/v1/map", tags=["map"])
@@ -14,7 +19,7 @@ router = APIRouter(prefix="/api/v1/map", tags=["map"])
 def filters(
     q: str = Query("", max_length=150),
     district: str = Query("", max_length=50),
-    operator_id: Annotated[int | None, Query(ge=1)] = None,
+    operator_id: Annotated[int | None, Query(ge=1, le=2147483647)] = None,
     station_type: str = "",
     status: str = "",
     usage_type: str = "",
@@ -80,37 +85,33 @@ Filters = Annotated[dict, Depends(filters)]
 Bounds = Annotated[tuple, Depends(bounds)]
 
 
-@router.get("")
+@router.get("", response_model=MapResponse)
 def points(
-    user: Actor,
-    db: DB,
+    user: SnapshotActor,
+    db: SnapshotDB,
+    response: Response,
     filters: Filters,
     bounds: Bounds,
     zoom: int = Query(11, ge=1, le=19),
     limit: int = Query(500, ge=1, le=500),
 ):
+    response.headers["Cache-Control"] = "no-store"
     return geography.points(db, user, filters, bounds, zoom, limit)
 
 
-@router.get("/stations")
+@router.get("/stations", response_model=MapStationPage)
 def stations(
-    user: Actor,
-    db: DB,
+    user: SnapshotActor,
+    db: SnapshotDB,
+    response: Response,
     filters: Filters,
     bounds: Bounds,
     location: str = "view",
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=2147483647),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    stmt = geography.query(db, user, filters)
-    if location == "view":
-        stmt = geography.in_view(stmt, bounds)
-    elif location == "mapped":
-        stmt = stmt.where(geography.mappable())
-    elif location == "unlocated":
-        stmt = stmt.where(~geography.mappable())
-    elif location != "all":
-        raise HTTPException(422, "不支持的位置筛选")
+    response.headers["Cache-Control"] = "no-store"
+    stmt = geography.list_query(db, user, filters, bounds, location)
     total = geography.count(db, stmt)
     return {
         "items": [
@@ -125,6 +126,37 @@ def stations(
     }
 
 
-@router.get("/options")
-def options(user: Actor):
+@router.get(
+    "/export",
+    response_class=Response,
+    responses={200: {"content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}}}},
+)
+def export(user: SnapshotActor, db: SnapshotDB, filters: Filters, bounds: Bounds, location: str = "view"):
+    require(db, user, "stations.read")
+    stmt = geography.list_query(db, user, filters, bounds, location)
+    rows = db.execute(stmt.order_by(geography.Station.id).limit(10001)).all()
+    if len(rows) > 10000:
+        raise HTTPException(422, "场站超过10000条，请缩小筛选范围；未导出部分结果")
+    result = csv_response([geography.output(row) for row in rows])
+    db.add(
+        Audit(
+            user_id=user.id,
+            action="stations.export",
+            detail={
+                "rows": len(rows),
+                "location": location,
+                "bounds": list(bounds),
+                "filter_fields": sorted(
+                    key for key, value in filters.items() if value is not None and value != ""
+                ),
+            },
+        )
+    )
+    db.commit()
+    return result
+
+
+@router.get("/options", response_model=MapOptions)
+def options(user: Actor, response: Response):
+    response.headers["Cache-Control"] = "no-store"
     return {"classifications": OPTIONS}

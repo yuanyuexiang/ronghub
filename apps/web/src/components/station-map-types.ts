@@ -1,40 +1,13 @@
-export type StationPoint = {
-  kind?: "station";
-  id: number;
-  name: string;
-  district: string;
-  operator_name: string;
-  operator_id: number;
-  address: string;
-  status: string;
-  station_type: string;
-  usage_type: string;
-  construction_site: string;
-  site_state: string;
-  source_sync_state: string;
-  source_first_connected_at: string | null;
-  power_kw: string;
-  connectors: number;
-  observed_connectors: number;
-  missing_connector_snapshots: number;
-  runtime_state: string;
-  effective_stars: number | null;
-  longitude: string | null;
-  latitude: string | null;
-  coordinate_system: string;
-  location_is_demo: boolean;
-  unplottable_reason: string | null;
-  synced_at: string;
-};
-export type ClusterPoint = {
-  kind: "cluster";
-  key: string;
-  count: number;
-  longitude: string;
-  latitude: string;
-  bounds: [number, number, number, number];
-};
-export type MapPoint = StationPoint | ClusterPoint;
+import type { MethodResponse } from "openapi-fetch";
+import type { typedApi, ApiSchemas } from "../lib/typed-api";
+export type MapQueryResponse = MethodResponse<
+  typeof typedApi,
+  "get",
+  "/api/v1/map"
+>;
+export type StationPoint = ApiSchemas["MapStation"] & { kind?: "station" };
+export type MapPoint = MapQueryResponse["items"][number];
+export type ClusterPoint = Extract<MapPoint, { kind: "cluster" }>;
 export type Viewport = {
   west: number;
   south: number;

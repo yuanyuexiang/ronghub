@@ -57,7 +57,8 @@ def report(
         "operator",
     }:
         raise HTTPException(422, "不支持的统计周期或维度")
-    stations = list(db.scalars(station_query(user, district, operator_id)))
+    query_at = now()
+    stations = list(db.scalars(station_query(user, district, operator_id).order_by(Station.id)))
     ids = [s.id for s in stations]
     length = (end - start).days + 1
     previous_end = start - timedelta(days=1)
@@ -85,7 +86,7 @@ def report(
             .order_by(EnergyRecord.day)
         )
     )
-    today = now().astimezone(ZoneInfo("Asia/Shanghai")).date()
+    today = query_at.astimezone(ZoneInfo("Asia/Shanghai")).date()
 
     def window(left, right):
         observed = [r for r in rows if left <= r[0] <= right]
@@ -253,7 +254,7 @@ def report(
     for station in stations:
         distribution[station.status] = distribution.get(station.status, 0) + 1
     return {
-        "generated_at": now().isoformat(),
+        "generated_at": query_at.isoformat(),
         "start_date": start.isoformat(),
         "end_date": end.isoformat(),
         "timezone": "Asia/Shanghai",
@@ -285,7 +286,7 @@ def report(
         "status_distribution": distribution,
         "unavailable": {
             "utilization": "缺少充电持续时间及可用容量口径",
-            "order_count": "尚无订单接口数据",
+            "order_count": "本电量报表不合并独立订单来源，请查看充电订单或订单汇总",
             "charging_hours": "日级电量无法还原充电时段",
             "online_rate": "缺少设备状态历史与统计分母",
         },

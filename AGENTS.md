@@ -27,4 +27,4 @@ Verify permissions, cross-operator isolation, approval transitions, Decimal calc
 
 ## Configuration and Handoff
 
-Do not commit credentials, tokens or real customer records. Keep sanitized configuration examples and dependency lockfiles. Update `项目上下文.md` after material decisions, keeping confirmed facts separate from proposals and preserving known limitations.
+Do not commit credentials, tokens or real customer records. Public portal publication requires explicit consent and `content.public`; authenticated `audience=all` never implies anonymous access. Keep sanitized configuration examples and dependency lockfiles. Update `项目上下文.md` after material decisions, keeping confirmed facts separate from proposals and preserving known limitations.

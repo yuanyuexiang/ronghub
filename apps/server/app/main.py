@@ -1,33 +1,47 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.config import settings
-from app.contracts import ErrorResponse
+from app.contracts import ErrorResponse, HealthResponse
 from app.dependencies import DB, passwords  # noqa: F401 - retained compatibility for seed/tests
 from app.openapi import build_schema
 from app.routers import (
     accounts,
+    alert_configuration,
+    alert_exports,
+    alert_notifications,
+    alert_period_facts,
     alerts,
+    application_evidence,
     applications,
     article_assets,
     attachments,
     audits,
     auth,
     business_exports,
+    charging_report,
     companies,
+    configured_observations,
     content,
     content_images,
+    dashboard_operations,
+    device_inventory,
     enrollment,
     faults,
     geography,
+    hazards,
     inspection_materials,
+    inspection_plans,
     inspections,
     order_summary,
     order_time_slots,
     orders,
     phone,
+    phone_change,
+    protocols,
+    public_portal,
     quality,
     rating,
     rating_materials,
@@ -38,12 +52,14 @@ from app.routers import (
     sms_auth,
     staff_applications,
     staff_enrollment,
+    station_history,
     stations,
     statistics,
     subsidy,
     subsidy_annual,
     subsidy_device_days,
     subsidy_materials,
+    subsidy_statistics,
     sync,
     time_slot_aggregate,
 )
@@ -81,6 +97,7 @@ for router in [
     staff_applications.router,
     sms_auth.router,
     phone.router,
+    phone_change.router,
     audits.router,
     accounts.router,
     password_routes.router,
@@ -91,12 +108,22 @@ for router in [
     faults.router,
     registrations.router,
     companies.router,
+    alert_configuration.router,
+    alert_notifications.router,
+    configured_observations.router,
+    alert_period_facts.router,
+    alert_exports.router,
     alerts.router,
     stations.router,
+    station_history.router,
     statistics.router,
+    dashboard_operations.router,
+    device_inventory.router,
+    charging_report.router,
     sync.router,
     time_slot_aggregate.router,
     applications.router,
+    application_evidence.router,
     attachments.router,
     article_assets.router,
     business_exports.router,
@@ -104,12 +131,17 @@ for router in [
     subsidy_materials.router,
     subsidy_annual.router,
     subsidy_device_days.router,
+    subsidy_statistics.router,
     quality.router,
     rating.router,
     rating_materials.router,
     rating_results.router,
     rating_standards.router,
     runtime.router,
+    inspection_plans.router,
+    hazards.router,
+    protocols.router,
+    public_portal.router,
     inspections.router,
     orders.router,
     order_summary.router,
@@ -132,8 +164,9 @@ async def private_api_cache(request, call_next):
     return response
 
 
-@app.get("/api/v1/health")
-def health(db: DB):
+@app.get("/api/v1/health", response_model=HealthResponse)
+def health(db: DB, response: Response):
+    response.headers["Cache-Control"] = "no-store"
     db.execute(text("SELECT 1"))
     return {"status": "ok", "demo_mode": settings.demo_mode}
 
