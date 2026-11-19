@@ -7,9 +7,8 @@ import secrets
 import subprocess
 import sys
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -70,11 +69,15 @@ def main():
     for attempt in range(60):
         try:
             for route in ["/api/v1/health", "/", "/portal", "/portal/login"]:
-                with urllib.request.urlopen(origin + route, timeout=10) as response:
-                    if response.status != 200:
-                        raise ValueError("Unexpected public response")
+                host = urlsplit(origin).hostname
+                subprocess.run(
+                    ["curl", "--noproxy", "*", "--fail", "--silent", "--show-error",
+                     "--connect-timeout", "5", "--max-time", "10", "--resolve",
+                     f"{host}:443:127.0.0.1", "--output", "/dev/null", origin + route],
+                    check=True, capture_output=True,
+                )
             break
-        except (urllib.error.URLError, TimeoutError, ValueError):
+        except subprocess.CalledProcessError:
             if attempt == 59:
                 raise SystemExit(
                     "HTTPS verification failed. Data retained; inspect RongHub services. "

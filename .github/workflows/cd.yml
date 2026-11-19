@@ -80,3 +80,8 @@ jobs:
             unset GHCR_TOKEN
             cd ~/ronghub
             python3 deploy/cloud_deploy.py "$TAG"
+      - name: Verify public DNS and HTTPS
+        run: |
+          for route in /api/v1/health / /portal /portal/login; do
+            curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 3 --connect-timeout 10 --max-time 20 --output /dev/null "https://ronghub.asksquirrel.ai$route"
+          done
