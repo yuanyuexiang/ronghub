@@ -44,3 +44,7 @@
 从实际路由生成OpenAPI与前端类型，使用方式和未完成范围见[API契约说明](docs/api/README.md)。在 `apps/web` 运行 `pnpm api:generate` 更新，`pnpm api:check` 检查漂移。
 
 公开资讯门户：http://127.0.0.1:3080/portal；统一入口：/portal/login。现有内容默认不公开，匿名公开需要显式许可及独立权限。试用步骤和正式条件见[本地模拟阶段交接](docs/project/本地模拟阶段交接.md)。
+
+## 服务器演示部署
+
+目标域名：https://ronghub.asksquirrel.ai。GitHub Actions 构建、SSH 部署及共享 Traefik 配置见[演示部署运维说明](deploy/README.md)。当前使用模拟数据，客户接口尚待对接。

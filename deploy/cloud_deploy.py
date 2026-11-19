@@ -67,7 +67,7 @@ def main():
         (ROOT / "deploy/.seeded").touch(mode=0o600)
     stack.run("up", "-d", "--wait", "--wait-timeout", "240")
     origin = stack.values["PUBLIC_ORIGIN"]
-    for attempt in range(30):
+    for attempt in range(60):
         try:
             for route in ["/api/v1/health", "/", "/portal", "/portal/login"]:
                 with urllib.request.urlopen(origin + route, timeout=10) as response:
@@ -75,7 +75,7 @@ def main():
                         raise ValueError("Unexpected public response")
             break
         except (urllib.error.URLError, TimeoutError, ValueError):
-            if attempt == 29:
+            if attempt == 59:
                 raise SystemExit(
                     "HTTPS verification failed. Data retained; inspect RongHub services. "
                     "Use the predeploy backup for schema-safe recovery; no destructive rollback performed."
