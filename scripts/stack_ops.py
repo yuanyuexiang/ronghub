@@ -74,7 +74,7 @@ def validate_archive(path):
 
 
 class Stack:
-    def __init__(self, path):
+    def __init__(self, path, compose_path=None):
         self.path = Path(path).resolve()
         self.values = {}
         for line in self.path.read_text().splitlines():
@@ -110,7 +110,7 @@ class Stack:
             "-p",
             project,
             "-f",
-            str(ROOT / "deploy/stack.compose.yml"),
+            str(Path(compose_path).resolve() if compose_path else ROOT / "deploy/stack.compose.yml"),
         ]
         self.environment = {**os.environ, **self.values}
 
@@ -374,6 +374,7 @@ class Stack:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env", type=Path, default=DEFAULT_ENV)
+    parser.add_argument("--compose", type=Path)
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init")
     init.add_argument("--project", default="ronghub-stack")
@@ -392,7 +393,7 @@ def main():
         initialize(args.env, args.project, args.port)
         print("Private local-demo configuration created; credentials were not printed.")
         return
-    stack = Stack(args.env)
+    stack = Stack(args.env, args.compose)
     if args.command == "up":
         stack.up(args.build)
     elif args.command == "seed":

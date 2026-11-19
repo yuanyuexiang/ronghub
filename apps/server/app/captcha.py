@@ -106,7 +106,7 @@ def issue(db, request, response):
         COOKIE,
         binding,
         httponly=True,
-        secure=not settings.demo_mode,
+        secure=not settings.demo_mode or settings.secure_cookies,
         samesite="lax",
         path="/api/v1/auth",
         max_age=600,

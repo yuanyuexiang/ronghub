@@ -153,3 +153,26 @@ def test_production_login_also_requires_captcha_and_sets_secure_binding(accounts
             },
         )
         assert result.status_code == 200, result.text
+
+
+def test_https_demo_uses_secure_captcha_and_session_cookies(accounts, monkeypatch):
+    monkeypatch.setattr(settings, "demo_mode", True)
+    monkeypatch.setattr(settings, "secure_cookies", True)
+    monkeypatch.setattr(captcha, "generate_answer", lambda: "ABCDE")
+    with TestClient(
+        app, base_url="https://testserver", client=("cloud-demo-" + secrets.token_hex(8), 1)
+    ) as own:
+        issued = own.get("/api/v1/auth/captcha")
+        assert "; Secure" in issued.headers["set-cookie"]
+        result = own.post(
+            "/api/v1/auth/login",
+            json={
+                "username": accounts[0][0],
+                "password": accounts[1],
+                "captcha_id": issued.json()["captcha_id"],
+                "captcha_answer": "ABCDE",
+            },
+        )
+        assert result.status_code == 200, result.text
+        assert "; Secure" in result.headers["set-cookie"]
+        assert own.get("/api/v1/auth/me").status_code == 200

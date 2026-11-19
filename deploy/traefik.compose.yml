@@ -1,0 +1,198 @@
+name: ${COMPOSE_PROJECT_NAME:-ronghub-cloud}
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ronghub
+      POSTGRES_USER: ronghub_owner
+      POSTGRES_PASSWORD: ${OWNER_DB_PASSWORD:?Set OWNER_DB_PASSWORD}
+      RONGHUB_APP_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD}
+    volumes:
+    - pg_data:/var/lib/postgresql/data
+    - ./postgres/10-app-user.sh:/docker-entrypoint-initdb.d/10-app-user.sh:ro
+    - ./postgres/20-runtime-grants.sql:/docker-entrypoint-initdb.d/20-runtime-grants.sql:ro
+    networks:
+      backend:
+        aliases:
+        - ronghub-db
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U ronghub_owner -d ronghub
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  migrate:
+    image: ghcr.io/${GHCR_OWNER:?Set GHCR_OWNER}/ronghub-api:${IMAGE_TAG:?Set IMAGE_TAG}
+    init: true
+    restart: 'no'
+    read_only: true
+    tmpfs: &id001
+    - /tmp
+    cap_drop: &id002
+    - ALL
+    security_opt: &id003
+    - no-new-privileges:true
+    networks: &id004
+    - backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://ronghub_owner:${OWNER_DB_PASSWORD}@ronghub-db:5432/ronghub
+      DEMO_MODE: ${DEMO_MODE:-false}
+      SMS_MODE: ${SMS_MODE:-disabled}
+      STORAGE_PATH: /var/lib/ronghub/attachments
+      ALLOWED_ORIGINS: '["${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}"]'
+      RONGHUB_STACK_MIGRATION: 'true'
+      SECURE_COOKIES: 'true'
+    command:
+    - python
+    - -m
+    - app.migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+  api:
+    image: ghcr.io/${GHCR_OWNER:?Set GHCR_OWNER}/ronghub-api:${IMAGE_TAG:?Set IMAGE_TAG}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs: *id001
+    cap_drop: *id002
+    security_opt: *id003
+    networks:
+      backend:
+        aliases:
+        - ronghub-api
+    environment:
+      DATABASE_URL: postgresql+psycopg://ronghub_app:${APP_DB_PASSWORD:?Set APP_DB_PASSWORD}@ronghub-db:5432/ronghub
+      DEMO_MODE: ${DEMO_MODE:-false}
+      SMS_MODE: ${SMS_MODE:-disabled}
+      STORAGE_PATH: /var/lib/ronghub/attachments
+      ALLOWED_ORIGINS: '["${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}"]'
+      SECURE_COOKIES: 'true'
+    volumes:
+    - attachments:/var/lib/ronghub/attachments
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health',timeout=3)
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  worker:
+    image: ghcr.io/${GHCR_OWNER:?Set GHCR_OWNER}/ronghub-api:${IMAGE_TAG:?Set IMAGE_TAG}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs: *id001
+    cap_drop: *id002
+    security_opt: *id003
+    networks: *id004
+    environment:
+      DATABASE_URL: postgresql+psycopg://ronghub_app:${APP_DB_PASSWORD:?Set APP_DB_PASSWORD}@ronghub-db:5432/ronghub
+      DEMO_MODE: ${DEMO_MODE:-false}
+      SMS_MODE: ${SMS_MODE:-disabled}
+      STORAGE_PATH: /var/lib/ronghub/attachments
+      ALLOWED_ORIGINS: '["${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}"]'
+      SECURE_COOKIES: 'true'
+    command:
+    - python
+    - -m
+    - app.sync
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  web:
+    image: ghcr.io/${GHCR_OWNER}/ronghub-web:${IMAGE_TAG}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+    - /tmp
+    - /app/.next/cache:uid=1000,gid=1000
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
+    networks:
+      frontend:
+        aliases:
+        - ronghub-web
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  edge:
+    image: nginx:stable-alpine
+    user: 101:101
+    entrypoint:
+    - nginx
+    - -g
+    - daemon off;
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+    - /tmp
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
+    volumes:
+    - ./nginx.traefik.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      frontend:
+        aliases:
+        - ronghub-edge
+      backend: {}
+      proxy: {}
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/api/v1/health && wget -q -O /dev/null
+        http://127.0.0.1:8080/
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    labels:
+      traefik.enable: 'true'
+      traefik.docker.network: ${TRAEFIK_NETWORK:-matrix-network}
+      traefik.http.routers.ronghub.rule: Host(`${DOMAIN:?Set DOMAIN}`)
+      traefik.http.routers.ronghub.entrypoints: websecure
+      traefik.http.routers.ronghub.priority: '100'
+      traefik.http.routers.ronghub.tls: 'true'
+      traefik.http.routers.ronghub.tls.certresolver: ${TRAEFIK_CERTRESOLVER:-cloudflare}
+      traefik.http.routers.ronghub.service: ronghub
+      traefik.http.services.ronghub.loadbalancer.server.port: '8080'
+      traefik.http.routers.ronghub-http.rule: Host(`${DOMAIN}`)
+      traefik.http.routers.ronghub-http.entrypoints: web
+      traefik.http.routers.ronghub-http.middlewares: ronghub-https
+      traefik.http.routers.ronghub-http.service: ronghub
+      traefik.http.middlewares.ronghub-https.redirectscheme.scheme: https
+volumes:
+  pg_data: null
+  attachments: null
+networks:
+  frontend: null
+  backend:
+    internal: true
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:-matrix-network}

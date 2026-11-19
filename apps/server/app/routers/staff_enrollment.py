@@ -92,7 +92,7 @@ def submit(body: SubmitInput, request: Request, response: Response, db: DB):
         staff.COOKIE,
         token,
         httponly=True,
-        secure=not settings.demo_mode,
+        secure=not settings.demo_mode or settings.secure_cookies,
         samesite="lax",
         path="/api/v1/auth/staff-enrollment",
         max_age=86400,

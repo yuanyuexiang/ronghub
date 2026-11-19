@@ -74,7 +74,7 @@ def create_session(db, user, response):
         "ronghub_session",
         token,
         httponly=True,
-        secure=not settings.demo_mode,
+        secure=not settings.demo_mode or settings.secure_cookies,
         samesite="lax",
         max_age=28800,
         path="/",
