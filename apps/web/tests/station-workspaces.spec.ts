@@ -61,6 +61,23 @@ test("station summary and directory remain distinct, export applied filters, and
       }),
     ).toBeVisible();
     await expect(page.getByText("已标注充电站", { exact: true })).toBeVisible();
+    const summaryPanel = page.getByRole("region", {
+      name: "场站统计汇总",
+      exact: true,
+    });
+    await expect(
+      summaryPanel.getByRole("button", { name: "查询场站汇总", exact: true }),
+    ).toBeVisible();
+    const trend = summaryPanel.getByRole("region", {
+      name: "最近12个月日电量趋势",
+      exact: true,
+    });
+    const bounds = await summaryPanel.boundingBox();
+    await expect(trend).toBeVisible();
+    expect((await trend.boundingBox())!.width).toBeGreaterThan(
+      bounds!.width * 0.85,
+    );
+
     await page.screenshot({
       path: "../../.backups/prototype-batch2-summary-current.png",
       fullPage: true,

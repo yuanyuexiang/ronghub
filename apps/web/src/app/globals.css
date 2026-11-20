@@ -5731,3 +5731,11 @@ select {
 .directory-filter-actions button {
   width: auto;
 }
+.prototype-workspace .station-summary > .operations-observations {
+  grid-column: 1 / -1;
+}
+.prototype-workspace .station-summary .operations-trend small {
+  writing-mode: horizontal-tb;
+  height: auto;
+  font-size: 10px;
+}

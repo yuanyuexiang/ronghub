@@ -72,7 +72,7 @@ export function DashboardOperations({
   }, [query, revision]);
   return (
     <section
-      className="panel operations-dashboard"
+      className={`panel operations-dashboard ${variant === "stations" ? "station-summary" : ""}`}
       aria-label={variant === "stations" ? "场站统计汇总" : "运营周期总览"}
     >
       <div className="panel-title">
@@ -124,7 +124,7 @@ export function DashboardOperations({
           />
         </label>
         <button className="primary" disabled={busy}>
-          查询运营总览
+          {variant === "stations" ? "查询场站汇总" : "查询运营总览"}
         </button>
       </form>
       {error && (
