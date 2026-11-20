@@ -25,7 +25,9 @@ async function login(page: Page, name: string) {
 }
 async function detail(page: Page, name: string) {
   await openWorkspaceNavigation(page);
-  await page.getByRole("button", { name: "场站台账", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(场站台账|场站信息查询)$/, exact: true })
+    .click();
   await page.getByLabel("搜索场站", { exact: true }).fill(name);
   await page.getByRole("button", { name: "查询", exact: true }).click();
   await page
@@ -73,12 +75,14 @@ test("station profile preserves source unit, false and zero with scoped private 
     await expect(dialog.getByLabel("场站联系方式")).toContainText(
       "DEMO-NOT-A-REAL-NUMBER",
     );
+    await dialog.getByRole("button", { name: "设备信息", exact: true }).click();
     await expect(dialog.getByLabel("场站设备明细")).toContainText(
       "地图演示设备",
     );
     await dialog.screenshot({
       path: "test-results/station-facilities-desktop.png",
     });
+    await dialog.getByRole("button", { name: "基本信息", exact: true }).click();
     await owner.setViewportSize({ width: 390, height: 900 });
     await dialog.getByLabel("场站供电配套").scrollIntoViewIfNeeded();
     await expect(dialog.getByLabel("场站供电配套")).toBeVisible();

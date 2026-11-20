@@ -42,7 +42,14 @@ export function workspaceNavigation(
           [
             "场站信息管理",
             Building2,
-            ["企业台账", "场站台账", "场站申请", "注册审核"],
+            [
+              "企业台账",
+              "注册审核",
+              "场站汇总",
+              "场站台账",
+              "场站申请",
+              "数据同步",
+            ],
           ],
           ["智慧安全监管", ShieldCheck, ["巡检督办", "隐患督办"]],
           ["补贴管理", Wallet, ["补贴管理"]],
@@ -57,7 +64,7 @@ export function workspaceNavigation(
           ["信息发布", FileText, ["公告与通知"]],
           ["操作日志", ClipboardCheck, ["操作日志"]],
           ["监管协议", FileText, ["监管协议"]],
-          ["系统工具", Settings, ["数据同步", "账号安全"]],
+          ["系统工具", Settings, ["账号安全"]],
         ]
       : [
           ["工作概览", LayoutDashboard, ["工作台", "场站地图"]],
@@ -84,6 +91,11 @@ export function workspaceNavigation(
   const names: Record<string, string> =
     role === "regulator"
       ? {
+          注册审核: "运营商审核",
+          数据同步: "场站数据同步",
+          企业台账: "场站运营商管理",
+          场站台账: "场站信息查询",
+          场站申请: "接入管理",
           工作台: "运营总览与多维度数据筛选",
           全域地图: "可视化一张图",
           运行状态: "动态监控",

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
+import { useCapability } from "./permissions";
 import { StationObservations } from "./station-observations";
 import { DeviceInventory } from "./device-inventory";
 import { businessStates, stationTypes } from "./station-map-types";
@@ -104,16 +105,42 @@ export function StationDetail({
       });
     return () => controller.abort();
   }, [stationId]);
+  const [tab, setTab] = useState("basic");
+  const canHistory = useCapability("statistics.read"),
+    canFlow = useCapability("applications.read");
+  const [operatorName, setOperatorName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!station) return;
+    const controller = new AbortController();
+    setOperatorName(null);
+    typedApi
+      .GET("/api/v1/operators", {
+        cache: "no-store",
+        signal: controller.signal,
+      })
+      .then(({ data }) => {
+        if (!controller.signal.aborted)
+          setOperatorName(
+            data?.items.find((item) => item.id === station.operator_id)?.name ??
+              null,
+          );
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setOperatorName(null);
+      });
+    return () => controller.abort();
+  }, [station?.operator_id]);
   const f = station?.facilities;
   return (
     <dialog
       ref={dialog}
-      className="station-dialog"
+      className="station-dialog station-detail-workspace"
       onCancel={onClose}
       aria-labelledby="station-detail-title"
     >
       <div className="panel-title">
         <div>
+          <p className="record-eyebrow">场站信息管理 / 场站详情</p>
           <h2 id="station-detail-title">{station?.name || "场站与设备详情"}</h2>
           <p>{station?.address || "正在读取场站信息"}</p>
         </div>
@@ -145,89 +172,122 @@ export function StationDetail({
             <p className="muted">
               以下为来源上报资料；未知不等于否或零。正式投运日期、来源状态与平台审批状态分别管理。
             </p>
-            <section aria-label="场站基本资料">
-              <h3>基本资料</h3>
-              <dl className="station-facts">
-                <Item name="来源场站编码">{station.external_id}</Item>
-                <Item name="来源 / 同步时间">
-                  {station.source} · {timestamp(station.synced_at)}（北京时间）
-                </Item>
-                <Item name="所在区域">{station.district}</Item>
-                <Item name="全省唯一备案号">{display(f.filing_code)}</Item>
-                <Item name="用途">{display(station.usage_type)}</Item>
-                <Item name="建设场所">
-                  {display(station.construction_site)}
-                </Item>
-                <Item name="来源站点状态">{display(station.site_state)}</Item>
-                <Item name="来源接入状态">
-                  {display(station.source_sync_state)}
-                </Item>
-                <Item name="经纬度 / 坐标系">
-                  {station.longitude == null || station.latitude == null
-                    ? "来源未提供"
-                    : `${station.longitude}, ${station.latitude} / ${station.coordinate_system.toUpperCase()}${station.location_is_demo ? "（演示坐标）" : ""}`}
-                </Item>
-                <Item name="来源首次上报时间">
-                  {timestamp(station.source_first_reported_at)}
-                </Item>
-                <Item name="来源首次接入时间">
-                  {timestamp(station.source_first_connected_at)}
-                </Item>
-              </dl>
-            </section>
-            <section aria-label="场站供电配套">
-              <h3>供电配套</h3>
-              <dl className="station-facts">
-                <Item name="供电类型">{display(f.supply_type)}</Item>
-                <Item name="电费类型">{display(f.electricity_tariff)}</Item>
-                <Item name="报装电源容量">
-                  {f.supply_capacity == null
-                    ? "来源未提供"
-                    : `${f.supply_capacity} ${f.supply_capacity_unit === "unknown" ? "（来源未注明单位）" : f.supply_capacity_unit}`}
-                </Item>
-                <Item name="是否独立报装">
-                  {f.independent_connection == null
-                    ? "来源未提供"
-                    : f.independent_connection
-                      ? "是"
-                      : "否"}
-                </Item>
-              </dl>
-            </section>
-            <section aria-label="场站运营与停车">
-              <h3>运营与停车</h3>
-              <dl className="station-facts">
-                <Item name="正式投运日期（来源）">
-                  {display(f.commissioned_on)}
-                </Item>
-                <Item name="营业时间">{display(f.business_hours)}</Item>
-                <Item name="车位数量">
-                  {f.parking_spaces == null
-                    ? "来源未提供"
-                    : `${f.parking_spaces} 个`}
-                </Item>
-                <Item name="停车费类型">{display(f.parking_fee_type)}</Item>
-                <Item name="停车费描述">
-                  {display(f.parking_fee_description)}
-                </Item>
-              </dl>
-            </section>
-            <section aria-label="场站联系方式">
-              <h3>联系方式</h3>
-              {station.contact_accessible ? (
+            <nav className="record-tabs" aria-label="场站详情分区">
+              {[
+                ["basic", "基本信息"],
+                ["devices", "设备信息"],
+                ...(canHistory || canFlow
+                  ? [["observations", "历史与流转"]]
+                  : []),
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={tab === key}
+                  onClick={() => setTab(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+            <div
+              className="record-pane station-basic-sections"
+              hidden={tab !== "basic"}
+            >
+              <section aria-label="场站基本资料">
+                <h3>基本资料</h3>
                 <dl className="station-facts">
-                  <Item name="联系人">{display(station.contact?.name)}</Item>
-                  <Item name="联系电话">{display(station.contact?.phone)}</Item>
+                  <Item name="所属运营商">
+                    {operatorName ?? "未读取到名称"}
+                  </Item>
+                  <Item name="来源场站编码">{station.external_id}</Item>
+                  <Item name="来源 / 同步时间">
+                    {station.source} · {timestamp(station.synced_at)}
+                    （北京时间）
+                  </Item>
+                  <Item name="所在区域">{station.district}</Item>
+                  <Item name="全省唯一备案号">{display(f.filing_code)}</Item>
+                  <Item name="用途">{display(station.usage_type)}</Item>
+                  <Item name="建设场所">
+                    {display(station.construction_site)}
+                  </Item>
+                  <Item name="来源站点状态">{display(station.site_state)}</Item>
+                  <Item name="来源接入状态">
+                    {display(station.source_sync_state)}
+                  </Item>
+                  <Item name="经纬度 / 坐标系">
+                    {station.longitude == null || station.latitude == null
+                      ? "来源未提供"
+                      : `${station.longitude}, ${station.latitude} / ${station.coordinate_system.toUpperCase()}${station.location_is_demo ? "（演示坐标）" : ""}`}
+                  </Item>
+                  <Item name="来源首次上报时间">
+                    {timestamp(station.source_first_reported_at)}
+                  </Item>
+                  <Item name="来源首次接入时间">
+                    {timestamp(station.source_first_connected_at)}
+                  </Item>
                 </dl>
-              ) : (
-                <p className="muted">当前岗位未授权查看场站联系人。</p>
-              )}
-            </section>
-            <StationObservations
-              key={`observations-${stationId}`}
-              stationId={stationId}
-            />
-            <DeviceInventory key={stationId} stationId={stationId} />
+              </section>
+              <section aria-label="场站供电配套">
+                <h3>供电配套</h3>
+                <dl className="station-facts">
+                  <Item name="供电类型">{display(f.supply_type)}</Item>
+                  <Item name="电费类型">{display(f.electricity_tariff)}</Item>
+                  <Item name="报装电源容量">
+                    {f.supply_capacity == null
+                      ? "来源未提供"
+                      : `${f.supply_capacity} ${f.supply_capacity_unit === "unknown" ? "（来源未注明单位）" : f.supply_capacity_unit}`}
+                  </Item>
+                  <Item name="是否独立报装">
+                    {f.independent_connection == null
+                      ? "来源未提供"
+                      : f.independent_connection
+                        ? "是"
+                        : "否"}
+                  </Item>
+                </dl>
+              </section>
+              <section aria-label="场站运营与停车">
+                <h3>运营与停车</h3>
+                <dl className="station-facts">
+                  <Item name="正式投运日期（来源）">
+                    {display(f.commissioned_on)}
+                  </Item>
+                  <Item name="营业时间">{display(f.business_hours)}</Item>
+                  <Item name="车位数量">
+                    {f.parking_spaces == null
+                      ? "来源未提供"
+                      : `${f.parking_spaces} 个`}
+                  </Item>
+                  <Item name="停车费类型">{display(f.parking_fee_type)}</Item>
+                  <Item name="停车费描述">
+                    {display(f.parking_fee_description)}
+                  </Item>
+                </dl>
+              </section>
+              <section aria-label="场站联系方式">
+                <h3>联系方式</h3>
+                {station.contact_accessible ? (
+                  <dl className="station-facts">
+                    <Item name="联系人">{display(station.contact?.name)}</Item>
+                    <Item name="联系电话">
+                      {display(station.contact?.phone)}
+                    </Item>
+                  </dl>
+                ) : (
+                  <p className="muted">当前岗位未授权查看场站联系人。</p>
+                )}
+              </section>
+            </div>
+            <div className="record-pane" hidden={tab !== "observations"}>
+              <StationObservations
+                key={`observations-${stationId}`}
+                stationId={stationId}
+              />
+            </div>
+            <div className="record-pane" hidden={tab !== "devices"}>
+              <DeviceInventory key={stationId} stationId={stationId} />
+            </div>
           </div>
         )
       )}

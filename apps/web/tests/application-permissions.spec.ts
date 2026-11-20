@@ -50,7 +50,7 @@ test("submit-only enterprise staff can submit without editing, uploading or with
     expect(created.status()).toBe(201);
     const record = await created.json();
     await limited
-      .getByRole("button", { name: "场站申请", exact: true })
+      .getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true })
       .click();
     await expect(
       limited.getByRole("button", { name: "新建草稿", exact: true }),
@@ -85,7 +85,9 @@ test("submit-only enterprise staff can submit without editing, uploading or with
       .getByRole("button", { name: "提交审核", exact: true })
       .click();
     expect((await posted).status()).toBe(200);
-    await expect(row).toContainText("待审核");
+    await expect(
+      limited.getByRole("region", { name: "申请详情工作区", exact: true }),
+    ).toContainText("待审核");
     await expect(limited.getByLabel("处理意见", { exact: true })).toHaveCount(
       0,
     );

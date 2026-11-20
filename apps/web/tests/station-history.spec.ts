@@ -46,13 +46,16 @@ async function login(page: Page, name: string) {
   ).toBeVisible();
 }
 async function open(page: Page, name: string) {
-  await page.getByRole("button", { name: "场站台账", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(场站台账|场站信息查询)$/, exact: true })
+    .click();
   await page.getByLabel("搜索场站", { exact: true }).fill(name);
   await page.getByRole("button", { name: "查询", exact: true }).click();
   await page
     .getByRole("button", { name: `查看详情 ${name}`, exact: true })
     .click();
   const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "历史与流转", exact: true }).click();
   await expect(
     dialog.getByText("历史电量（独立来源）", { exact: true }),
   ).toBeVisible();

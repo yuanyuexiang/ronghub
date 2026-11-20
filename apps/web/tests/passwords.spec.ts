@@ -64,7 +64,7 @@ test("admin reset revokes sessions and user must change temporary password befor
       owner.getByRole("heading", { name: "首次登录请修改临时密码" }),
     ).toBeVisible();
     await expect(
-      owner.getByRole("button", { name: "场站台账", exact: true }),
+      owner.getByRole("button", { name: /^(场站台账|场站信息查询)$/, exact: true }),
     ).toHaveCount(0);
     expect((await owner.request.get("/api/v1/stations")).status()).toBe(403);
     await owner.getByLabel("本人当前密码").fill(temporary);

@@ -14,11 +14,17 @@ async function login(page: Page, username: string) {
   ).toBeVisible();
 }
 async function open(page: Page, name: string) {
-  await page.getByRole("button", { name: "场站台账", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(场站台账|场站信息查询)$/, exact: true })
+    .click();
   await page.getByLabel("搜索场站", { exact: true }).fill(name);
   await page.getByRole("button", { name: "查询", exact: true }).click();
   await page
     .getByRole("button", { name: `查看详情 ${name}`, exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "设备信息", exact: true })
     .click();
   const panel = page
     .getByRole("dialog")

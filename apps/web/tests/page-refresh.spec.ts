@@ -263,15 +263,15 @@ test("regulator refresh reaches mounted view readers without applying search dra
   });
   for (const [menu, path] of [
     ["人员账号申请", "/api/v1/staff-applications"],
-    ["注册审核", "/api/v1/registrations"],
+    ["运营商审核", "/api/v1/registrations"],
     ["权限与账号", "/api/v1/accounts"],
-    ["企业台账", "/api/v1/companies"],
+    ["场站运营商管理", "/api/v1/companies"],
     ["公告与通知", "/api/v1/content"],
     ["统计分析", "/api/v1/statistics"],
-    ["场站申请", "/api/v1/applications"],
+    ["接入管理", "/api/v1/applications"],
     ["告警数据", "/api/v1/alerts"],
     ["巡检督办", "/api/v1/inspections"],
-    ["数据同步", "/api/v1/sync/tasks"],
+    ["场站数据同步", "/api/v1/sync/tasks"],
     ["充电订单", "/api/v1/orders"],
     ["订单汇总", "/api/v1/orders/summary"],
     ["告警分析", "/api/v1/statistics/faults"],
@@ -285,7 +285,7 @@ test("regulator refresh reaches mounted view readers without applying search dra
     );
     await page.getByRole("button", { name: menu, exact: true }).click();
     expect((await first).status()).toBe(200);
-    if (["注册审核", "权限与账号", "企业台账"].includes(menu))
+    if (["运营商审核", "权限与账号", "场站运营商管理"].includes(menu))
       await page.locator("form.search input").first().fill("unapplied-draft");
     const refreshed = page.waitForResponse(
       (response) => new URL(response.url()).pathname === path,
@@ -293,7 +293,7 @@ test("regulator refresh reaches mounted view readers without applying search dra
     await page.getByRole("button", { name: "刷新数据", exact: true }).click();
     const response = await refreshed;
     expect(response.status()).toBe(200);
-    if (["注册审核", "权限与账号", "企业台账"].includes(menu)) {
+    if (["运营商审核", "权限与账号", "场站运营商管理"].includes(menu)) {
       expect(new URL(response.url()).searchParams.get("q")).toBe("");
       await expect(page.locator("form.search input").first()).toHaveValue(
         "unapplied-draft",

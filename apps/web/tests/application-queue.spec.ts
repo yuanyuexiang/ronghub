@@ -28,7 +28,9 @@ test("application queue reaches history with combined filters and resets after c
     await page.getByLabel("账号", { exact: true }).fill("operator_a");
     await page.getByLabel("密码", { exact: true }).fill(password);
     await page.getByRole("button", { name: "登录平台" }).click();
-    await page.getByRole("button", { name: "场站申请", exact: true }).click();
+    await page
+      .getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true })
+      .click();
     await page.getByLabel("检索申请场站或企业").fill(fixture.name);
     await page.getByLabel("筛选申请类型").selectOption("access");
     await page.getByLabel("筛选申请状态").selectOption("withdrawn");
@@ -58,6 +60,12 @@ test("application queue reaches history with combined filters and resets after c
       }),
     ).toBeVisible();
     await expect(page.getByText("无申请说明", { exact: true })).toBeVisible();
+    await page
+      .getByRole("button", { name: "← 返回申请列表", exact: true })
+      .click();
+    await expect(
+      page.getByText("申请第2页 · 共25条", { exact: true }),
+    ).toBeVisible();
     await page.getByLabel("检索申请编号").fill(String(oldest));
     await page.getByRole("button", { name: "查询申请", exact: true }).click();
     await expect(

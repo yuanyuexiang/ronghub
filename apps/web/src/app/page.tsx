@@ -34,6 +34,7 @@ import { HazardPanel } from "../components/hazard-panel";
 import { InspectionPanel } from "../components/inspection-panel";
 import { SubsidyPanel } from "../components/subsidy-panel";
 import { RatingPanel } from "../components/rating-panel";
+import { StationDirectory } from "../components/station-directory";
 import { StationDetail } from "../components/station-detail";
 import { SyncPanel } from "../components/sync-panel";
 import { ApplicationPanel } from "../components/application-panel";
@@ -83,6 +84,10 @@ export default function Home() {
     [tab, setTab] = useState("工作台");
   const [alertView, setAlertView] = useState<AlertWorkspaceView>("events");
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const navigationGuard = useRef<(() => boolean) | null>(null);
+  const registerLeaveGuard = useCallback((guard: (() => boolean) | null) => {
+    navigationGuard.current = guard;
+  }, []);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [stationPage, setStationPage] = useState(1),
     [stationTotal, setStationTotal] = useState(0),
@@ -357,6 +362,7 @@ export default function Home() {
     me.role === "regulator"
       ? [
           "工作台",
+          "场站汇总",
           "场站台账",
           "场站申请",
           "数据同步",
@@ -392,6 +398,7 @@ export default function Home() {
   if (me.role === "regulator") menu.push("注册审核");
   menu.push("公告与通知", "监管协议", "统计分析");
   const menuPermissions: Record<string, string> = {
+    场站汇总: "statistics.read",
     全域地图: "stations.read",
     场站地图: "stations.read",
     注册审核: "registrations.read",
@@ -467,6 +474,8 @@ export default function Home() {
               tab={tab}
               alertView={alertView}
               onNavigate={(item) => {
+                if (navigationGuard.current && !navigationGuard.current())
+                  return;
                 setTab(item.tab);
                 setAlertView(item.alertView ?? "events");
                 setNavigationOpen(false);
@@ -574,7 +583,7 @@ export default function Home() {
                   {error}
                 </p>
               )}
-              {summary && ["工作台", "场站台账"].includes(tab) && (
+              {summary && tab === "工作台" && (
                 <section className="metrics">
                   {(me.role === "association"
                     ? [
@@ -731,7 +740,11 @@ export default function Home() {
                   permissions={me.permissions}
                 />
               ) : ["企业台账", "企业资料"].includes(tab) ? (
-                <CompanyPanel role={me.role} csrf={me.csrf_token} />
+                <CompanyPanel
+                  role={me.role}
+                  csrf={me.csrf_token}
+                  registerLeaveGuard={registerLeaveGuard}
+                />
               ) : tab === "公告与通知" ? (
                 <ContentPanel role={me.role} csrf={me.csrf_token} />
               ) : tab === "监管协议" ? (
@@ -778,7 +791,15 @@ export default function Home() {
               ) : tab === "数据同步" ? (
                 <SyncPanel csrf={me.csrf_token} />
               ) : tab === "场站申请" ? (
-                <ApplicationPanel role={me.role} csrf={me.csrf_token} />
+                <ApplicationPanel
+                  role={me.role}
+                  csrf={me.csrf_token}
+                  registerLeaveGuard={registerLeaveGuard}
+                />
+              ) : tab === "场站汇总" ? (
+                <DashboardOperations variant="stations" />
+              ) : tab === "场站台账" ? (
+                <StationDirectory onOpen={setDetailId} />
               ) : (
                 <section className="panel">
                   <div className="panel-title">

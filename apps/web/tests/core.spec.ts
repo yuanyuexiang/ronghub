@@ -12,14 +12,12 @@ test("regulator login, station search, durable sync view and logout", async ({
   await page.getByLabel("账号", { exact: true }).fill("regulator");
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
-  await expect(
-    page.getByRole("heading", { name: "运营总览" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
   await expect(page.getByText("演示·鼓楼公共充电站")).toBeVisible();
   await page.getByLabel("搜索场站").fill("不存在的演示场站");
   await page.getByRole("button", { name: "查询", exact: true }).click();
   await expect(page.getByText("当前条件下没有场站数据")).toBeVisible();
-  await page.getByRole("button", { name: "数据同步", exact: true }).click();
+  await page.getByRole("button", { name: "场站数据同步", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "数据同步任务" }),
   ).toBeVisible();
@@ -82,7 +80,9 @@ test("regulator login, station search, durable sync view and logout", async ({
     path: "test-results/regulator-sync.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "场站台账", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(场站台账|场站信息查询)$/, exact: true })
+    .click();
   await page.getByLabel("搜索场站").fill("演示·接口同步场站");
   await page.getByRole("button", { name: "查询", exact: true }).click();
   await page
@@ -90,6 +90,10 @@ test("regulator login, station search, durable sync view and logout", async ({
     .first()
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "设备信息", exact: true })
+    .click();
   await expect(
     page.getByRole("dialog").getByText("演示直流设备"),
   ).toBeVisible();
@@ -108,7 +112,7 @@ test("operator only sees own enterprise stations", async ({ page }) => {
   await expect(page.getByText("演示·晋安便民充电站")).toBeVisible();
   await expect(page.getByText("演示·鼓楼公共充电站")).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "数据同步", exact: true }),
+    page.getByRole("button", { name: "场站数据同步", exact: true }),
   ).toHaveCount(0);
   await page.screenshot({
     path: "test-results/operator-dashboard.png",
@@ -143,7 +147,9 @@ test("operator material submission and regulator approval across browser context
         page.getByRole("heading", { name: "运营总览" }),
       ).toBeVisible();
     }
-    await op.getByRole("button", { name: "场站申请", exact: true }).click();
+    await op
+      .getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true })
+      .click();
     await pickStation(op, "申请场站", fixture);
     const created = op.waitForResponse(
       (r) =>
@@ -204,7 +210,10 @@ test("operator material submission and regulator approval across browser context
       await expect(
         op.getByRole("button", { name: "关闭详情", exact: true }),
       ).toBeDisabled();
-      await op.getByLabel("检索申请编号", { exact: true }).press("Enter");
+      await expect(op.getByLabel("检索申请编号", { exact: true })).toBeHidden();
+      await expect(
+        op.getByRole("button", { name: "← 返回申请列表", exact: true }),
+      ).toBeDisabled();
       await expect(op.getByLabel("申请说明", { exact: true })).toHaveValue(
         "浏览器验收：补充场站资质说明",
       );
@@ -247,9 +256,13 @@ test("operator material submission and regulator approval across browser context
     expect((await updated).status()).toBe(200);
     await expect(submit).toBeEnabled();
     await submit.click();
-    await expect(row).toContainText("待审核");
+    await expect(
+      op.getByRole("region", { name: "申请详情工作区", exact: true }),
+    ).toContainText("待审核");
     await expect(op.getByLabel("上传申请材料")).toHaveCount(0);
-    await reg.getByRole("button", { name: "场站申请", exact: true }).click();
+    await reg
+      .getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true })
+      .click();
     const review = reg
       .getByRole("row")
       .filter({ hasText: `APP-${application.id}` });
@@ -284,7 +297,9 @@ test("operator material submission and regulator approval across browser context
     const approvedResponse = await approvalDone;
     expect(approvedResponse.status()).toBe(200);
     expect((await approvedResponse.json()).status).toBe("approved");
-    await expect(review).toContainText("已通过");
+    await expect(
+      reg.getByRole("region", { name: "申请详情工作区", exact: true }),
+    ).toContainText("已通过");
     await reg.screenshot({
       path: "test-results/regulator-approval.png",
       fullPage: true,

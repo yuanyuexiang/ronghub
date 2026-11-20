@@ -9,9 +9,7 @@ async function login(page: Page, username: string) {
   await page.getByLabel("账号", { exact: true }).fill(username);
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
-  await expect(
-    page.getByRole("heading", { name: "运营总览" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
 }
 test("company contacts are maintained and disabling revokes enterprise sessions", async ({
   browser,
@@ -46,7 +44,9 @@ test("company contacts are maintained and disabling revokes enterprise sessions"
     await op.getByLabel("联系人2电话").fill("100002");
     await op.getByRole("button", { name: "保存企业资料" }).click();
     await expect(op.getByText("演示联系人乙", { exact: true })).toBeVisible();
-    await reg.getByRole("button", { name: "企业台账", exact: true }).click();
+    await reg
+      .getByRole("button", { name: /^(企业台账|场站运营商管理)$/, exact: true })
+      .click();
     await reg.getByLabel("搜索企业名称").fill(fixture.name);
     await reg.getByRole("button", { name: "查询企业", exact: true }).click();
     await reg
@@ -57,13 +57,22 @@ test("company contacts are maintained and disabling revokes enterprise sessions"
       .getByRole("button", { name: "查看企业资料" })
       .click();
     await expect(reg.getByText("演示联系人甲", { exact: true })).toBeVisible();
+    await reg
+      .getByRole("button", { name: "返回运营商列表", exact: true })
+      .click();
     const exportLink = reg.getByRole("link", { name: "导出企业CSV" });
     await expect(exportLink).toBeVisible();
     const csv = await reg.request.get((await exportLink.getAttribute("href"))!);
     expect(csv.status()).toBe(200);
     expect(await csv.text()).toContain(fixture.name);
+    await reg
+      .getByRole("button", { name: "查看企业资料", exact: true })
+      .click();
     await reg.getByLabel("企业启停原因").fill("演示账号停用验证");
     await reg.getByRole("button", { name: "停用企业账号" }).click();
+    await reg
+      .getByRole("button", { name: "返回运营商列表", exact: true })
+      .click();
     await expect(
       reg.getByRole("row").filter({
         has: reg.getByRole("cell", { name: fixture.name, exact: true }),

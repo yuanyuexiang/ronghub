@@ -62,7 +62,7 @@ test("enterprise enrollment materials, regulatory approval and first platform lo
     await reg.getByLabel("账号", { exact: true }).fill("regulator");
     await reg.getByLabel("密码", { exact: true }).fill(password);
     await reg.getByRole("button", { name: "登录平台" }).click();
-    await reg.getByRole("button", { name: "注册审核", exact: true }).click();
+    await reg.getByRole("button", { name: /^(注册审核|运营商审核)$/, exact: true }).click();
     const row = reg.getByRole("row").filter({
       has: reg.getByRole("cell", { name: `REG-${id}`, exact: true }),
     });

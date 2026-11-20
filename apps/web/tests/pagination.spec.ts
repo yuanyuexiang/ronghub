@@ -23,7 +23,7 @@ test("station ledger and application picker reach records beyond the first page"
     await expect(
       page.getByRole("heading", { name: "运营总览" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "场站台账", exact: true }).click();
+    await page.getByRole("button", { name: /^(场站台账|场站信息查询)$/, exact: true }).click();
     await page.getByRole("button", { name: "场站下一页", exact: true }).click();
     await expect(page.getByText(target.name, { exact: true })).toBeVisible();
     await page.getByLabel("搜索场站", { exact: true }).fill(target.name);
@@ -31,7 +31,7 @@ test("station ledger and application picker reach records beyond the first page"
     await expect(
       page.getByText("第1页 · 共1个场站", { exact: true }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "场站申请", exact: true }).click();
+    await page.getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true }).click();
     await page
       .getByRole("button", { name: "申请场站下一页", exact: true })
       .click();

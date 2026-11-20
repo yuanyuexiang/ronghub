@@ -67,7 +67,7 @@ test("configured read-only role hides writes and revokes the prior session", asy
     ).toHaveCount(0);
     await expect(op.getByText("已审定补贴", { exact: true })).toHaveCount(0);
     await expect(op.getByText("undefined", { exact: true })).toHaveCount(0);
-    await op.getByRole("button", { name: "场站申请", exact: true }).click();
+    await op.getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true }).click();
     await expect(
       op.getByRole("heading", { name: "我的场站申请" }),
     ).toBeVisible();

@@ -87,7 +87,9 @@ test("rejected replacement retains the first submitted file and immutable contac
         })
       ).status(),
     ).toBe(200);
-    await op.getByRole("button", { name: "场站申请", exact: true }).click();
+    await op
+      .getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true })
+      .click();
     await op
       .getByLabel("检索申请编号", { exact: true })
       .fill(String(application.id));
@@ -126,7 +128,7 @@ test("rejected replacement retains the first submitted file and immutable contac
     ).toBeVisible();
     await op.getByRole("button", { name: "提交审核", exact: true }).click();
     await expect(
-      op.getByRole("row").filter({ hasText: `APP-${application.id}` }),
+      op.getByRole("region", { name: "申请详情工作区", exact: true }),
     ).toContainText("待审核");
     await evidence
       .getByRole("button", { name: "历次送审版本", exact: true })
@@ -147,7 +149,14 @@ test("rejected replacement retains the first submitted file and immutable contac
     });
     await expect(link).toBeVisible();
     const evidenceBox = await evidence.boundingBox();
-    expect(evidenceBox!.width).toBeGreaterThan(900);
+    const workspace = await op
+      .getByRole("region", { name: "申请详情工作区", exact: true })
+      .boundingBox();
+    const actions = await op
+      .getByRole("heading", { name: "当前操作", exact: true })
+      .boundingBox();
+    expect(evidenceBox!.width).toBeGreaterThan(workspace!.width * 0.5);
+    expect(evidenceBox!.x + evidenceBox!.width).toBeLessThanOrEqual(actions!.x);
     await evidence.screenshot({
       path: "test-results/application-evidence-desktop.png",
     });

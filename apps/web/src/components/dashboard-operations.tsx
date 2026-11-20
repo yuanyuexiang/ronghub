@@ -34,7 +34,11 @@ function initial() {
     }).format(new Date()),
   };
 }
-export function DashboardOperations() {
+export function DashboardOperations({
+  variant = "operations",
+}: {
+  variant?: "operations" | "stations";
+}) {
   const [draft, setDraft] = useState(initial),
     [query, setQuery] = useState(initial),
     [data, setData] = useState<Report | null>(null),
@@ -67,10 +71,15 @@ export function DashboardOperations() {
     return () => controller.abort();
   }, [query, revision]);
   return (
-    <section className="panel operations-dashboard" aria-label="运营周期总览">
+    <section
+      className="panel operations-dashboard"
+      aria-label={variant === "stations" ? "场站统计汇总" : "运营周期总览"}
+    >
       <div className="panel-title">
         <div>
-          <h2>运营数据概览</h2>
+          <h2>
+            {variant === "stations" ? "场站接入与充电数据汇总" : "运营数据概览"}
+          </h2>
           <p>当前场站分布与独立来源的周期观测</p>
         </div>
       </div>
@@ -130,41 +139,85 @@ export function DashboardOperations() {
       )}
       {data && (
         <>
-          <div className="operations-stock">
-            <article>
-              <span>当前台账场站</span>
-              <strong>
-                {data.current_stations}
-                <small>站</small>
-              </strong>
-            </article>
-            <article>
-              <span>当前设备记录</span>
-              <strong>
-                {data.current_equipment}
-                <small>台</small>
-              </strong>
-              <p className="muted">
-                台账额定功率 {number(data.current_equipment_power_kw)} kW
-              </p>
-            </article>
-            <article>
-              <span>有场站的运营商</span>
-              <strong>
-                {data.operators_with_stations}
-                <small>家</small>
-              </strong>
-            </article>
-            {data.approved_company_records != null && (
+          {variant === "stations" ? (
+            <div className="operations-stock station-summary-stock">
+              {[
+                ["台账场站总数", data.current_stations, "个"],
+                [
+                  "已标注充电站",
+                  data.station_types.find((item) => item.key === "charging")
+                    ?.count ?? 0,
+                  "个",
+                ],
+                [
+                  "已标注换电站",
+                  data.station_types.find((item) => item.key === "swapping")
+                    ?.count ?? 0,
+                  "个",
+                ],
+                [
+                  "设备额定总功率",
+                  number(data.current_equipment_power_kw),
+                  "kW",
+                ],
+                [
+                  "类型待完善",
+                  data.station_types.find((item) => item.key === "unknown")
+                    ?.count ?? 0,
+                  "个",
+                ],
+              ].map(([label, value, unit]) => (
+                <article key={String(label)}>
+                  <span>{label}</span>
+                  <strong>
+                    {value}
+                    <small>{unit}</small>
+                  </strong>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="operations-stock">
               <article>
-                <span>有审核通过记录的企业</span>
+                <span>当前台账场站</span>
                 <strong>
-                  {data.approved_company_records}
+                  {data.current_stations}
+                  <small>站</small>
+                </strong>
+              </article>
+              <article>
+                <span>当前设备记录</span>
+                <strong>
+                  {data.current_equipment}
+                  <small>台</small>
+                </strong>
+                <p className="muted">
+                  台账额定功率 {number(data.current_equipment_power_kw)} kW
+                </p>
+              </article>
+              <article>
+                <span>有场站的运营商</span>
+                <strong>
+                  {data.operators_with_stations}
                   <small>家</small>
                 </strong>
               </article>
-            )}
-          </div>
+              {data.approved_company_records != null && (
+                <article>
+                  <span>有审核通过记录的企业</span>
+                  <strong>
+                    {data.approved_company_records}
+                    <small>家</small>
+                  </strong>
+                </article>
+              )}
+            </div>
+          )}
+          {variant === "stations" && (
+            <p className="station-summary-notice">
+              分类数量依据已明确标注的场站记录；充换电混合场站另列分类。电池柜、包数量和正式来源口径仍待对接。
+            </p>
+          )}
           <div className="operations-distributions">
             {(
               [
@@ -202,7 +255,7 @@ export function DashboardOperations() {
             </strong>
             <p>订单按开始时间，日电量按业务日；来源分别显示。</p>
           </div>
-          {data.orders !== null && (
+          {variant !== "stations" && data.orders !== null && (
             <section
               className="operations-observations"
               aria-label="总览订单观测"
@@ -238,7 +291,7 @@ export function DashboardOperations() {
               </div>
             </section>
           )}
-          {data.energy !== null && (
+          {variant !== "stations" && data.energy !== null && (
             <section
               className="operations-observations"
               aria-label="总览日能量观测"
@@ -267,7 +320,7 @@ export function DashboardOperations() {
               </div>
             </section>
           )}
-          {data.approvals && (
+          {variant !== "stations" && data.approvals && (
             <section className="operations-approvals">
               <h3>接入申请当前状态</h3>
               <p>
