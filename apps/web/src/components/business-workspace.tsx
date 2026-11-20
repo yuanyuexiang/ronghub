@@ -1,5 +1,6 @@
 "use client";
 
+import { useSidebarViews } from "./business-view-context";
 import { useEffect } from "react";
 
 export type LeaveGuardRegistrar = (guard: (() => boolean) | null) => void;
@@ -41,13 +42,17 @@ export function WorkspaceViews({
   items,
   onChange,
   disabled = false,
+  keepVisible = false,
 }: {
   label: string;
   value: string;
   items: readonly (readonly [string, string])[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  keepVisible?: boolean;
 }) {
+  const sidebar = useSidebarViews();
+  if (sidebar && !keepVisible) return null;
   return (
     <nav className="business-view-navigation" aria-label={label}>
       {items.map(([key, name]) => (

@@ -1,4 +1,5 @@
 "use client";
+import { useBusinessView, useSidebarViews } from "./business-view-context";
 import {
   useWorkspaceLeave,
   type LeaveGuardRegistrar,
@@ -57,7 +58,25 @@ export function AlertPanel({
     view === "notifications" && !manageNotifications ? "events" : view;
   const canSamples = useCapability("alerts.samples");
   const canAcknowledge = useCapability("alerts.acknowledge");
+  const [category] = useBusinessView("");
+  const sidebarViews = useSidebarViews();
   const queue = useBusinessQueue(loadAlertQueue);
+  useEffect(() => {
+    if (
+      sidebarViews &&
+      currentView === "events" &&
+      [
+        "",
+        "station_metric",
+        "device_charging",
+        "device_offline",
+        "device_fault",
+        "energy_power",
+        "unconnected_device",
+      ].includes(category)
+    )
+      queue.apply({ category: category as AlertCategory | "" });
+  }, [category, currentView, sidebarViews]);
   const events = queue.rows;
   const [rules, setRules] = useState<Rule[]>([]),
     [sid, setSid] = useState(""),
@@ -217,7 +236,11 @@ export function AlertPanel({
                 刷新告警
               </button>
             </div>
-            <nav className="alert-category-tabs" aria-label="告警数据分类">
+            <nav
+              className="alert-category-tabs"
+              hidden={sidebarViews}
+              aria-label="告警数据分类"
+            >
               {[
                 ["", "全部告警"],
                 ["station_metric", "电站指标告警"],
@@ -612,7 +635,7 @@ export function AlertPanel({
         className="alert-workspace-pane business-stack"
         hidden={currentView !== "rules"}
       >
-        <AlertConfiguration role={role} csrf={csrf} />
+        <AlertConfiguration key={category} role={role} csrf={csrf} />
         <section className="panel">
           <div className="panel-title">
             <div>

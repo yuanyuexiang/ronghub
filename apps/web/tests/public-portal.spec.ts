@@ -12,7 +12,9 @@ async function login(page: Page) {
   await expect(
     page.getByRole("button", { name: "退出登录", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "公告与通知", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
+    .click();
 }
 async function draft(page: Page, title: string, publicly: boolean) {
   const back = page.getByRole("button", { name: "关闭内容详情", exact: true });

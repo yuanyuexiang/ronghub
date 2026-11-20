@@ -1,4 +1,5 @@
 "use client";
+import { useBusinessView } from "./business-view-context";
 import {
   WorkspaceViews,
   useWorkspaceLeave,
@@ -80,7 +81,11 @@ export function RatingPanel({
   const canStations = useCapability("stations.read");
   const canDataSupport = canStatistics && canStations;
   const api = ratingApi(csrf, onChanged);
-  const queue = useBusinessQueue(loadRatingQueue);
+  const [view, setView] = useBusinessView("applications");
+  const queue = useBusinessQueue(
+    loadRatingQueue,
+    view === "results" ? { status: "reviewed" } : {},
+  );
   const apps = queue.rows;
 
   const globalScope = useGlobalScope();
@@ -209,7 +214,6 @@ export function RatingPanel({
           (reviewScores[i.code] ?? "") !==
             String(detail!.current_scores?.[i.code] ?? ""),
       ));
-  const [view, setView] = useState("applications");
   const workspaceRef = useRecordFocus(detail?.id);
   const reviewDirty =
     !!detail &&
@@ -542,26 +546,32 @@ export function RatingPanel({
       </div>
       <section
         className="panel"
-        hidden={!detail && !["applications", "process"].includes(view)}
+        hidden={
+          !detail && !["applications", "process", "results"].includes(view)
+        }
       >
         <div className="record-pane" hidden={!!detail}>
           <div className="panel-title">
             <div>
               <h2>
-                {view === "process"
-                  ? "评审过程管理"
-                  : view === "data"
-                    ? "数据支撑评价"
-                    : role === "association"
-                      ? "星级申报与评审"
-                      : "星级申报及结果"}
+                {view === "results"
+                  ? "评价结果查看"
+                  : view === "process"
+                    ? "评审过程管理"
+                    : view === "data"
+                      ? "数据支撑评价"
+                      : role === "association"
+                        ? "星级申报与评审"
+                        : "星级申报及结果"}
               </h2>
               <p>
-                {view === "process"
-                  ? "按申报状态和提交时间定位事项，进入详情核对提交、复核与公示记录。"
-                  : view === "data"
-                    ? "进入评价依据核对指标原始值、数据来源与缺项；资料不足不推定为零分或有效星级。"
-                    : "每次评定保留标准版本、初始分、人工修改和公示历史"}
+                {view === "results"
+                  ? "按申报查看评审分数、建议星级与结果状态；默认展示已复核待公示记录，可按状态查询历史结果。公示与有效星级请进入公示查询。"
+                  : view === "process"
+                    ? "按申报状态和提交时间定位事项，进入详情核对提交、复核与公示记录。"
+                    : view === "data"
+                      ? "进入评价依据核对指标原始值、数据来源与缺项；资料不足不推定为零分或有效星级。"
+                      : "每次评定保留标准版本、初始分、人工修改和公示历史"}
               </p>
             </div>
             <button

@@ -20,6 +20,14 @@ export async function returnToBusinessList(page: Page, module: string) {
   if (views[module]) {
     const [label, name] = views[module];
     const nav = page.getByRole("navigation", { name: label, exact: true });
+    if (!(await nav.isVisible())) {
+      await page
+        .getByRole("navigation", { name: "业务模块导航", exact: true })
+        .getByRole("button", { name, exact: true })
+        .click();
+      await expect(button).not.toBeVisible();
+      return;
+    }
     await expect(nav).toBeVisible();
     const item = nav.getByRole("button", { name: name, exact: true });
     if (await item.isVisible()) await item.click();

@@ -211,7 +211,7 @@ test("subsidy workspaces separate policy and statistics while protecting the sta
       page.getByLabel("补贴检索名称", { exact: true }),
     ).not.toBeVisible();
     await page
-      .getByRole("button", { name: "设备电量数据", exact: true })
+      .getByRole("button", { name: /^(设备电量数据|电量数据)$/, exact: true })
       .click();
     await expect(
       page.getByRole("region", { name: "设备日观测", exact: true }),
@@ -265,7 +265,10 @@ test("rating details distinguish proposed and effective stars and preserve list 
       page.getByText("星级第2页 · 共25条", { exact: true }),
     ).toBeVisible();
     await page
-      .getByRole("button", { name: "评价结果与公示", exact: true })
+      .getByRole("button", {
+        name: /^(评价结果与公示|公示查询查看)$/,
+        exact: true,
+      })
       .click();
     await expect(
       page.getByRole("heading", { name: "星级公示查询", exact: true }),

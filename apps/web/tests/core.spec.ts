@@ -81,7 +81,10 @@ test("regulator login, station search, durable sync view and logout", async ({
     fullPage: true,
   });
   await page
-    .getByRole("button", { name: /^(场站台账|场站信息查询)$/, exact: true })
+    .getByRole("button", {
+      name: /^(场站台账|场站信息查询|场站数据同步与场站信息查询)$/,
+      exact: true,
+    })
     .click();
   await page.getByLabel("搜索场站").fill("演示·接口同步场站");
   await page.getByRole("button", { name: "查询", exact: true }).click();

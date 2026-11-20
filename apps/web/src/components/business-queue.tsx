@@ -164,9 +164,11 @@ export async function loadAlertQueue(query: QueueQuery, signal: AbortSignal) {
 type Page<T> = { items: T[]; total: number; page: number; page_size: number };
 export function useBusinessQueue<T>(
   loadPage: (query: QueueQuery, signal: AbortSignal) => Promise<Page<T>>,
+  defaults: Partial<QueueQuery> = {},
 ) {
-  const [query, setQuery] = useState(initial),
-    [draft, setDraft] = useState(initial),
+  const [baseline] = useState(() => ({ ...initial, ...defaults }));
+  const [query, setQuery] = useState(baseline),
+    [draft, setDraft] = useState(baseline),
     [rows, setRows] = useState<T[]>([]);
   const [total, setTotal] = useState(0),
     [loading, setLoading] = useState(true),
@@ -212,8 +214,8 @@ export function useBusinessQueue<T>(
     };
   }, [query, reload, pageRefreshRevision]);
   const reset = () => {
-    setDraft(initial);
-    setQuery({ ...initial });
+    setDraft(baseline);
+    setQuery({ ...baseline });
   };
   return {
     rows,

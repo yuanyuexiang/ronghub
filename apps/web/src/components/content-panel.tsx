@@ -1,4 +1,5 @@
 "use client";
+import { useBusinessView } from "./business-view-context";
 import { useRecordFocus } from "./use-record-focus";
 import {
   useWorkspaceLeave,
@@ -129,9 +130,45 @@ export function ContentPanel({
     [publishAt, setPublishAt] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [contentView] = useBusinessView(
+    role === "regulator" ? "information" : "all",
+  );
   const [kindFilter, setKindFilter] = useState<
-    "" | "announcement" | "news" | "notice" | "protocol" | "contact"
-  >("");
+    | ""
+    | "announcement"
+    | "news"
+    | "notice"
+    | "protocol"
+    | "contact"
+    | "information"
+  >(
+    contentView === "notice"
+      ? "notice"
+      : contentView === "protocol"
+        ? "protocol"
+        : contentView === "information"
+          ? "information"
+          : "",
+  );
+  const newDraft = {
+    ...empty,
+    kind:
+      contentView === "notice"
+        ? "notice"
+        : contentView === "protocol"
+          ? "protocol"
+          : "announcement",
+    audience: contentView === "notice" ? "operator" : "all",
+  };
+  const availableKinds = Object.entries(kinds).filter(([key]) =>
+    contentView === "notice"
+      ? key === "notice"
+      : contentView === "protocol"
+        ? key === "protocol"
+        : contentView === "information"
+          ? !["notice", "protocol"].includes(key)
+          : true,
+  );
   const replyImageSequence = useRef(1);
   const replyObjectUrls = useRef(new Set<string>());
   useEffect(() => {
@@ -436,7 +473,13 @@ export function ContentPanel({
         >
           <div className="panel-title">
             <div>
-              <h2>内容发布管理</h2>
+              <h2>
+                {contentView === "notice"
+                  ? "自定义通知发布"
+                  : contentView === "protocol"
+                    ? "监管协议内容维护"
+                    : "资讯发布管理"}
+              </h2>
               <p>草稿可修改，发布后冻结正文；支持定向企业与定时可见</p>
             </div>
             <div className="action-row">
@@ -456,7 +499,7 @@ export function ContentPanel({
                   onClick={() => {
                     if (!canLeave()) return;
                     setManage(true);
-                    setDraft(empty);
+                    setDraft(newDraft);
                     setEditing(null);
                     setShowForm(!showForm);
                   }}
@@ -529,7 +572,7 @@ export function ContentPanel({
                     })
                   }
                 >
-                  {Object.entries(kinds).map(([v, n]) => (
+                  {availableKinds.map(([v, n]) => (
                     <option key={v} value={v}>
                       {n}
                     </option>
@@ -799,6 +842,7 @@ export function ContentPanel({
                 onChange={(event) => {
                   const value = event.target.value;
                   if (
+                    value === "information" ||
                     value === "" ||
                     value === "announcement" ||
                     value === "news" ||
@@ -811,8 +855,11 @@ export function ContentPanel({
                   }
                 }}
               >
-                <option value="">全部分类</option>
-                {Object.entries(kinds).map(([key, label]) => (
+                {contentView === "all" && <option value="">全部分类</option>}
+                {contentView === "information" && (
+                  <option value="information">资讯与公告</option>
+                )}
+                {availableKinds.map(([key, label]) => (
                   <option key={key} value={key}>
                     {label}
                   </option>

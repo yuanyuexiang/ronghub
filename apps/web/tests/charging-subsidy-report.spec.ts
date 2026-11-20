@@ -39,7 +39,9 @@ test("combined report keeps source identities, all-query totals and real Excel d
       contexts.map((context) => context.newPage()),
     );
     await login(own, "operator_a");
-    await own.getByRole("button", { name: "统计分析", exact: true }).click();
+    await own
+      .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
+      .click();
     await own
       .getByRole("button", { name: "充电与补贴报表", exact: true })
       .click();
@@ -82,7 +84,7 @@ test("combined report keeps source identities, all-query totals and real Excel d
     expect(readFileSync(path!).subarray(0, 2).toString()).toBe("PK");
     copyFileSync(path!, "test-results/charging-subsidy-sample.xlsx");
     await own
-      .getByRole("button", { name: "观测电量分析", exact: true })
+      .getByRole("button", { name: /^(观测电量分析|充电量统计)$/, exact: true })
       .click();
     await own
       .getByRole("button", { name: "充电与补贴报表", exact: true })
@@ -101,7 +103,9 @@ test("combined report keeps source identities, all-query totals and real Excel d
       fullPage: true,
     });
     await login(reg, "regulator");
-    await reg.getByRole("button", { name: "统计分析", exact: true }).click();
+    await reg
+      .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
+      .click();
     await reg
       .getByRole("button", { name: "充电与补贴报表", exact: true })
       .click();
@@ -110,7 +114,7 @@ test("combined report keeps source identities, all-query totals and real Excel d
     ).toBeVisible();
     await login(association, "association");
     await association
-      .getByRole("button", { name: "统计分析", exact: true })
+      .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
       .click();
     await expect(
       association.getByLabel("充电与补贴综合报表", { exact: true }),

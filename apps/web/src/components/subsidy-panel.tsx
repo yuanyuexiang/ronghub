@@ -1,4 +1,5 @@
 "use client";
+import { useBusinessView } from "./business-view-context";
 import {
   WorkspaceViews,
   useWorkspaceLeave,
@@ -98,7 +99,8 @@ export function SubsidyPanel({
     [energy, setEnergy] = useState<ApiSchemas["SubsidyEnergyItem"][]>([]);
   const busy =
     operationBusy || batchOpen || batchBusy || evidenceBusy || annualBusy;
-  const [view, setView] = useState("claims");
+  const [routeView, setView] = useBusinessView("claims");
+  const view = routeView.split(".")[0];
   const [evidenceDirty, setEvidenceDirty] = useState(false);
   const workspaceRef = useRecordFocus(detail?.id);
   const canLeave = useWorkspaceLeave(

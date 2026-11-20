@@ -21,7 +21,7 @@ async function login(page: Page, name: string) {
 async function open(page: Page, id: number, operator: boolean) {
   await page
     .getByRole("button", {
-      name: operator ? "整改任务" : "巡检督办",
+      name: operator ? "整改任务" : "巡检任务管理",
       exact: true,
     })
     .click();

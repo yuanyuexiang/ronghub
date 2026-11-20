@@ -83,7 +83,7 @@ test("station summary and directory remain distinct, export applied filters, and
       fullPage: true,
     });
     await page
-      .getByRole("button", { name: "场站信息查询", exact: true })
+      .getByRole("button", { name: "场站数据同步与场站信息查询", exact: true })
       .click();
     const source = await (
       await page.request.get(`/api/v1/stations/${value.station_id}`)
@@ -306,7 +306,7 @@ test("company detail guards unsaved edits and preserves the operator query when 
     );
     page.once("dialog", (dialog) => dialog.dismiss());
     await page
-      .getByRole("button", { name: "场站信息查询", exact: true })
+      .getByRole("button", { name: "场站数据同步与场站信息查询", exact: true })
       .click();
     await expect(detail).toBeVisible();
     await page.screenshot({

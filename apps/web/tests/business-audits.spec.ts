@@ -91,7 +91,9 @@ test("committed subsidy adjustment exposes exact before and after amounts in aud
         await reg.request.post(url, { headers: regHeaders, data: adjustment })
       ).status(),
     ).toBe(409);
-    await reg.getByRole("button", { name: "操作日志", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "系统操作日志", exact: true })
+      .click();
     await reg.getByLabel("动作代码", { exact: true }).fill("subsidy.adjust");
     await reg
       .getByLabel("业务对象编号", { exact: true })

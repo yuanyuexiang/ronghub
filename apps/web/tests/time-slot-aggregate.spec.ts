@@ -40,7 +40,9 @@ test("multi-station slots keep the authorized cohort and exact independent meter
   try {
     const page = await context.newPage();
     await login(page, "operator_a");
-    await page.getByRole("button", { name: "充电时段", exact: true }).click();
+    await page
+      .getByRole("button", { name: /^(充电时段|充电时段统计)$/, exact: true })
+      .click();
     await page.getByRole("button", { name: "多站汇总", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "授权范围多站时段汇总", exact: true }),

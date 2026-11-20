@@ -19,7 +19,9 @@ async function login(page: Page, name: string) {
   await expect(page.getByRole("button", { name: "退出登录" })).toBeVisible();
 }
 async function open(page: Page, title: string) {
-  await page.getByRole("button", { name: "公告与通知", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
+    .click();
   await page.getByLabel("搜索内容标题", { exact: true }).fill(title);
   await page.getByRole("button", { name: "查询内容", exact: true }).click();
   const row = page

@@ -1,4 +1,5 @@
 "use client";
+import { useBusinessView } from "./business-view-context";
 import { useEffect, useRef, useState } from "react";
 import { alertLevelLabel } from "../lib/alert-labels";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -51,6 +52,24 @@ export function AlertConfiguration({
   role: string;
   csrf: string;
 }) {
+  const [workspaceView] = useBusinessView("");
+  const kindGroup =
+    workspaceView === "station_metric"
+      ? "station"
+      : workspaceView === "device_charging"
+        ? "device"
+        : undefined;
+  const newForm = () => ({
+    ...initial(),
+    period:
+      kindGroup === "station"
+        ? ("natural_month" as const)
+        : ("instant" as const),
+    kind:
+      kindGroup === "station"
+        ? ("station_utilization" as const)
+        : ("device_temperature" as const),
+  });
   const canRules = useCapability("alerts.rules");
   const globalScope = useGlobalScope();
   const manage = canRules && globalScope && role === "regulator";
@@ -63,7 +82,7 @@ export function AlertConfiguration({
     [query, setQuery] = useState({ q: "", page: 1, include_archived: false }),
     [reload, setReload] = useState(0);
   const [selected, setSelected] = useState<Rule | null>(null),
-    [form, setForm] = useState(initial),
+    [form, setForm] = useState<ReturnType<typeof initial>>(newForm),
     [showForm, setShowForm] = useState(false),
     [busy, setBusy] = useState(false),
     [writeError, setWriteError] = useState("");
@@ -85,7 +104,7 @@ export function AlertConfiguration({
       .GET("/api/v1/alerts/configured-rules", {
         signal: controller.signal,
         cache: "no-store",
-        params: { query: { ...query, page_size: 20 } },
+        params: { query: { ...query, kind_group: kindGroup, page_size: 20 } },
       })
       .then((result) => {
         if (controller.signal.aborted || sequence.current !== current) return;
@@ -110,7 +129,7 @@ export function AlertConfiguration({
           setLoading(false);
       });
     return () => controller.abort();
-  }, [query, revision, reload]);
+  }, [query, revision, reload, kindGroup]);
   function configuration(): Configuration {
     const thresholds: Configuration["thresholds"] = {};
     for (const key of ["general", "severe", "critical"] as const)
@@ -250,7 +269,7 @@ export function AlertConfiguration({
             className="outline"
             disabled={busy}
             onClick={() => {
-              setForm(initial());
+              setForm(newForm());
               setShowForm(true);
               setPreview(null);
               setWriteError("");

@@ -67,11 +67,9 @@ test("order summary shows partial metric coverage and pages equipment groups wit
     await expect(
       operator.getByText("汇总第1页 · 共1组", { exact: true }),
     ).toBeVisible();
-    const station = operator
-      .getByRole("row")
-      .filter({
-        has: operator.getByRole("cell").filter({ hasText: fixture.name }),
-      });
+    const station = operator.getByRole("row").filter({
+      has: operator.getByRole("cell").filter({ hasText: fixture.name }),
+    });
     await expect(station).toContainText("252.000000");
     await expect(station).toContainText("79200");
     await expect(station).toContainText("296.16");
@@ -94,11 +92,9 @@ test("order summary shows partial metric coverage and pages equipment groups wit
     await expect(
       operator.getByText("汇总第1页 · 共25组", { exact: true }),
     ).toBeVisible();
-    const missing = operator
-      .getByRole("row")
-      .filter({
-        has: operator.getByText("browser-equipment-000", { exact: true }),
-      });
+    const missing = operator.getByRole("row").filter({
+      has: operator.getByText("browser-equipment-000", { exact: true }),
+    });
     await expect(missing.getByText("暂无数据", { exact: true })).toHaveCount(3);
     await operator
       .getByRole("button", { name: "汇总下一页", exact: true })

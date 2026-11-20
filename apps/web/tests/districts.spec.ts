@@ -9,9 +9,7 @@ async function login(page: Page, username: string) {
   await page.getByLabel("账号", { exact: true }).fill(username);
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
-  await expect(
-    page.getByRole("heading", { name: "运营总览" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
 }
 test("district assignment narrows the same enterprise and scopes exports", async ({
   browser,
@@ -56,7 +54,7 @@ test("district assignment narrows the same enterprise and scopes exports", async
     });
     expect(response.status()).toBe(201);
     profileId = (await response.json()).id;
-    await reg.getByRole("button", { name: "权限与账号", exact: true }).click();
+    await reg.getByRole("button", { name: "账号管理", exact: true }).click();
     await reg.getByLabel("搜索账号").fill(fixture.username);
     await reg.getByRole("button", { name: "查询账号", exact: true }).click();
     const row = reg.getByRole("row").filter({

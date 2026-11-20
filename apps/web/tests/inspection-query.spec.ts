@@ -93,7 +93,9 @@ with SessionLocal.begin() as db:
     );
     const reg = await contexts[0].newPage();
     await login(reg, "regulator");
-    await reg.getByRole("button", { name: "巡检督办", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "巡检任务管理", exact: true })
+      .click();
     await reg.getByLabel("巡检检索名称", { exact: true }).fill(value.name);
     await reg
       .getByLabel("巡检创建开始日期", { exact: true })

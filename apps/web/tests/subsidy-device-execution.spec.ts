@@ -42,7 +42,9 @@ test("device claim freezes historical evidence through materials review and disb
     const reg = await contexts[0].newPage(),
       owner = await contexts[1].newPage();
     await login(reg, "regulator");
-    await reg.getByRole("button", { name: "补贴管理", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "补贴申请记录", exact: true })
+      .click();
     await reg
       .getByRole("button", { name: "补贴规则配置", exact: true })
       .click();
@@ -129,7 +131,9 @@ test("device claim freezes historical evidence through materials review and disb
       .getByRole("button", { name: "提交补贴审核", exact: true })
       .click();
     expect((await submitted).status()).toBe(200);
-    await reg.getByRole("button", { name: "补贴管理", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "补贴申请记录", exact: true })
+      .click();
     await returnToBusinessList(reg, "补贴");
     await reg.getByLabel("补贴检索编号").fill(String(claim.id));
     await reg

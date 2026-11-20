@@ -116,7 +116,9 @@ test("subsidy statement and real ZIP freeze on submit and remain private in revi
       path: "test-results/subsidy-evidence-frozen.png",
       fullPage: true,
     });
-    await reg.getByRole("button", { name: "补贴管理", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "补贴申请记录", exact: true })
+      .click();
     await reg
       .getByLabel("补贴检索编号", { exact: true })
       .fill(String(claim.id));

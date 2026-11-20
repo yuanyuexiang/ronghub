@@ -1,4 +1,5 @@
 "use client";
+import { useBusinessView } from "./business-view-context";
 import { WorkspaceViews } from "./business-workspace";
 import { useRecordFocus } from "./use-record-focus";
 import {
@@ -113,12 +114,16 @@ export function ApplicationPanel({
     else closeDetail();
   }
   const workspaceRef = useRecordFocus(detail?.id);
-  const [applicationView, setApplicationView] = useState("all");
+  const [applicationView, setApplicationView] = useBusinessView("all");
   const canSource = useCapability("stations.read");
   const [materialRevision, setMaterialRevision] = useState(0);
   const [review, setReview] = useState<ApplicationReviewState | null>(null);
-  const [query, setQuery] = useState(initialQuery),
-    [draft, setDraft] = useState(initialQuery);
+  const initialViewQuery = {
+    ...initialQuery,
+    kind: applicationView === "all" ? "" : applicationView,
+  };
+  const [query, setQuery] = useState(initialViewQuery),
+    [draft, setDraft] = useState(initialViewQuery);
   const [total, setTotal] = useState(0),
     [listLoading, setListLoading] = useState(true);
   const listSequence = useRef(0),
@@ -272,6 +277,7 @@ export function ApplicationPanel({
     <section ref={workspaceRef} className="panel application-workspace">
       <div className="record-pane" hidden={!!detail}>
         <WorkspaceViews
+          keepVisible
           label="场站申请业务视图"
           value={applicationView}
           disabled={busy || materialBusy || editorBusy || listLoading}

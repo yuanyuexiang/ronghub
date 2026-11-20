@@ -139,7 +139,9 @@ test("subsidy snapshot approval and association rating publication", async ({
     ).toBeEnabled();
     await op.getByRole("button", { name: "提交补贴审核" }).click();
     await expect(opRow).toContainText("待审核");
-    await reg.getByRole("button", { name: "补贴管理", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "补贴申请记录", exact: true })
+      .click();
     await reg
       .getByLabel("补贴检索编号", { exact: true })
       .fill(String(claim.id));
@@ -377,7 +379,10 @@ test("subsidy snapshot approval and association rating publication", async ({
     await op.getByRole("button", { name: "提交星级申报" }).click();
     await returnToBusinessList(op, "星级");
     await op
-      .getByRole("button", { name: "评价结果与公示", exact: true })
+      .getByRole("button", {
+        name: /^(评价结果与公示|公示查询查看)$/,
+        exact: true,
+      })
       .click();
     await expect(op.getByTestId(`publication-${rating.id}`)).toBeVisible();
     await returnToBusinessList(assoc, "星级");
@@ -416,7 +421,10 @@ test("subsidy snapshot approval and association rating publication", async ({
     await expect(appealCard).not.toContainText("演示评定 5 星");
     await returnToBusinessList(assoc, "星级");
     await assoc
-      .getByRole("button", { name: "评价结果与公示", exact: true })
+      .getByRole("button", {
+        name: /^(评价结果与公示|公示查询查看)$/,
+        exact: true,
+      })
       .click();
     await assoc.getByLabel("公示结果状态").selectOption("delisted");
     await assoc.getByLabel("公示场站企业").fill(fixture.name);
@@ -461,7 +469,9 @@ test("inspection assignment, enterprise reply and regulator review", async ({
       op = await opContext.newPage();
     await login(reg, "regulator");
     await login(op, "operator_a");
-    await reg.getByRole("button", { name: "巡检督办", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "巡检任务管理", exact: true })
+      .click();
     await pickStation(reg, "巡检场站", fixture);
     await reg.getByLabel("巡检标题").fill("浏览器隐患整改");
     await reg.getByLabel("巡检要求").fill("检查设备安全防护并提交整改说明");
@@ -785,7 +795,9 @@ test("published notice reaches the enterprise and scoped energy statistics expor
     await login(reg, "regulator");
     await login(op, "operator_a");
     await login(assoc, "association");
-    await reg.getByRole("button", { name: "公告与通知", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "自定义通知发布", exact: true })
+      .click();
     await reg.getByRole("button", { name: "新建内容草稿" }).click();
     await reg.getByLabel("内容类型", { exact: true }).selectOption("notice");
     await reg.getByLabel("查找收件企业", { exact: true }).fill("演示运营商甲");
@@ -804,7 +816,9 @@ test("published notice reaches the enterprise and scoped energy statistics expor
       has: reg.getByRole("cell", { name: fixture.name, exact: true }),
     });
     await expect(reg.locator(".record-detail")).toContainText("草稿");
-    await op.getByRole("button", { name: "公告与通知", exact: true }).click();
+    await op
+      .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
+      .click();
     await expect(
       op.getByRole("row", { includeHidden: true }).filter({
         has: op.getByRole("cell", { name: fixture.name, exact: true }),
@@ -911,7 +925,9 @@ test("published notice reaches the enterprise and scoped energy statistics expor
       path: "test-results/notice-image-reply.png",
       fullPage: true,
     });
-    await op.getByRole("button", { name: "统计分析", exact: true }).click();
+    await op
+      .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
+      .click();
     await op.getByLabel("统计开始日期").fill("2026-11-01");
     await op.getByLabel("统计结束日期").fill("2026-11-02");
     await op.getByRole("button", { name: "查询统计", exact: true }).click();
@@ -967,7 +983,9 @@ test("published notice reaches the enterprise and scoped energy statistics expor
     await expect(
       op.getByRole("heading", { name: "运营商电量排行", exact: true }),
     ).toBeVisible();
-    await assoc.getByRole("button", { name: "统计分析", exact: true }).click();
+    await assoc
+      .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
+      .click();
     await expect(
       assoc.getByRole("link", { name: "导出场站电量CSV" }),
     ).toHaveCount(0);

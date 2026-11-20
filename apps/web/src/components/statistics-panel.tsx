@@ -1,4 +1,5 @@
 "use client";
+import { useBusinessView } from "./business-view-context";
 import { WorkspaceViews } from "./business-workspace";
 import { RuntimePanel } from "./runtime-panel";
 import { ChargingSubsidyReport } from "./charging-subsidy-report";
@@ -47,7 +48,7 @@ export function StatisticsPanel({ role }: { role: string }) {
     reportSubsidies = useCapability("subsidy.read"),
     reportStatistics = useCapability("statistics.read");
   const canCombined = reportOrders && reportSubsidies && reportStatistics;
-  const [view, setView] = useState("energy");
+  const [view, setView] = useBusinessView("energy");
   const combined = view === "combined" && canCombined;
   const [draft, setDraft] = useState(initial),
     [filters, setFilters] = useState(initial),

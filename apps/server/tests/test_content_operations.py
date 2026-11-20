@@ -239,3 +239,51 @@ def test_content_exports_reject_more_than_ten_thousand_rows(accounts, staff):
         client.close()
         with SessionLocal.begin() as db:
             db.execute(delete(Article).where(Article.id.in_(ids)))
+
+
+def test_information_group_filters_list_and_export_without_notifications_or_protocols(
+    accounts, staff
+):
+    prefix = "info-group-" + secrets.token_hex(6)
+    with TestClient(app, client=(prefix, 1)) as client:
+        assert (
+            client.post(
+                "/api/v1/auth/login", json={"username": staff[0][0], "password": accounts[1]}
+            ).status_code
+            == 200
+        )
+        with SessionLocal.begin() as db:
+            uid = db.scalar(select(User.id).where(User.username == staff[0][0]))
+            rows = [
+                Article(
+                    kind=kind,
+                    title=prefix,
+                    body="test",
+                    audience="all",
+                    status="draft",
+                    created_by=uid,
+                )
+                for kind in ["announcement", "news", "contact", "protocol"]
+            ]
+            db.add_all(rows)
+            db.flush()
+            ids = [row.id for row in rows]
+        try:
+            response = client.get(
+                "/api/v1/content", params={"manage": True, "q": prefix, "kind": "information"}
+            )
+            assert response.status_code == 200 and response.json()["total"] == 3
+            assert {row["kind"] for row in response.json()["items"]} == {
+                "announcement",
+                "news",
+                "contact",
+            }
+            exported = client.get(
+                "/api/v1/content/export", params={"q": prefix, "kind": "information"}
+            )
+            assert exported.status_code == 200
+            records = list(csv.reader(io.StringIO(exported.text)))
+            assert len(records) == 4 and "protocol" not in exported.text
+        finally:
+            with SessionLocal.begin() as db:
+                db.execute(delete(Article).where(Article.id.in_(ids)))

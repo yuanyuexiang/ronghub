@@ -274,20 +274,20 @@ test("regulator refresh reaches mounted view readers without applying search dra
   for (const [menu, path] of [
     ["人员账号申请", "/api/v1/staff-applications"],
     ["运营商审核", "/api/v1/registrations"],
-    ["权限与账号", "/api/v1/accounts"],
+    ["账号管理", "/api/v1/accounts"],
     ["场站运营商管理", "/api/v1/companies"],
-    ["公告与通知", "/api/v1/content"],
-    ["统计分析", "/api/v1/statistics"],
+    ["新增发布资讯", "/api/v1/content"],
+    ["充电量统计", "/api/v1/statistics"],
     ["接入管理", "/api/v1/applications"],
     ["告警数据", "/api/v1/alerts"],
-    ["巡检督办", "/api/v1/inspections"],
+    ["巡检任务管理", "/api/v1/inspections"],
     ["场站数据同步", "/api/v1/sync/tasks"],
     ["充电订单", "/api/v1/orders"],
     ["订单汇总", "/api/v1/orders/summary"],
     ["告警分析", "/api/v1/statistics/faults"],
     ["账号安全", "/api/v1/auth/phone"],
-    ["星级查看", "/api/v1/ratings/applications"],
-    ["补贴管理", "/api/v1/subsidy/claims"],
+    ["企业申报查看", "/api/v1/ratings/applications"],
+    ["补贴申请记录", "/api/v1/subsidy/claims"],
     ["可视化一张图", "/api/v1/map"],
   ]) {
     const first = page.waitForResponse(
@@ -295,7 +295,7 @@ test("regulator refresh reaches mounted view readers without applying search dra
     );
     await page.getByRole("button", { name: menu, exact: true }).click();
     expect((await first).status()).toBe(200);
-    if (["运营商审核", "权限与账号", "场站运营商管理"].includes(menu))
+    if (["运营商审核", "账号管理", "场站运营商管理"].includes(menu))
       await page.locator("form.search input").first().fill("unapplied-draft");
     const refreshed = page.waitForResponse(
       (response) => new URL(response.url()).pathname === path,
@@ -303,7 +303,7 @@ test("regulator refresh reaches mounted view readers without applying search dra
     await page.getByRole("button", { name: "刷新数据", exact: true }).click();
     const response = await refreshed;
     expect(response.status()).toBe(200);
-    if (["运营商审核", "权限与账号", "场站运营商管理"].includes(menu)) {
+    if (["运营商审核", "账号管理", "场站运营商管理"].includes(menu)) {
       expect(new URL(response.url()).searchParams.get("q")).toBe("");
       await expect(page.locator("form.search input").first()).toHaveValue(
         "unapplied-draft",
@@ -342,7 +342,9 @@ test("automatic page clamp after external draft deletion preserves the open edit
       expect(response.status()).toBe(201);
       ids.push((await response.json()).id);
     }
-    await page.getByRole("button", { name: "公告与通知", exact: true }).click();
+    await page
+      .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
+      .click();
     await page.getByLabel("搜索内容标题", { exact: true }).fill(fixture.name);
     await page.getByRole("button", { name: "查询内容", exact: true }).click();
     await expect(

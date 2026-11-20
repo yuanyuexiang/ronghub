@@ -69,7 +69,7 @@ async function login(page: Page, name: string) {
   ).toBeVisible();
 }
 async function create(page: Page) {
-  await page.getByRole("button", { name: "巡检计划", exact: true }).click();
+  await page.getByRole("button", { name: "巡检计划创建", exact: true }).click();
   const response = page.waitForResponse(
     (r) =>
       r.url().endsWith("/api/v1/inspection-plans") &&
@@ -100,8 +100,12 @@ test("private cross-page inspection draft preserves local edits and replays a lo
     await login(reg, "regulator");
     await login(owner, "operator_a");
     await login(outside, "operator_b");
-    await reg.getByRole("button", { name: "巡检督办", exact: true }).click();
-    await reg.getByRole("button", { name: "巡检计划", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "巡检任务管理", exact: true })
+      .click();
+    await reg
+      .getByRole("button", { name: "巡检计划创建", exact: true })
+      .click();
     plan = await create(reg);
     await reg
       .getByRole("button", { name: "关闭计划详情", exact: true })
@@ -294,7 +298,8 @@ test("private cross-page inspection draft preserves local edits and replays a lo
     await reg
       .getByRole("button", { name: "关闭任务详情", exact: true })
       .click();
-    await reg.getByRole("button", { name: "巡检计划", exact: true }).click();
+    await expect(detail).toBeVisible();
+    await expect(detail).toContainText(title);
     await detail.screenshot({
       path: "test-results/inspection-plan-mobile.png",
     });
@@ -312,7 +317,9 @@ test("partial plan can clear rich content, protect unsaved navigation and delete
   let plan: { id: number; key: string } | undefined;
   try {
     await login(page, "regulator");
-    await page.getByRole("button", { name: "巡检督办", exact: true }).click();
+    await page
+      .getByRole("button", { name: "巡检任务管理", exact: true })
+      .click();
     plan = await create(page);
     const region = page.getByRole("region", {
         name: "巡检计划与批量下发",
@@ -445,7 +452,9 @@ with SessionLocal.begin() as db:
     );
     await login(page, actor.username);
     expect((await page.request.get("/api/v1/stations")).status()).toBe(403);
-    await page.getByRole("button", { name: "巡检督办", exact: true }).click();
+    await page
+      .getByRole("button", { name: "巡检任务管理", exact: true })
+      .click();
     await page
       .getByRole("button", { name: "单站快捷下发", exact: true })
       .click();

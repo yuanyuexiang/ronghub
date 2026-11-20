@@ -34,7 +34,7 @@ test("global regulator searches committed audit events while enterprise cannot a
       reg = await contexts[1].newPage();
     await login(owner, fixture.username);
     await expect(
-      owner.getByRole("button", { name: "操作日志", exact: true }),
+      owner.getByRole("button", { name: "系统操作日志", exact: true }),
     ).toHaveCount(0);
     expect((await owner.request.get("/api/v1/audits")).status()).toBe(403);
     for (let index = 0; index < 23; index++)
@@ -42,7 +42,9 @@ test("global regulator searches committed audit events while enterprise cannot a
         (await owner.request.get("/api/v1/companies/export")).status(),
       ).toBe(200);
     await login(reg, "regulator");
-    await reg.getByRole("button", { name: "操作日志", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "系统操作日志", exact: true })
+      .click();
     await reg.getByLabel("操作人账号").fill(fixture.username);
     await reg.getByLabel("动作代码").fill("company.export");
     await expect(reg.getByRole("button", { name: "查询日志" })).toBeEnabled();

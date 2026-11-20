@@ -67,15 +67,11 @@ test("operator pages source orders, preserves unknown fields and exports the ful
       operator.getByText("订单第2页 · 共25条", { exact: true }),
     ).toBeVisible();
     await expect(operator.getByRole("row")).toHaveCount(6);
-    const unknown = operator
-      .getByRole("row")
-      .filter({
-        has: operator
-          .getByRole("cell")
-          .filter({
-            hasText: `browser-order-${fixture.name.replace("浏览器验收-", "")}-0`,
-          }),
-      });
+    const unknown = operator.getByRole("row").filter({
+      has: operator.getByRole("cell").filter({
+        hasText: `browser-order-${fixture.name.replace("浏览器验收-", "")}-0`,
+      }),
+    });
     await expect(
       unknown.getByRole("cell", { name: "暂无数据", exact: true }),
     ).toHaveCount(3);

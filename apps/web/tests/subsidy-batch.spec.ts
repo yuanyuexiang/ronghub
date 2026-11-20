@@ -76,7 +76,7 @@ test("batch review freezes cross-page versions, rolls back conflicts and support
   try {
     const page = await context.newPage();
     await login(page, "regulator");
-    await button(page, "补贴管理").click();
+    await button(page, "补贴申请记录").click();
     await query(page, data.name);
     await expect(
       page.getByText("补贴第1页 · 共26条", { exact: true }),
@@ -230,7 +230,7 @@ test("batch selection caps at one hundred and query reset clears cross-page sele
   const data = fixture(101);
   try {
     await login(page, "regulator");
-    await button(page, "补贴管理").click();
+    await button(page, "补贴申请记录").click();
     await query(page, data.name);
     const batch = page.getByRole("region", {
       name: "补贴批量审核",

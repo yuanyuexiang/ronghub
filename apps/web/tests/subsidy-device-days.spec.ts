@@ -59,7 +59,7 @@ test("worker device days distinguish zero and missing with scoped applied-query 
     expect(receipt.result.subsidy_device_days).toBe(3);
     await owner.getByRole("button", { name: "补贴申报", exact: true }).click();
     await owner
-      .getByRole("button", { name: "设备电量数据", exact: true })
+      .getByRole("button", { name: /^(设备电量数据|电量数据)$/, exact: true })
       .click();
     const section = owner.getByRole("region", {
       name: "设备日观测",

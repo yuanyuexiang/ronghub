@@ -133,6 +133,7 @@ def listing(
     response: Response,
     q: str = Query("", max_length=150),
     kind: Kind | None = None,
+    kind_group: Literal["station", "device"] | None = None,
     enabled: bool | None = None,
     include_archived: bool = False,
     page: int = Query(1, ge=1, le=2147483647),
@@ -155,6 +156,13 @@ def listing(
             AlertRule.name.contains(q, autoescape=True)
             | AlertRule.code.contains(q, autoescape=True)
         )
+    if kind_group:
+        kinds = (
+            ["station_utilization", "station_fault", "station_offline"]
+            if kind_group == "station"
+            else ["device_temperature", "device_current", "device_leakage"]
+        )
+        stmt = stmt.where(AlertRule.configuration["kind"].as_string().in_(kinds))
     if kind:
         stmt = stmt.where(AlertRule.configuration["kind"].as_string() == kind)
     if enabled is not None:

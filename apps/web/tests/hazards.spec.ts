@@ -40,7 +40,9 @@ async function login(page: Page, username: string) {
 }
 async function queue(page: Page, q: string) {
   await openWorkspaceNavigation(page);
-  await page.getByRole("button", { name: "隐患督办", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(隐患督办|隐患督办管理)$/, exact: true })
+    .click();
   await page.getByLabel("督办检索名称", { exact: true }).fill(q);
   await page.getByRole("button", { name: "查询督办", exact: true }).click();
 }
@@ -156,7 +158,10 @@ test("hazard completion keeps tracking until explicit regulator closure and isol
     expect((await other.request.get(materialPath)).status()).toBe(404);
     expect((await association.request.get(materialPath)).status()).toBe(403);
     await expect(
-      association.getByRole("button", { name: "隐患督办", exact: true }),
+      association.getByRole("button", {
+        name: /^(隐患督办|隐患督办管理)$/,
+        exact: true,
+      }),
     ).toHaveCount(0);
     await queue(other, value.name);
     await expect(

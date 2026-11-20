@@ -1,4 +1,5 @@
 "use client";
+import { useBusinessView } from "./business-view-context";
 import {
   WorkspaceViews,
   useWorkspaceLeave,
@@ -80,7 +81,7 @@ export function AuthorizationPanel({
     [newOperator, setNewOperator] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  const [view, setView] = useState(canAccounts ? "accounts" : "roles");
+  const [view, setView] = useBusinessView(canAccounts ? "accounts" : "roles");
   const roleDirty =
     showRole &&
     (roleName !== (profile?.name || "") ||

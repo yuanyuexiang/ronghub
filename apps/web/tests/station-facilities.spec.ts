@@ -26,7 +26,10 @@ async function login(page: Page, name: string) {
 async function detail(page: Page, name: string) {
   await openWorkspaceNavigation(page);
   await page
-    .getByRole("button", { name: /^(场站台账|场站信息查询)$/, exact: true })
+    .getByRole("button", {
+      name: /^(场站台账|场站信息查询|场站数据同步与场站信息查询)$/,
+      exact: true,
+    })
     .click();
   await page.getByLabel("搜索场站", { exact: true }).fill(name);
   await page.getByRole("button", { name: "查询", exact: true }).click();

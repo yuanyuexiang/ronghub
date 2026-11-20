@@ -1,4 +1,5 @@
 "use client";
+import { useBusinessView } from "./business-view-context";
 import {
   WorkspaceViews,
   useWorkspaceLeave,
@@ -67,7 +68,8 @@ export function InspectionPanel({
     [busy, setBusy] = useState(false),
     [materialBusy, setMaterialBusy] = useState(false),
     [error, setError] = useState("");
-  const [view, setView] = useState("tasks");
+  const [view, setView] = useBusinessView("tasks");
+  const [taskOrigin, setTaskOrigin] = useState("tasks");
   const [planDirty, setPlanDirty] = useState(false);
   const [planBusy, setPlanBusy] = useState(false);
   const workspaceRef = useRecordFocus(detail?.id);
@@ -87,7 +89,7 @@ export function InspectionPanel({
   );
   function closeDetail() {
     if (!canLeave()) return;
-    setView("tasks");
+    setView(taskOrigin);
     setDetail(null);
     setComment("");
     setCommentDocument(null);
@@ -191,6 +193,7 @@ export function InspectionPanel({
               onPublished={load}
               onOpenTask={(id) =>
                 run(async () => {
+                  setTaskOrigin("plans");
                   setView("tasks");
                   setDetail(await readDetail(id));
                   setComment("");
@@ -233,6 +236,7 @@ export function InspectionPanel({
                       }),
                     );
                     queue.reset();
+                    setTaskOrigin("tasks");
                     setDetail(await readDetail(task.id));
                     setTitle("");
                     setDescription("");
@@ -592,6 +596,7 @@ export function InspectionPanel({
                         disabled={busy || materialBusy}
                         onClick={() =>
                           run(async () => {
+                            setTaskOrigin("tasks");
                             setDetail(await readDetail(t.id));
                             setComment("");
                             setCommentDocument(null);

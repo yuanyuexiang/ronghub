@@ -28,7 +28,7 @@ test("complete device policy versions persist precise rules and remain outside l
       owner = await contexts[1].newPage();
     await login(manager, "regulator");
     await manager
-      .getByRole("button", { name: "补贴管理", exact: true })
+      .getByRole("button", { name: "补贴申请记录", exact: true })
       .click();
     await manager
       .getByRole("button", { name: "补贴规则配置", exact: true })
@@ -121,7 +121,7 @@ test("complete device policy versions persist precise rules and remain outside l
         .device_rules.star_coefficients["5"],
     ).toBe("1.200001");
     await manager
-      .getByRole("button", { name: "补贴管理", exact: true })
+      .getByRole("button", { name: "补贴申请记录", exact: true })
       .click();
     await manager
       .getByRole("button", { name: "补贴规则配置", exact: true })

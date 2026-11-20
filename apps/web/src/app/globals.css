@@ -5996,3 +5996,7 @@ select {
 .content-managing > div:last-child > button {
   margin: 0 8px 10px 0;
 }
+
+.navigation-subtree { border-left: 1px solid #e4ebf4; margin-left: 32px; }
+.prototype-workspace .navigation-subtree .navigation-leaf { font-size: 12px; line-height: 1.5; padding-left: 18px !important; }
+.alert-category-tabs[hidden] { display:none !important; }

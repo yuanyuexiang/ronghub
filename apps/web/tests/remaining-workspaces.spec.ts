@@ -18,10 +18,10 @@ test("separate roles and accounts protect drafts during browser Back", async ({
   page,
 }) => {
   await login(page);
-  await page.getByRole("button", { name: "权限与账号", exact: true }).click();
+  await page.getByRole("button", { name: "账号管理", exact: true }).click();
   await expect(page).toHaveURL(/module=/);
   await expect(
-    page.getByRole("heading", { name: "账号管理", exact: true }),
+    page.getByRole("heading", { name: "账号管理", exact: true, level: 2 }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "业务权限角色", exact: true }),
@@ -59,7 +59,9 @@ test("construction statistics request actual server dimensions", async ({
   page,
 }) => {
   await login(page);
-  await page.getByRole("button", { name: "统计分析", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "观测电量同比与环比", exact: true }),
   ).toBeVisible();
@@ -94,7 +96,9 @@ test("construction statistics request actual server dimensions", async ({
     path: "../../.backups/batch567-current-statistics.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "观测电量分析", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(观测电量分析|充电量统计)$/, exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "观测电量同比与环比", exact: true }),
   ).toBeVisible();
@@ -105,7 +109,9 @@ test("module URLs restore authorized routes with Back and Forward", async ({
   await login(page);
   await page.getByRole("button", { name: "监管协议", exact: true }).click();
   const saved = page.url();
-  await page.getByRole("button", { name: "统计分析", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
+    .click();
   await page.goBack();
   await expect(
     page.getByRole("heading", { name: "监管协议与接入说明", exact: true }),
@@ -123,7 +129,9 @@ test("content editor hides the list and protects unsaved text", async ({
   page,
 }) => {
   await login(page);
-  await page.getByRole("button", { name: "公告与通知", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
+    .click();
   await page.getByRole("button", { name: "新建内容草稿", exact: true }).click();
   await page.getByLabel("内容标题", { exact: true }).fill("未提交的内容");
   await expect(
@@ -179,16 +187,26 @@ test("association evaluation process and data entries respect its business bound
 }) => {
   await login(page, "association");
   await expect(
-    page.getByRole("button", { name: "补贴管理", exact: true }),
+    page.getByRole("button", { name: "补贴申请记录", exact: true }),
   ).toHaveCount(0);
   await page.getByRole("button", { name: "星级评价", exact: true }).click();
-  await page.getByRole("button", { name: "评审过程管理", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(评审过程管理|评审过程查看)$/, exact: true })
+    .click();
   await expect(
-    page.getByRole("heading", { name: "评审过程管理", exact: true }),
+    page.getByRole("heading", {
+      name: /^(评审过程管理|评审过程查看)$/,
+      exact: true,
+    }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "数据支撑评价", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^(数据支撑评价|数据支撑查看)$/, exact: true })
+    .click();
   await expect(
-    page.getByRole("heading", { name: "数据支撑评价", exact: true }),
+    page.getByRole("heading", {
+      name: /^(数据支撑评价|数据支撑查看)$/,
+      exact: true,
+    }),
   ).toBeVisible();
   await page.screenshot({
     path: "../../.backups/batch567-current-association.png",
@@ -199,7 +217,7 @@ test("association evaluation process and data entries respect its business bound
     page.getByRole("heading", { name: "运营总览", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "账号管理", exact: true }),
+    page.getByRole("heading", { name: "账号管理", exact: true, level: 2 }),
   ).toHaveCount(0);
 });
 test("operator commissioning and decommissioning views apply server kind filters", async ({
@@ -252,7 +270,10 @@ test("association data support queries exact-station history and retains zero ve
     await login(page, "association");
     await page.getByRole("button", { name: "星级评价", exact: true }).click();
     await page
-      .getByRole("button", { name: "数据支撑评价", exact: true })
+      .getByRole("button", {
+        name: /^(数据支撑评价|数据支撑查看)$/,
+        exact: true,
+      })
       .click();
     await pickStation(page, "评价数据场站", fixture);
     const response = page.waitForResponse(
@@ -354,7 +375,9 @@ test("long content detail keeps its focused heading below the sticky header", as
       },
     });
     expect(article.status()).toBe(201);
-    await page.getByRole("button", { name: "公告与通知", exact: true }).click();
+    await page
+      .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
+      .click();
     await page.getByLabel("搜索内容标题", { exact: true }).fill(fixture.name);
     await page.getByRole("button", { name: "查询内容", exact: true }).click();
     await page

@@ -1,4 +1,5 @@
 "use client";
+import { useBusinessView } from "./business-view-context";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { useCapability } from "./permissions";
@@ -53,7 +54,16 @@ function params(query: Filters) {
   };
 }
 export function SubsidyStatistics() {
-  const [draft, setDraft] = useState(defaults),
+  const [routeView] = useBusinessView("statistics");
+  const [draft, setDraft] = useState<Filters>(() => ({
+      ...defaults(),
+      dimension:
+        routeView === "statistics.station"
+          ? ("station" as const)
+          : routeView === "statistics.detail"
+            ? ("device_day" as const)
+            : ("operator" as const),
+    })),
     [applied, setApplied] = useState<Filters | null>(null);
   const [data, setData] = useState<ApiSchemas["StatisticPage"] | null>(null),
     [loading, setLoading] = useState(false),

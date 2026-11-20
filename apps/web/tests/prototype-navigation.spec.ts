@@ -88,8 +88,7 @@ test("prototype module navigation connects map and alert views without losing fi
       new URL(r.url()).pathname === "/api/v1/alerts" &&
       new URL(r.url()).searchParams.get("category") === "device_offline",
   );
-  await page
-    .getByRole("navigation", { name: "告警数据分类" })
+  await navigation
     .getByRole("button", { name: "设备离线告警", exact: true })
     .click();
   expect(new URL((await request).url()).searchParams.get("q")).toBe(

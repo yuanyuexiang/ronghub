@@ -38,7 +38,7 @@ test("admin reset revokes sessions and user must change temporary password befor
     await expect(
       owner.getByRole("heading", { name: "运营总览" }),
     ).toBeVisible();
-    await reg.getByRole("button", { name: "权限与账号", exact: true }).click();
+    await reg.getByRole("button", { name: "账号管理", exact: true }).click();
     await reg.getByLabel("搜索账号").fill(fixture.username);
     await reg.getByRole("button", { name: "查询账号", exact: true }).click();
     await reg
@@ -64,7 +64,10 @@ test("admin reset revokes sessions and user must change temporary password befor
       owner.getByRole("heading", { name: "首次登录请修改临时密码" }),
     ).toBeVisible();
     await expect(
-      owner.getByRole("button", { name: /^(场站台账|场站信息查询)$/, exact: true }),
+      owner.getByRole("button", {
+        name: /^(场站台账|场站信息查询|场站数据同步与场站信息查询)$/,
+        exact: true,
+      }),
     ).toHaveCount(0);
     expect((await owner.request.get("/api/v1/stations")).status()).toBe(403);
     await owner.getByLabel("本人当前密码").fill(temporary);

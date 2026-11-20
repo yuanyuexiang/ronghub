@@ -42,13 +42,16 @@ test("Beijing time slots keep meter energy separate from order totals and distin
     await login(operator, "operator_a");
     await login(association, "association");
     await expect(
-      association.getByRole("button", { name: "充电时段", exact: true }),
+      association.getByRole("button", {
+        name: /^(充电时段|充电时段统计)$/,
+        exact: true,
+      }),
     ).toHaveCount(0);
     expect(
       (await association.request.get("/api/v1/orders/time-slots")).status(),
     ).toBe(403);
     await operator
-      .getByRole("button", { name: "充电时段", exact: true })
+      .getByRole("button", { name: /^(充电时段|充电时段统计)$/, exact: true })
       .click();
     await pickStation(operator, "时段分析场站", fixture);
     await expect(

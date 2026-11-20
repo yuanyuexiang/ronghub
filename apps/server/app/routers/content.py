@@ -34,7 +34,7 @@ from app.reporting import SnapshotDB
 from app.richtext import RichDocument, plain_text
 from app.routers.attachments import metadata
 
-ContentKind = Literal["", "announcement", "news", "notice", "protocol", "contact"]
+ContentKind = Literal["", "announcement", "news", "notice", "protocol", "contact", "information"]
 
 router = APIRouter(prefix="/api/v1/content", tags=["content"])
 
@@ -146,7 +146,9 @@ def listing(
     kind: ContentKind = "",
 ):
     stmt = content.visible(select(Article), user, manage)
-    if kind:
+    if kind == "information":
+        stmt = stmt.where(Article.kind.in_(["announcement", "news", "contact"]))
+    elif kind:
         stmt = stmt.where(Article.kind == kind)
     if not include_deleted:
         stmt = stmt.where(Article.status != "deleted")
@@ -327,7 +329,9 @@ def export_articles(
         user,
         True,
     )
-    if kind:
+    if kind == "information":
+        stmt = stmt.where(Article.kind.in_(["announcement", "news", "contact"]))
+    elif kind:
         stmt = stmt.where(Article.kind == kind)
     if not include_deleted:
         stmt = stmt.where(Article.status != "deleted")

@@ -30,7 +30,7 @@ test("configured read-only role hides writes and revokes the prior session", asy
     const [reg, op] = await Promise.all(contexts.map((c) => c.newPage()));
     await login(reg, "regulator");
     await login(op, fixture.username);
-    await reg.getByRole("button", { name: "权限与账号", exact: true }).click();
+    await reg.getByRole("button", { name: "账号管理", exact: true }).click();
     await reg.getByRole("button", { name: "角色管理", exact: true }).click();
     await reg
       .getByRole("button", { name: "新建权限角色", exact: true })
@@ -137,7 +137,7 @@ test("administrator-created account rotates its temporary password before any bu
     });
     expect(profile.status()).toBe(201);
     profileId = (await profile.json()).id;
-    await root.getByRole("button", { name: "权限与账号", exact: true }).click();
+    await root.getByRole("button", { name: "账号管理", exact: true }).click();
     await root.getByRole("button", { name: "新建账号", exact: true }).click();
     await expect(
       root.getByText(

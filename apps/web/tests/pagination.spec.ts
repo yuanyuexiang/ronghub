@@ -34,7 +34,10 @@ test("station ledger and application picker reach records beyond the first page"
     await page.getByRole("button", { name: "登录平台" }).click();
     await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
     await page
-      .getByRole("button", { name: /^(场站台账|场站信息查询)$/, exact: true })
+      .getByRole("button", {
+        name: /^(场站台账|场站信息查询|场站数据同步与场站信息查询)$/,
+        exact: true,
+      })
       .click();
     await page.getByLabel("搜索场站", { exact: true }).fill(group);
     await page.getByRole("button", { name: "查询", exact: true }).click();

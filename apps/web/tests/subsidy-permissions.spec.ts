@@ -74,7 +74,9 @@ test("review-only staff can approve but cannot adjust, edit policy or record dis
       .getByRole("button", { name: "提交补贴审核", exact: true })
       .click();
     expect((await submitted).status()).toBe(200);
-    await reg.getByRole("button", { name: "补贴管理", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "补贴申请记录", exact: true })
+      .click();
     await expect(
       reg.getByRole("button", { name: "新增政策版本", exact: true }),
     ).toHaveCount(0);

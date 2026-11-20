@@ -2,9 +2,12 @@
 import {
   WorkspaceNavigation,
   workspaceNavigation,
+  flattenNavigation,
+  navigationMatches,
   type AlertWorkspaceView,
 } from "../components/workspace-navigation";
 import { useWorkspaceRoute } from "../components/use-workspace-route";
+import { BusinessViewProvider } from "../components/business-view-context";
 import { DashboardOperations } from "../components/dashboard-operations";
 import { LoginCaptcha } from "../components/login-captcha";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -84,21 +87,36 @@ export default function Home() {
     [q, setQ] = useState(""),
     [tab, setTab] = useState("工作台");
   const [alertView, setAlertView] = useState<AlertWorkspaceView>("events");
+  const [selectedView, setSelectedView] = useState({ module: "", view: "" });
+  const workspaceView =
+    (selectedView.module === tab ? selectedView.view : "") ||
+    (tab === "权限与账号" && me && !me.permissions.includes("accounts.manage")
+      ? "roles"
+      : "");
+  const [pageRevision, setPageRevision] = useState(0);
+  const setWorkspaceView = (view: string) =>
+    setSelectedView({ module: tab, view });
   const [navigationOpen, setNavigationOpen] = useState(false);
   const navigationGuard = useRef<(() => boolean) | null>(null);
   const registerLeaveGuard = useCallback((guard: (() => boolean) | null) => {
     navigationGuard.current = guard;
   }, []);
   const allowedModules = useRef<string[]>([]);
+  const allowedViews = useRef<Record<string, string[]>>({});
   useWorkspaceRoute({
     identity: loading || me?.must_change_password ? undefined : me?.username,
     tab,
     alertView,
+    view: workspaceView,
+    allowedViews,
     allowed: allowedModules,
     guard: navigationGuard,
-    onRestore: (target, view) => {
+    onRestore: (target, alert, view) => {
       setTab(target);
-      setAlertView(view);
+      setAlertView(alert);
+      setSelectedView({ module: target, view });
+      if (target !== tab || !["告警中心", "企业告警"].includes(target))
+        setPageRevision((value) => value + 1);
       setNavigationOpen(false);
     },
   });
@@ -463,13 +481,63 @@ export default function Home() {
     menu,
     me.role,
     me.permissions.includes("alerts.notifications") && geographicScope === null,
+    me.permissions,
   );
+  const allNavigation = flattenNavigation(navigation);
+  allowedViews.current = Object.fromEntries(
+    menu.map((module) => [
+      module,
+      [
+        ...new Set(
+          allNavigation
+            .filter((item) => item.tab === module)
+            .flatMap((item) => [item.view ?? "", ...(item.matchViews ?? [])]),
+        ),
+      ],
+    ]),
+  );
+  if (me.role !== "regulator")
+    Object.assign(allowedViews.current, {
+      补贴申报: [
+        "claims",
+        "policies",
+        "statistics",
+        "energy",
+        ...(has("subsidy.create") ? ["annual"] : []),
+      ],
+      星级申报: [
+        "applications",
+        "standards",
+        "publications",
+        "process",
+        ...(has("statistics.read") ? ["data"] : []),
+        ...(has("ratings.create") ? ["create"] : []),
+      ],
+      星级评价: [
+        "applications",
+        "standards",
+        "publications",
+        "process",
+        ...(has("statistics.read") ? ["data"] : []),
+      ],
+      统计分析: [
+        "energy",
+        "district",
+        "operator",
+        "power",
+        ...(me.role !== "association" ? ["utilization", "combined"] : []),
+      ],
+    });
+  if (has("content.manage"))
+    allowedViews.current["公告与通知"] = [
+      ...(allowedViews.current["公告与通知"] ?? []),
+      "protocol",
+    ];
+  const currentItem = [...allNavigation]
+    .reverse()
+    .find((item) => navigationMatches(item, tab, alertView, workspaceView));
   const currentGroup = navigation.find((group) =>
-    group.items.some((item) => item.tab === tab),
-  );
-  const currentItem = currentGroup?.items.find(
-    (item) =>
-      item.tab === tab && (!item.alertView || item.alertView === alertView),
+    flattenNavigation([group]).some((item) => item === currentItem),
   );
   const pageTitle = currentItem?.label ?? (tab === "工作台" ? "运营总览" : tab);
   return (
@@ -499,15 +567,28 @@ export default function Home() {
               groups={navigation}
               tab={tab}
               alertView={alertView}
+              view={workspaceView}
               onNavigate={(item) => {
+                if (
+                  item.tab === tab &&
+                  (item.view ?? "") === workspaceView &&
+                  (item.alertView ?? "events") === alertView
+                ) {
+                  setNavigationOpen(false);
+                  return;
+                }
                 if (navigationGuard.current && !navigationGuard.current())
                   return;
                 const params = new URLSearchParams({ module: item.tab });
+                if (item.view) params.set("view", item.view);
                 if (item.alertView && item.alertView !== "events")
                   params.set("alert", item.alertView);
                 const href = `/?${params}`;
                 if (window.location.pathname + window.location.search !== href)
                   window.history.pushState(null, "", href);
+                if (item.tab !== tab || !["告警中心", "企业告警"].includes(tab))
+                  setPageRevision((value) => value + 1);
+                setSelectedView({ module: item.tab, view: item.view ?? "" });
                 setTab(item.tab);
                 setAlertView(item.alertView ?? "events");
                 setNavigationOpen(false);
@@ -746,270 +827,291 @@ export default function Home() {
               {tab === "工作台" && summary && me.role !== "association" && (
                 <DashboardOperations />
               )}
-              {tab === "人员账号申请" ? (
-                <StaffApplicationsPanel
-                  csrf={me.csrf_token}
-                  registerLeaveGuard={registerLeaveGuard}
-                />
-              ) : tab === "账号安全" ? (
-                <div className="business-stack">
-                  <PhonePanel
+              <BusinessViewProvider
+                key={pageRevision}
+                view={workspaceView}
+                setView={setWorkspaceView}
+                sidebar={me.role === "regulator"}
+              >
+                {tab === "人员账号申请" ? (
+                  <StaffApplicationsPanel
                     csrf={me.csrf_token}
-                    onBound={() =>
-                      securityChanged("手机号已完成模拟验证绑定，请重新登录。")
-                    }
+                    registerLeaveGuard={registerLeaveGuard}
                   />
-                  <PasswordPanel
+                ) : tab === "账号安全" ? (
+                  <div className="business-stack">
+                    <PhonePanel
+                      csrf={me.csrf_token}
+                      onBound={() =>
+                        securityChanged(
+                          "手机号已完成模拟验证绑定，请重新登录。",
+                        )
+                      }
+                    />
+                    <PasswordPanel
+                      csrf={me.csrf_token}
+                      required={false}
+                      onChanged={passwordChanged}
+                    />
+                  </div>
+                ) : ["全域地图", "场站地图"].includes(tab) ? (
+                  <StationMapPanel />
+                ) : tab === "运行状态" ? (
+                  <RuntimePanel />
+                ) : tab === "故障分析" ? (
+                  <FaultsPanel />
+                ) : tab === "充电时段" ? (
+                  <OrderTimeSlotsPanel />
+                ) : tab === "订单汇总" ? (
+                  <OrderSummaryPanel />
+                ) : tab === "充电订单" ? (
+                  <OrdersPanel />
+                ) : tab === "操作日志" ? (
+                  <AuditPanel />
+                ) : tab === "注册审核" ? (
+                  <RegistrationPanel
                     csrf={me.csrf_token}
-                    required={false}
-                    onChanged={passwordChanged}
+                    registerLeaveGuard={registerLeaveGuard}
                   />
-                </div>
-              ) : ["全域地图", "场站地图"].includes(tab) ? (
-                <StationMapPanel />
-              ) : tab === "运行状态" ? (
-                <RuntimePanel />
-              ) : tab === "故障分析" ? (
-                <FaultsPanel />
-              ) : tab === "充电时段" ? (
-                <OrderTimeSlotsPanel />
-              ) : tab === "订单汇总" ? (
-                <OrderSummaryPanel />
-              ) : tab === "充电订单" ? (
-                <OrdersPanel />
-              ) : tab === "操作日志" ? (
-                <AuditPanel />
-              ) : tab === "注册审核" ? (
-                <RegistrationPanel
-                  csrf={me.csrf_token}
-                  registerLeaveGuard={registerLeaveGuard}
-                />
-              ) : tab === "权限与账号" ? (
-                <AuthorizationPanel
-                  csrf={me.csrf_token}
-                  username={me.username}
-                  currentProfileId={me.role_profile_id}
-                  permissions={me.permissions}
-                  registerLeaveGuard={registerLeaveGuard}
-                />
-              ) : ["企业台账", "企业资料"].includes(tab) ? (
-                <CompanyPanel
-                  role={me.role}
-                  csrf={me.csrf_token}
-                  registerLeaveGuard={registerLeaveGuard}
-                />
-              ) : tab === "公告与通知" ? (
-                <ContentPanel
-                  role={me.role}
-                  csrf={me.csrf_token}
-                  registerLeaveGuard={registerLeaveGuard}
-                />
-              ) : tab === "监管协议" ? (
-                <ProtocolPanel onManage={() => setTab("公告与通知")} />
-              ) : tab === "统计分析" ? (
-                <StatisticsPanel role={me.role} />
-              ) : ["告警中心", "企业告警"].includes(tab) ? (
-                <AlertPanel
-                  role={me.role}
-                  csrf={me.csrf_token}
-                  view={alertView}
-                  onViewChange={setAlertView}
-                  registerLeaveGuard={registerLeaveGuard}
-                />
-              ) : tab === "隐患督办" ? (
-                <HazardPanel
-                  role={me.role}
-                  csrf={me.csrf_token}
-                  registerLeaveGuard={registerLeaveGuard}
-                />
-              ) : ["巡检督办", "整改任务"].includes(tab) ? (
-                <InspectionPanel
-                  role={me.role}
-                  csrf={me.csrf_token}
-                  registerLeaveGuard={registerLeaveGuard}
-                />
-              ) : tab.startsWith("补贴") ? (
-                <SubsidyPanel
-                  registerLeaveGuard={registerLeaveGuard}
-                  role={me.role}
-                  csrf={me.csrf_token}
-                  onChanged={() => {
-                    load(
-                      applied.q,
-                      stationPage,
-                      applied.status,
-                      applied.district,
-                    ).catch((e) => setError(e.message));
-                  }}
-                />
-              ) : tab.startsWith("星级") ? (
-                <RatingPanel
-                  registerLeaveGuard={registerLeaveGuard}
-                  role={me.role}
-                  csrf={me.csrf_token}
-                  onChanged={() => {
-                    load(
-                      applied.q,
-                      stationPage,
-                      applied.status,
-                      applied.district,
-                    ).catch((e) => setError(e.message));
-                  }}
-                />
-              ) : tab === "数据同步" ? (
-                <SyncPanel csrf={me.csrf_token} />
-              ) : tab === "场站申请" ? (
-                <ApplicationPanel
-                  role={me.role}
-                  csrf={me.csrf_token}
-                  registerLeaveGuard={registerLeaveGuard}
-                />
-              ) : tab === "场站汇总" ? (
-                <DashboardOperations variant="stations" />
-              ) : tab === "场站台账" ? (
-                <StationDirectory onOpen={setDetailId} />
-              ) : (
-                <section className="panel">
-                  <div className="panel-title">
-                    <div>
-                      <h2>场站列表</h2>
-                      <p>按名称查询，状态与台账同步展示</p>
-                    </div>
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        setError("");
-                        load(q, 1, stationStatus, district).catch((e) =>
-                          setError(e.message),
-                        );
-                      }}
-                      className="search"
-                    >
-                      <Search size={16} />
-                      <input
-                        aria-label="搜索场站"
-                        placeholder="搜索场站名称"
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                      />
-                      <select
-                        aria-label="场站状态筛选"
-                        value={stationStatus}
-                        onChange={(e) => setStationStatus(e.target.value)}
+                ) : tab === "权限与账号" ? (
+                  <AuthorizationPanel
+                    csrf={me.csrf_token}
+                    username={me.username}
+                    currentProfileId={me.role_profile_id}
+                    permissions={me.permissions}
+                    registerLeaveGuard={registerLeaveGuard}
+                  />
+                ) : ["企业台账", "企业资料"].includes(tab) ? (
+                  <CompanyPanel
+                    role={me.role}
+                    csrf={me.csrf_token}
+                    registerLeaveGuard={registerLeaveGuard}
+                  />
+                ) : tab === "公告与通知" ? (
+                  <ContentPanel
+                    role={me.role}
+                    csrf={me.csrf_token}
+                    registerLeaveGuard={registerLeaveGuard}
+                  />
+                ) : tab === "监管协议" ? (
+                  <ProtocolPanel
+                    onManage={() => {
+                      setSelectedView({
+                        module: "公告与通知",
+                        view: "protocol",
+                      });
+                      setTab("公告与通知");
+                      setPageRevision((value) => value + 1);
+                    }}
+                  />
+                ) : tab === "统计分析" ? (
+                  <StatisticsPanel role={me.role} />
+                ) : ["告警中心", "企业告警"].includes(tab) ? (
+                  <AlertPanel
+                    role={me.role}
+                    csrf={me.csrf_token}
+                    view={alertView}
+                    onViewChange={(view) => {
+                      setAlertView(view);
+                      setWorkspaceView("");
+                    }}
+                    registerLeaveGuard={registerLeaveGuard}
+                  />
+                ) : tab === "隐患督办" ? (
+                  <HazardPanel
+                    role={me.role}
+                    csrf={me.csrf_token}
+                    registerLeaveGuard={registerLeaveGuard}
+                  />
+                ) : ["巡检督办", "整改任务"].includes(tab) ? (
+                  <InspectionPanel
+                    role={me.role}
+                    csrf={me.csrf_token}
+                    registerLeaveGuard={registerLeaveGuard}
+                  />
+                ) : tab.startsWith("补贴") ? (
+                  <SubsidyPanel
+                    registerLeaveGuard={registerLeaveGuard}
+                    role={me.role}
+                    csrf={me.csrf_token}
+                    onChanged={() => {
+                      load(
+                        applied.q,
+                        stationPage,
+                        applied.status,
+                        applied.district,
+                      ).catch((e) => setError(e.message));
+                    }}
+                  />
+                ) : tab.startsWith("星级") ? (
+                  <RatingPanel
+                    registerLeaveGuard={registerLeaveGuard}
+                    role={me.role}
+                    csrf={me.csrf_token}
+                    onChanged={() => {
+                      load(
+                        applied.q,
+                        stationPage,
+                        applied.status,
+                        applied.district,
+                      ).catch((e) => setError(e.message));
+                    }}
+                  />
+                ) : tab === "数据同步" ? (
+                  <SyncPanel csrf={me.csrf_token} />
+                ) : tab === "场站申请" ? (
+                  <ApplicationPanel
+                    role={me.role}
+                    csrf={me.csrf_token}
+                    registerLeaveGuard={registerLeaveGuard}
+                  />
+                ) : tab === "场站汇总" ? (
+                  <DashboardOperations variant="stations" />
+                ) : tab === "场站台账" ? (
+                  <StationDirectory onOpen={setDetailId} />
+                ) : (
+                  <section className="panel">
+                    <div className="panel-title">
+                      <div>
+                        <h2>场站列表</h2>
+                        <p>按名称查询，状态与台账同步展示</p>
+                      </div>
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          setError("");
+                          load(q, 1, stationStatus, district).catch((e) =>
+                            setError(e.message),
+                          );
+                        }}
+                        className="search"
                       >
-                        <option value="">全部状态</option>
-                        <option value="pending">待接入</option>
-                        <option value="access_approved">接入通过</option>
-                        <option value="accepted">验收通过</option>
-                        <option value="operating">运营中</option>
-                        <option value="decommissioned">已核销</option>
-                      </select>
-                      <input
-                        aria-label="场站区域筛选"
-                        value={district}
-                        onChange={(e) => setDistrict(e.target.value)}
-                        placeholder="全部区域"
-                        maxLength={50}
-                      />
-                      <button disabled={stationLoading}>查询</button>
-                    </form>
-                  </div>
-                  <div className="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          {[
-                            "场站名称",
-                            "所属区域",
-                            "运行 / 业务状态",
-                            "充电接口",
-                            "装机功率",
-                            "数据来源",
-                            "操作",
-                          ].map((x) => (
-                            <th key={x}>{x}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((s) => (
-                          <tr key={s.id}>
-                            <td>
-                              <b>{s.name}</b>
-                              <span>
-                                <MapPin size={12} />
-                                {s.address}
-                              </span>
-                            </td>
-                            <td>{s.district}</td>
-                            <td>
-                              <em
-                                className={
-                                  s.status === "operating" ? "green" : "amber"
-                                }
-                              >
-                                {states[s.status] || s.status}
-                              </em>
-                            </td>
-                            <td>{s.connectors}</td>
-                            <td>{s.power_kw} kW</td>
-                            <td>模拟适配器</td>
-                            <td>
-                              <button
-                                className="outline"
-                                aria-label={`查看详情 ${s.name}`}
-                                onClick={() => setDetailId(s.id)}
-                              >
-                                查看详情
-                              </button>
-                            </td>
+                        <Search size={16} />
+                        <input
+                          aria-label="搜索场站"
+                          placeholder="搜索场站名称"
+                          value={q}
+                          onChange={(e) => setQ(e.target.value)}
+                        />
+                        <select
+                          aria-label="场站状态筛选"
+                          value={stationStatus}
+                          onChange={(e) => setStationStatus(e.target.value)}
+                        >
+                          <option value="">全部状态</option>
+                          <option value="pending">待接入</option>
+                          <option value="access_approved">接入通过</option>
+                          <option value="accepted">验收通过</option>
+                          <option value="operating">运营中</option>
+                          <option value="decommissioned">已核销</option>
+                        </select>
+                        <input
+                          aria-label="场站区域筛选"
+                          value={district}
+                          onChange={(e) => setDistrict(e.target.value)}
+                          placeholder="全部区域"
+                          maxLength={50}
+                        />
+                        <button disabled={stationLoading}>查询</button>
+                      </form>
+                    </div>
+                    <div className="table-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            {[
+                              "场站名称",
+                              "所属区域",
+                              "运行 / 业务状态",
+                              "充电接口",
+                              "装机功率",
+                              "数据来源",
+                              "操作",
+                            ].map((x) => (
+                              <th key={x}>{x}</th>
+                            ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {rows.length === 0 && (
-                      <p className="empty">当前条件下没有场站数据</p>
-                    )}
-                  </div>
-                  <div className="business-form">
-                    <button
-                      className="outline"
-                      disabled={stationLoading || stationPage <= 1}
-                      onClick={() =>
-                        load(
-                          applied.q,
-                          stationPage - 1,
-                          applied.status,
-                          applied.district,
-                        ).catch((e) => setError(e.message))
-                      }
-                    >
-                      场站上一页
-                    </button>
-                    <span role="status">
-                      {stationLoading
-                        ? "场站加载中…"
-                        : `第${stationPage}页 · 共${stationTotal}个场站`}
-                    </span>
-                    <button
-                      className="outline"
-                      disabled={
-                        stationLoading || stationPage * 20 >= stationTotal
-                      }
-                      onClick={() =>
-                        load(
-                          applied.q,
-                          stationPage + 1,
-                          applied.status,
-                          applied.district,
-                        ).catch((e) => setError(e.message))
-                      }
-                    >
-                      场站下一页
-                    </button>
-                  </div>
-                </section>
-              )}
+                        </thead>
+                        <tbody>
+                          {rows.map((s) => (
+                            <tr key={s.id}>
+                              <td>
+                                <b>{s.name}</b>
+                                <span>
+                                  <MapPin size={12} />
+                                  {s.address}
+                                </span>
+                              </td>
+                              <td>{s.district}</td>
+                              <td>
+                                <em
+                                  className={
+                                    s.status === "operating" ? "green" : "amber"
+                                  }
+                                >
+                                  {states[s.status] || s.status}
+                                </em>
+                              </td>
+                              <td>{s.connectors}</td>
+                              <td>{s.power_kw} kW</td>
+                              <td>模拟适配器</td>
+                              <td>
+                                <button
+                                  className="outline"
+                                  aria-label={`查看详情 ${s.name}`}
+                                  onClick={() => setDetailId(s.id)}
+                                >
+                                  查看详情
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {rows.length === 0 && (
+                        <p className="empty">当前条件下没有场站数据</p>
+                      )}
+                    </div>
+                    <div className="business-form">
+                      <button
+                        className="outline"
+                        disabled={stationLoading || stationPage <= 1}
+                        onClick={() =>
+                          load(
+                            applied.q,
+                            stationPage - 1,
+                            applied.status,
+                            applied.district,
+                          ).catch((e) => setError(e.message))
+                        }
+                      >
+                        场站上一页
+                      </button>
+                      <span role="status">
+                        {stationLoading
+                          ? "场站加载中…"
+                          : `第${stationPage}页 · 共${stationTotal}个场站`}
+                      </span>
+                      <button
+                        className="outline"
+                        disabled={
+                          stationLoading || stationPage * 20 >= stationTotal
+                        }
+                        onClick={() =>
+                          load(
+                            applied.q,
+                            stationPage + 1,
+                            applied.status,
+                            applied.district,
+                          ).catch((e) => setError(e.message))
+                        }
+                      >
+                        场站下一页
+                      </button>
+                    </div>
+                  </section>
+                )}
+              </BusinessViewProvider>
               {detailId !== null && (
                 <StationDetail
                   key={detailId}

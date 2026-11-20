@@ -299,3 +299,33 @@ def test_concurrent_lifecycle_writes_use_actual_postgres_revision_lock(api, staf
             )
             == 1
         )
+
+
+def test_rule_group_filters_have_server_counts_and_intersect_with_kind(api):
+    client, headers, _ = api
+    prefix = "group-" + secrets.token_hex(6)
+    for kind in ["device_temperature", "station_utilization"]:
+        body = create_body()
+        body["name"] = prefix
+        body["configuration"] = config(
+            **({"kind": kind, "period": "natural_month"} if kind.startswith("station_") else {})
+        )
+        assert (
+            client.post("/api/v1/alerts/configured-rules", headers=headers, json=body).status_code
+            == 201
+        )
+    for group in ["station", "device"]:
+        response = client.get(
+            "/api/v1/alerts/configured-rules", params={"q": prefix, "kind_group": group}
+        )
+        assert response.status_code == 200
+        assert response.json()["total"] == 1
+        assert response.json()["items"][0]["configuration"]["kind"].startswith(group + "_")
+    assert (
+        client.get(
+            "/api/v1/alerts/configured-rules",
+            params={"q": prefix, "kind_group": "station", "kind": "device_temperature"},
+        ).json()["total"]
+        == 0
+    )
+    assert client.get("/api/v1/alerts/configured-rules?kind_group=invalid").status_code == 422

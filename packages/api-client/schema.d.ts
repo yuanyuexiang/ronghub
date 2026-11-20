@@ -11291,6 +11291,7 @@ export interface operations {
             query?: {
                 q?: string;
                 kind?: ("device_temperature" | "device_current" | "device_leakage" | "station_utilization" | "station_fault" | "station_offline") | null;
+                kind_group?: ("station" | "device") | null;
                 enabled?: boolean | null;
                 include_archived?: boolean;
                 page?: number;
@@ -16128,7 +16129,7 @@ export interface operations {
                 page?: number;
                 q?: string;
                 include_deleted?: boolean;
-                kind?: "" | "announcement" | "news" | "notice" | "protocol" | "contact";
+                kind?: "" | "announcement" | "news" | "notice" | "protocol" | "contact" | "information";
             };
             header?: never;
             path?: never;
@@ -16368,7 +16369,7 @@ export interface operations {
             query?: {
                 q?: string;
                 include_deleted?: boolean;
-                kind?: "" | "announcement" | "news" | "notice" | "protocol" | "contact";
+                kind?: "" | "announcement" | "news" | "notice" | "protocol" | "contact" | "information";
             };
             header?: never;
             path?: never;
