@@ -592,6 +592,7 @@ select {
 }
 
 .business-stack {
+  scroll-margin-top: 90px;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;

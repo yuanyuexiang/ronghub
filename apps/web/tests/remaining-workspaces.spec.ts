@@ -328,3 +328,72 @@ test("association data support queries exact-station history and retains zero ve
     );
   }
 });
+
+test("long content detail keeps its focused heading below the sticky header", async ({
+  page,
+}) => {
+  const fixture = JSON.parse(
+    execFileSync(
+      "uv",
+      ["run", "python", "-m", "app.browser_fixture", "create"],
+      { cwd: "../server", encoding: "utf8" },
+    ),
+  );
+  try {
+    await login(page);
+    const me = await (await page.request.get("/api/v1/auth/me")).json();
+    const article = await page.request.post("/api/v1/content", {
+      headers: { "x-csrf-token": me.csrf_token },
+      data: {
+        kind: "announcement",
+        title: fixture.name,
+        body: Array(100)
+          .fill("长正文用于验证详情标题定位与返回焦点")
+          .join("\n"),
+        audience: "all",
+      },
+    });
+    expect(article.status()).toBe(201);
+    await page.getByRole("button", { name: "公告与通知", exact: true }).click();
+    await page.getByLabel("搜索内容标题", { exact: true }).fill(fixture.name);
+    await page.getByRole("button", { name: "查询内容", exact: true }).click();
+    await page
+      .getByRole("row")
+      .filter({
+        has: page.getByRole("cell", { name: fixture.name, exact: true }),
+      })
+      .getByRole("button", { name: "查看内容", exact: true })
+      .click();
+    const heading = page
+      .locator(".record-detail")
+      .getByRole("heading", { name: fixture.name, exact: true });
+    await expect(heading).toBeFocused();
+    const bounds = await heading.boundingBox();
+    const header = await page.locator(".workspace > header").boundingBox();
+    expect(bounds!.y).toBeGreaterThanOrEqual(header!.y + header!.height);
+    await page.screenshot({
+      path: "../../.backups/batch567-current-long-content.png",
+      fullPage: false,
+    });
+    await page
+      .getByRole("button", { name: "关闭内容详情", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "发布内容台账", exact: true }),
+    ).toBeFocused();
+  } finally {
+    execFileSync(
+      "uv",
+      [
+        "run",
+        "python",
+        "-m",
+        "app.browser_fixture",
+        "clean",
+        "--station",
+        String(fixture.station_id),
+      ],
+      { cwd: "../server", stdio: "pipe" },
+    );
+  }
+});
