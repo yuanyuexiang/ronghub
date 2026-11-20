@@ -12,7 +12,10 @@ async function login(page: Page, user: string) {
     name: "展开或收起功能导航",
   });
   await expect(
-    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, level: 1 }),
+    page.getByRole("heading", {
+      name: /^(运营总览|接入汇总|多维度数据筛选)$/,
+      level: 1,
+    }),
   ).toBeVisible();
   if (await mobileNavigation.isVisible()) await mobileNavigation.click();
   await navigateWorkspace(page, user === "regulator" ? "告警数据" : "企业告警");

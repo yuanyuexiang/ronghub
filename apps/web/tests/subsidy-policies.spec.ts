@@ -11,7 +11,10 @@ async function login(page: Page, name: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
+    page.getByRole("heading", {
+      name: /^(运营总览|接入汇总|多维度数据筛选)$/,
+      exact: true,
+    }),
   ).toBeVisible();
 }
 
@@ -145,9 +148,7 @@ test("complete device policy versions persist precise rules and remain outside l
         .locator("option")
         .filter({ hasText: code }),
     ).toHaveCount(0);
-    await owner
-      .getByRole("button", { name: "年度多站申报", exact: true })
-      .click();
+    await navigateWorkspace(owner, "年度多站申报");
     await owner.getByLabel("补贴年度", { exact: true }).fill("2026");
     await expect(
       owner

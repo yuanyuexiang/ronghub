@@ -22,7 +22,7 @@ async function login(page: Page, username: string) {
     response.status() === 200 ? "" : (await response.json()).detail,
   ).toBe(200);
   await expect(
-    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总|多维度数据筛选)$/ }),
   ).toBeVisible();
 }
 async function verifyMaterialDownload(
@@ -88,6 +88,7 @@ test("subsidy snapshot approval and association rating publication", async ({
     await login(op, "operator_a");
     await login(reg, "regulator");
     await login(assoc, "association");
+    await navigateWorkspace(assoc, "运营总览");
     await expect(
       assoc.getByRole("heading", { name: "协会评审工作台" }),
     ).toBeVisible();

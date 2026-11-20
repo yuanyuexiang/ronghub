@@ -150,6 +150,7 @@ test("subsidy workspaces separate policy and statistics while protecting the sta
       name: "补贴业务视图",
       exact: true,
     });
+    await page.locator("details.workspace-related-actions > summary").click();
     expect((await navigation.boundingBox())!.height).toBeLessThan(80);
     await expect(
       page.getByRole("button", { name: "查询补贴记录", exact: true }),

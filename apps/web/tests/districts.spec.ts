@@ -10,7 +10,7 @@ async function login(page: Page, username: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
   await expect(
-    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总|多维度数据筛选)$/ }),
   ).toBeVisible();
 }
 test("district assignment narrows the same enterprise and scopes exports", async ({

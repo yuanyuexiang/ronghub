@@ -108,6 +108,10 @@ export default function Home() {
   const allowedViews = useRef<Record<string, string[]>>({});
   useWorkspaceRoute({
     identity: loading || me?.must_change_password ? undefined : me?.username,
+    defaultModule:
+      me?.role === "association" && me.permissions.includes("stations.read")
+        ? "场站台账"
+        : "工作台",
     tab,
     alertView,
     view: workspaceView,
@@ -668,7 +672,7 @@ export default function Home() {
                 </button>
                 <span>{roles[me.role]}</span>
                 <ChevronRight size={14} />
-                <span>{currentGroup?.label}</span>
+                <span>{currentGroup?.label ?? "更多功能"}</span>
                 <ChevronRight size={14} />
                 <strong>{pageTitle}</strong>
               </span>
@@ -693,7 +697,7 @@ export default function Home() {
               )}
               <div className="heading">
                 <div>
-                  <p className="eyebrow">{currentGroup?.label}</p>
+                  <p className="eyebrow">{currentGroup?.label ?? "更多功能"}</p>
                   <h1>
                     {tab === "工作台" && me.role === "regulator"
                       ? "运营总览"

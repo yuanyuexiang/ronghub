@@ -200,7 +200,10 @@ test("association evaluation process and data entries respect its business bound
   });
   await page.goto("/?module=" + encodeURIComponent("权限与账号"));
   await expect(
-    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
+    page.getByRole("heading", {
+      name: /^(运营总览|接入汇总|多维度数据筛选)$/,
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "账号管理", exact: true, level: 2 }),
@@ -220,7 +223,7 @@ test("operator commissioning and decommissioning views apply server kind filters
         r.url().includes("/api/v1/applications?") &&
         new URL(r.url()).searchParams.get("kind") === kind,
     );
-    await page.getByRole("button", { name: label, exact: true }).click();
+    await navigateWorkspace(page, label);
     expect((await response).status()).toBe(200);
     await expect(page.getByLabel("筛选申请类型", { exact: true })).toHaveValue(
       kind,

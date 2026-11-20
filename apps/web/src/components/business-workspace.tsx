@@ -43,6 +43,7 @@ export function WorkspaceViews({
   onChange,
   disabled = false,
   keepVisible = false,
+  compact = false,
 }: {
   label: string;
   value: string;
@@ -50,10 +51,11 @@ export function WorkspaceViews({
   onChange: (value: string) => void;
   disabled?: boolean;
   keepVisible?: boolean;
+  compact?: boolean;
 }) {
   const sidebar = useSidebarViews();
   if (sidebar && !keepVisible) return null;
-  return (
+  const navigation = (
     <nav className="business-view-navigation" aria-label={label}>
       {items.map(([key, name]) => (
         <button
@@ -67,5 +69,13 @@ export function WorkspaceViews({
         </button>
       ))}
     </nav>
+  );
+  return compact ? (
+    <details className="workspace-related-actions">
+      <summary>相关操作</summary>
+      {navigation}
+    </details>
+  ) : (
+    navigation
   );
 }

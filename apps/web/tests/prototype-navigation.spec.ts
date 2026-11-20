@@ -12,7 +12,10 @@ test("prototype module navigation connects map and alert views without losing fi
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
   await expect(
-    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
+    page.getByRole("heading", {
+      name: /^(运营总览|接入汇总|多维度数据筛选)$/,
+      exact: true,
+    }),
   ).toBeVisible();
   const navigation = page.getByRole("navigation", { name: "业务模块导航" });
   await expect(

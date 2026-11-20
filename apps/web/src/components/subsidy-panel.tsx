@@ -64,15 +64,17 @@ export function SubsidyPanel({
   onChanged: () => void;
   registerLeaveGuard?: LeaveGuardRegistrar;
 }) {
+  const [routeView, setView] = useBusinessView("claims");
+  const recordsOnly = role === "operator" && routeView === "records";
   const api = subsidyApi(csrf, onChanged);
   const queue = useBusinessQueue(loadSubsidyQueue);
   const claims = queue.rows;
   const globalScope = useGlobalScope();
   const canCreate = useCapability("subsidy.create"),
-    canEdit = useCapability("subsidy.edit"),
-    canMaterials = useCapability("subsidy.materials"),
-    canSubmit = useCapability("subsidy.submit"),
-    canWithdraw = useCapability("subsidy.withdraw"),
+    canEdit = useCapability("subsidy.edit") && !recordsOnly,
+    canMaterials = useCapability("subsidy.materials") && !recordsOnly,
+    canSubmit = useCapability("subsidy.submit") && !recordsOnly,
+    canWithdraw = useCapability("subsidy.withdraw") && !recordsOnly,
     canAdjust = useCapability("subsidy.adjust"),
     canReview = useCapability("subsidy.review"),
     canDisburse = useCapability("subsidy.disburse"),
@@ -99,7 +101,6 @@ export function SubsidyPanel({
     [energy, setEnergy] = useState<ApiSchemas["SubsidyEnergyItem"][]>([]);
   const busy =
     operationBusy || batchOpen || batchBusy || evidenceBusy || annualBusy;
-  const [routeView, setView] = useBusinessView("claims");
   const view = routeView === "records" ? "claims" : routeView.split(".")[0];
   const [evidenceDirty, setEvidenceDirty] = useState(false);
   const workspaceRef = useRecordFocus(detail?.id);
@@ -230,6 +231,7 @@ export function SubsidyPanel({
       )}
       <div className="record-pane" hidden={!!detail}>
         <WorkspaceViews
+          compact={role === "operator"}
           label="补贴业务视图"
           value={view}
           onChange={setView}
@@ -609,6 +611,11 @@ export function SubsidyPanel({
             <div className="panel-title">
               <div>
                 <h2>SUB-{detail.id} · 核算依据</h2>
+                {recordsOnly && (
+                  <button className="outline" onClick={() => setView("claims")}>
+                    前往补贴申请办理
+                  </button>
+                )}
                 <p>
                   {statuses[detail.status]} · 版本 {detail.version}
                 </p>

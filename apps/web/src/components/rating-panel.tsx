@@ -21,6 +21,7 @@ import { useCapability, useGlobalScope } from "./permissions";
 import { StationPicker } from "./station-picker";
 import { useEffect, useState } from "react";
 import { RatingPublications, resultStates } from "./rating-publications";
+import { RatingProcess } from "./rating-process";
 import { RatingDataSupport } from "./rating-data-support";
 import { RatingMaterials } from "./rating-materials";
 import { RatingStandardWorkbench } from "./rating-standard-workbench";
@@ -251,6 +252,7 @@ export function RatingPanel({
       )}
       <div className="record-pane" hidden={!!detail}>
         <WorkspaceViews
+          compact={role === "operator"}
           label="星级评价业务视图"
           value={view}
           onChange={setView}
@@ -540,6 +542,19 @@ export function RatingPanel({
             busy={busy || materialBusy}
           />
         </div>
+        {view === "results" && role === "association" && (
+          <RatingPublications
+            title="评价结果管理"
+            layout="table"
+            testIdPrefix="rating-result"
+            revision={publicationRevision}
+            onOpen={open}
+            busy={busy || materialBusy}
+          />
+        )}
+        {view === "process" && role === "association" && (
+          <RatingProcess onOpen={open} busy={busy || materialBusy} />
+        )}
         {view === "collaboration" && role === "association" && (
           <section className="panel" aria-label="监管协同应用">
             <h2>监管协同应用</h2>
@@ -566,7 +581,10 @@ export function RatingPanel({
       <section
         className="panel"
         hidden={
-          !detail && !["applications", "process", "results"].includes(view)
+          (!detail && !["applications", "process", "results"].includes(view)) ||
+          (!detail &&
+            role === "association" &&
+            ["process", "results"].includes(view))
         }
       >
         <div className="record-pane" hidden={!!detail}>

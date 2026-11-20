@@ -2306,6 +2306,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ratings/process": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Process Records */
+        get: operations["process_records_api_v1_ratings_process_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ratings/process/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Process Records */
+        get: operations["export_process_records_api_v1_ratings_process_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ratings/publications": {
         parameters: {
             query?: never;
@@ -7857,6 +7891,53 @@ export interface components {
             limit_bytes: number;
             /** Total Bytes */
             total_bytes: number;
+        };
+        /** RatingProcessItem */
+        RatingProcessItem: {
+            /** Action */
+            action: string;
+            /** Actor Username */
+            actor_username: string;
+            after: components["schemas"]["RatingProcessState"] | null;
+            /** Application Id */
+            application_id: number;
+            before: components["schemas"]["RatingProcessState"] | null;
+            /** Comment */
+            comment: string;
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Snapshot Recorded */
+            snapshot_recorded: boolean;
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+        };
+        /** RatingProcessPage */
+        RatingProcessPage: {
+            /** Items */
+            items: components["schemas"]["RatingProcessItem"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** RatingProcessState */
+        RatingProcessState: {
+            /** Stars */
+            stars?: number | null;
+            /** Status */
+            status?: string | null;
+            /** Total Score */
+            total_score?: string | null;
+            /** Valid Until */
+            valid_until?: string | null;
         };
         /** RatingPublication */
         RatingPublication: {
@@ -23225,6 +23306,168 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RatingFieldList"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    process_records_api_v1_ratings_process_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                action?: "" | "review" | "publish" | "reject" | "delist" | "supersede";
+                record_id?: number | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingProcessPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_process_records_api_v1_ratings_process_export_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                action?: "" | "review" | "publish" | "reject" | "delist" | "supersede";
+                record_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
             /** @description Login required or invalid credentials */

@@ -6,6 +6,7 @@ import type { AlertWorkspaceView } from "./workspace-navigation";
 /** URLs identify modules only. Private records and unsaved form fields stay out of history. */
 export function useWorkspaceRoute({
   identity,
+  defaultModule = "工作台",
   tab,
   alertView,
   view,
@@ -15,6 +16,7 @@ export function useWorkspaceRoute({
   onRestore,
 }: {
   identity: string | undefined;
+  defaultModule?: string;
   tab: string;
   alertView: AlertWorkspaceView;
   view: string;
@@ -36,8 +38,10 @@ export function useWorkspaceRoute({
     }
     const read = () => {
       const params = new URLSearchParams(window.location.search);
-      const requested = params.get("module") ?? "工作台";
-      const target = allowed.current.includes(requested) ? requested : "工作台";
+      const requested = params.get("module") ?? defaultModule;
+      const target = allowed.current.includes(requested)
+        ? requested
+        : defaultModule;
       const rawView = params.get("alert") ?? "events";
       const view: AlertWorkspaceView =
         rawView === "rules" ||
@@ -86,7 +90,7 @@ export function useWorkspaceRoute({
       ready.current = false;
       window.removeEventListener("popstate", pop);
     };
-  }, [identity, allowed, guard]);
+  }, [identity, allowed, guard, defaultModule]);
   useEffect(() => {
     if (!ready.current || !allowed.current.includes(tab)) return;
     // The URL already selected a module; do not overwrite it with the initial render's default.

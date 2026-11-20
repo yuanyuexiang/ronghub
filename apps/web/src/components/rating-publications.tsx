@@ -20,11 +20,13 @@ export function RatingPublications({
   busy,
   title = "星级公示查询",
   testIdPrefix = "publication",
+  layout = "cards",
 }: {
   revision: number;
   onOpen: (id: number) => void;
   busy: boolean;
   title?: string;
+  layout?: "cards" | "table";
   testIdPrefix?: string;
 }) {
   const [query, setQuery] = useState("");
@@ -78,7 +80,9 @@ export function RatingPublications({
     return () => controller.abort();
   }, [filters, page, revision, pageRefreshRevision]);
   return (
-    <section className="panel">
+    <section
+      className={`panel ${layout === "table" ? "rating-result-panel" : ""}`}
+    >
       <div className="panel-title">
         <div>
           <h2>{title}</h2>
@@ -155,47 +159,93 @@ export function RatingPublications({
         </p>
       ) : (
         <>
-          <div className="publication-grid">
-            {items.map((a) => (
-              <article
-                className="publication-card"
-                key={a.id}
-                data-testid={`${testIdPrefix}-${a.id}`}
-              >
-                <div className="action-row">
-                  <span
-                    className={
-                      a.result_state === "valid" ? "pill green" : "pill amber"
-                    }
-                  >
-                    {resultStates[a.result_state]}
-                  </span>
-                  <small>{a.district}</small>
-                </div>
-                <h3>{a.station_name}</h3>
-                <p className="publication-stars">
-                  {a.effective_stars === null
-                    ? "星级待确认"
-                    : a.effective_stars > 0
-                      ? "★".repeat(a.effective_stars)
-                      : "当前有效星级 0"}
-                </p>
-                {a.show_association_mark && (
-                  <small>演示评定 {a.effective_stars} 星</small>
-                )}
-                <p>{a.operator_name}</p>
-                <p className="muted">{a.address}</p>
-                <p>有效期至：{a.valid_until ?? "未确认"}</p>
-                <button
-                  className="outline"
-                  disabled={busy}
-                  onClick={() => onOpen(a.id)}
+          {layout === "table" ? (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    {[
+                      "场站 / 运营商",
+                      "当前有效星级",
+                      "评定状态",
+                      "有效期至",
+                      "操作",
+                    ].map((label) => (
+                      <th key={label}>{label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((row) => (
+                    <tr key={row.id} data-testid={`${testIdPrefix}-${row.id}`}>
+                      <td>
+                        {row.station_name}
+                        <small>{row.operator_name}</small>
+                      </td>
+                      <td>
+                        {row.effective_stars === null
+                          ? "未确认"
+                          : `${row.effective_stars} 星`}
+                      </td>
+                      <td>{resultStates[row.result_state]}</td>
+                      <td>{row.valid_until ?? "未确认"}</td>
+                      <td>
+                        <button
+                          className="outline"
+                          disabled={busy}
+                          onClick={() => onOpen(row.id)}
+                        >
+                          管理评定结果
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="publication-grid">
+              {items.map((a) => (
+                <article
+                  className="publication-card"
+                  key={a.id}
+                  data-testid={`${testIdPrefix}-${a.id}`}
                 >
-                  查看评定档案
-                </button>
-              </article>
-            ))}
-          </div>
+                  <div className="action-row">
+                    <span
+                      className={
+                        a.result_state === "valid" ? "pill green" : "pill amber"
+                      }
+                    >
+                      {resultStates[a.result_state]}
+                    </span>
+                    <small>{a.district}</small>
+                  </div>
+                  <h3>{a.station_name}</h3>
+                  <p className="publication-stars">
+                    {a.effective_stars === null
+                      ? "星级待确认"
+                      : a.effective_stars > 0
+                        ? "★".repeat(a.effective_stars)
+                        : "当前有效星级 0"}
+                  </p>
+                  {a.show_association_mark && (
+                    <small>演示评定 {a.effective_stars} 星</small>
+                  )}
+                  <p>{a.operator_name}</p>
+                  <p className="muted">{a.address}</p>
+                  <p>有效期至：{a.valid_until ?? "未确认"}</p>
+                  <button
+                    className="outline"
+                    disabled={busy}
+                    onClick={() => onOpen(a.id)}
+                  >
+                    查看评定档案
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
           {!items.length && <p className="empty">暂无符合条件的公示结果</p>}
           <div className="publication-pagination">
             <button

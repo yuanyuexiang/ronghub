@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { Page, navigateWorkspace } from "./fixtures";
 export async function pickStation(
   page: Page,
   label: string,
@@ -11,7 +11,7 @@ export async function pickStation(
   };
   const view = views[label];
   if (view && !(await page.getByLabel(label, { exact: true }).isVisible()))
-    await page.getByRole("button", { name: view, exact: true }).click();
+    await navigateWorkspace(page, view);
   const picker = page
     .locator(".station-picker")
     .filter({ has: page.getByLabel(label, { exact: true }) });

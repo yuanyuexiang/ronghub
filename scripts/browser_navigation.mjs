@@ -1,4 +1,4 @@
-// Browser verification actions for the actual canvas menus and separate auxiliary tools.
+// Shared navigation actions for standalone browser verification.
 import { createRequire } from 'node:module';
 const { expect } = createRequire(new URL('../apps/web/package.json', import.meta.url))('@playwright/test');
 export async function openWorkspaceNavigation(page) {
@@ -62,9 +62,19 @@ export async function navigateWorkspace(page, name) {
     });
     // Exact auxiliary names retain their original module semantics (e.g. operator energy analysis).
     for (const candidate of names) {
-        const local = page
-            .locator("main.content")
-            .getByRole("button", { name: candidate, exact: true });
+        const local = page.locator("main.content").getByRole("button", {
+            name: candidate,
+            exact: true,
+            includeHidden: true,
+        });
+        for (const detail of await local
+            .first()
+            .locator("xpath=ancestor::details")
+            .all()) {
+            if ((await detail.getAttribute("open")) === null &&
+                (await detail.isVisible()))
+                await detail.locator(":scope > summary").click();
+        }
         if ((await local.count()) && (await local.first().isVisible())) {
             await local.first().click();
             return;

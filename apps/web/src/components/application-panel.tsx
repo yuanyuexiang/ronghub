@@ -62,6 +62,8 @@ export function ApplicationPanel({
   csrf: string;
   registerLeaveGuard?: (guard: (() => boolean) | null) => void;
 }) {
+  const [applicationView, setApplicationView] = useBusinessView("all");
+  const progressOnly = role === "operator" && applicationView === "progress";
   const canCreate = useCapability("applications.create"),
     canEdit = useCapability("applications.edit"),
     canMaterials = useCapability("applications.materials"),
@@ -114,7 +116,6 @@ export function ApplicationPanel({
     else closeDetail();
   }
   const workspaceRef = useRecordFocus(detail?.id);
-  const [applicationView, setApplicationView] = useBusinessView("all");
   const canSource = useCapability("stations.read");
   const [materialRevision, setMaterialRevision] = useState(0);
   const [review, setReview] = useState<ApplicationReviewState | null>(null);
@@ -180,7 +181,7 @@ export function ApplicationPanel({
     if (busy || materialBusy || editorBusy) return;
     setDetail(null);
     ++detailSequence.current;
-    setApplicationView(draft.kind || "all");
+    if (!progressOnly) setApplicationView(draft.kind || "all");
     setQuery({ ...draft, page: 1 });
   }
   async function create() {
@@ -276,20 +277,26 @@ export function ApplicationPanel({
   return (
     <section ref={workspaceRef} className="panel application-workspace">
       <div className="record-pane" hidden={!!detail}>
-        <WorkspaceViews
-          keepVisible
-          label="场站申请业务视图"
-          value={applicationView === "progress" ? "all" : applicationView}
-          disabled={busy || materialBusy || editorBusy || listLoading}
-          items={[["all", "全部接入事项"], ...Object.entries(kinds)]}
-          onChange={(view) => {
-            setApplicationView(view);
-            const next = { ...initialQuery, kind: view === "all" ? "" : view };
-            setDraft(next);
-            setQuery(next);
-            if (view !== "all") setKind(view);
-          }}
-        />
+        <div hidden={progressOnly}>
+          <WorkspaceViews
+            keepVisible
+            compact={role === "operator"}
+            label="场站申请业务视图"
+            value={applicationView === "progress" ? "all" : applicationView}
+            disabled={busy || materialBusy || editorBusy || listLoading}
+            items={[["all", "全部接入事项"], ...Object.entries(kinds)]}
+            onChange={(view) => {
+              setApplicationView(view);
+              const next = {
+                ...initialQuery,
+                kind: view === "all" ? "" : view,
+              };
+              setDraft(next);
+              setQuery(next);
+              if (view !== "all") setKind(view);
+            }}
+          />
+        </div>
         <div className="panel-title">
           <div>
             <h2>
@@ -389,7 +396,7 @@ export function ApplicationPanel({
             className="outline"
             disabled={busy || materialBusy || editorBusy || listLoading}
             onClick={() => {
-              setApplicationView("all");
+              if (!progressOnly) setApplicationView("all");
               setDraft(initialQuery);
               setQuery({ ...initialQuery });
               setDetail(null);
@@ -558,6 +565,19 @@ export function ApplicationPanel({
               关闭详情
             </button>
           </div>
+          {progressOnly && (
+            <div className="progress-readonly-note">
+              <p>
+                当前为进度查看，可核对申请资料和审核记录。需要补充或修改材料时，进入办理视图。
+              </p>
+              <button
+                className="outline"
+                onClick={() => setApplicationView("all")}
+              >
+                前往接入申请办理
+              </button>
+            </div>
+          )}
           <dl className="record-summary-grid">
             <div>
               <dt>申请场站</dt>
@@ -591,6 +611,7 @@ export function ApplicationPanel({
                 />
               </div>
               {canEdit &&
+                !progressOnly &&
                 role === "operator" &&
                 ["draft", "rejected"].includes(detail.status) && (
                   <DraftEditor
@@ -615,6 +636,7 @@ export function ApplicationPanel({
                 onBusy={setMaterialBusy}
                 editable={
                   canMaterials &&
+                  !progressOnly &&
                   role === "operator" &&
                   ["draft", "rejected"].includes(detail.status)
                 }
@@ -637,7 +659,7 @@ export function ApplicationPanel({
                 )}
               </section>
             </div>
-            <div className="application-review-actions">
+            <div className="application-review-actions" hidden={progressOnly}>
               <h3>当前操作</h3>
               <p className="muted">操作受角色、所属企业和记录状态共同约束。</p>
               {(role === "operator" &&

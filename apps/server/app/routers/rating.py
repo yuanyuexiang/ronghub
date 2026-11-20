@@ -1,8 +1,12 @@
+import csv
+import io
 from datetime import date
 from decimal import Decimal
 from itertools import pairwise
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -20,6 +24,7 @@ from app.business_dates import Dates, apply_dates, submission_time
 from app.contracts import RatingQueuePage
 from app.dependencies import DB, Actor, SnapshotActor
 from app.models import (
+    Audit,
     Operator,
     RatingAction,
     RatingApplication,
@@ -234,6 +239,180 @@ def applications_statement(user, q="", status="", record_id=None, kind="", dates
     if record_id is not None:
         stmt = stmt.where(RatingApplication.id == record_id)
     return apply_dates(stmt, RatingApplication, dates)
+
+
+class RatingProcessState(BaseModel):
+    status: str | None = None
+    stars: int | None = None
+    total_score: str | None = None
+    valid_until: str | None = None
+
+
+class RatingProcessItem(BaseModel):
+    id: int
+    application_id: int
+    station_id: int
+    station_name: str
+    operator_name: str
+    actor_username: str
+    action: str
+    comment: str
+    created_at: str
+    before: RatingProcessState | None
+    after: RatingProcessState | None
+    snapshot_recorded: bool
+
+
+class RatingProcessPage(BaseModel):
+    items: list[RatingProcessItem]
+    total: int
+    page: int
+    page_size: int
+
+
+@router.get("/process", response_model=RatingProcessPage)
+def process_records(
+    user: SnapshotActor,
+    db: SnapshotDB,
+    q: str = Query("", max_length=150),
+    action: Literal["", "review", "publish", "reject", "delist", "supersede"] = "",
+    record_id: int | None = Query(None, ge=1, le=9223372036854775807),
+    page: int = Query(1, ge=1, le=2147483647),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    from app.authorization import require
+
+    require(db, user, "ratings.read")
+    scoped_ids = applications_statement(user, q, "", record_id, "", None).with_only_columns(
+        RatingApplication.id
+    )
+    stmt = (
+        select(
+            RatingAction, RatingApplication.station_id, Station.name, Operator.name, User.username
+        )
+        .join(RatingApplication, RatingApplication.id == RatingAction.application_id)
+        .join(Station, Station.id == RatingApplication.station_id)
+        .join(Operator, Operator.id == RatingApplication.operator_id)
+        .join(User, User.id == RatingAction.actor_id)
+        .where(
+            RatingApplication.id.in_(scoped_ids),
+            RatingAction.action.in_(["review", "publish", "reject", "delist", "supersede"]),
+        )
+    )
+    if action:
+        stmt = stmt.where(RatingAction.action == action)
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+    rows = db.execute(
+        stmt.order_by(RatingAction.created_at.desc(), RatingAction.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+
+    def frozen(raw):
+        if not isinstance(raw, dict):
+            return None
+        return {key: raw.get(key) for key in ("status", "stars", "total_score", "valid_until")}
+
+    return {
+        "items": [
+            {
+                "id": event.id,
+                "application_id": event.application_id,
+                "station_id": sid,
+                "station_name": station,
+                "operator_name": operator,
+                "actor_username": actor,
+                "action": event.action,
+                "comment": event.comment,
+                "created_at": event.created_at.isoformat(),
+                "before": frozen(event.transition_snapshot.get("before"))
+                if isinstance(event.transition_snapshot, dict)
+                else None,
+                "after": frozen(event.transition_snapshot.get("after"))
+                if isinstance(event.transition_snapshot, dict)
+                else None,
+                "snapshot_recorded": isinstance(event.transition_snapshot, dict),
+            }
+            for event, sid, station, operator, actor in rows
+        ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
+@router.get(
+    "/process/export",
+    response_class=Response,
+    responses={200: {"content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}}}},
+)
+def export_process_records(
+    user: SnapshotActor,
+    db: SnapshotDB,
+    q: str = Query("", max_length=150),
+    action: Literal["", "review", "publish", "reject", "delist", "supersede"] = "",
+    record_id: int | None = Query(None, ge=1, le=9223372036854775807),
+):
+    from app.authorization import require
+    from app.routers.statistics import csv_cell
+
+    require(db, user, "ratings.export")
+    result = process_records(user, db, q, action, record_id, 1, 10001)
+    if result["total"] > 10000:
+        raise HTTPException(422, "单次最多导出10000条评审过程，请缩小查询范围；未截断导出")
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(
+        [
+            "申报编号",
+            "当前场站名称",
+            "当前运营商名称",
+            "当前办理账号",
+            "办理时间",
+            "动作",
+            "历史快照状态",
+            "变更前星级",
+            "变更后星级",
+            "变更前有效期",
+            "变更后有效期",
+            "变更后状态",
+            "办理意见",
+        ]
+    )
+    for row in result["items"]:
+        before, after = row["before"] or {}, row["after"] or {}
+        writer.writerow(
+            [
+                csv_cell(value)
+                for value in [
+                    row["application_id"],
+                    row["station_name"],
+                    row["operator_name"],
+                    row["actor_username"],
+                    row["created_at"],
+                    row["action"],
+                    "已留存" if row["snapshot_recorded"] else "未留存",
+                    before.get("stars"),
+                    after.get("stars"),
+                    before.get("valid_until"),
+                    after.get("valid_until"),
+                    after.get("status"),
+                    row["comment"],
+                ]
+            ]
+        )
+    db.add(
+        Audit(user_id=user.id, action="ratings.process.export", detail={"rows": result["total"]})
+    )
+    db.commit()
+    return Response(
+        "\ufeff" + buffer.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": 'attachment; filename="ronghub-rating-process.csv"',
+        },
+    )
 
 
 @router.get("/applications", response_model=RatingQueuePage)

@@ -48,7 +48,10 @@ async function login(page: Page, name: string) {
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   expect((await done).status()).toBe(200);
   await expect(
-    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
+    page.getByRole("heading", {
+      name: /^(运营总览|接入汇总|多维度数据筛选)$/,
+      exact: true,
+    }),
   ).toBeVisible();
 }
 async function query(page: Page, name: string) {

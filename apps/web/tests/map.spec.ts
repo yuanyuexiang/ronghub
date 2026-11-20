@@ -14,7 +14,7 @@ async function login(page: Page, username: string) {
   await page.getByRole("button", { name: "登录平台" }).click();
   expect((await response).status()).toBe(200);
   await expect(
-    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总|多维度数据筛选)$/ }),
   ).toBeVisible();
 }
 test("three roles use scoped map, clustering, filters and unlocated station details", async ({

@@ -11,7 +11,10 @@ async function login(page: Page, name: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
+    page.getByRole("heading", {
+      name: /^(运营总览|接入汇总|多维度数据筛选)$/,
+      exact: true,
+    }),
   ).toBeVisible();
 }
 test("subsidy statement and real ZIP freeze on submit and remain private in review", async ({

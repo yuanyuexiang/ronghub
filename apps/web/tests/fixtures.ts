@@ -143,9 +143,21 @@ export async function navigateWorkspace(page: Page, name: string | RegExp) {
   });
   // Exact auxiliary names retain their original module semantics (e.g. operator energy analysis).
   for (const candidate of names) {
-    const local = page
-      .locator("main.content")
-      .getByRole("button", { name: candidate, exact: true });
+    const local = page.locator("main.content").getByRole("button", {
+      name: candidate,
+      exact: true,
+      includeHidden: true,
+    });
+    for (const detail of await local
+      .first()
+      .locator("xpath=ancestor::details")
+      .all()) {
+      if (
+        (await detail.getAttribute("open")) === null &&
+        (await detail.isVisible())
+      )
+        await detail.locator(":scope > summary").click();
+    }
     if ((await local.count()) && (await local.first().isVisible())) {
       await local.first().click();
       return;

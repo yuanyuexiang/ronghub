@@ -98,7 +98,9 @@ test("enterprise enrollment materials, regulatory approval and first platform lo
     await portal.getByLabel("密码", { exact: true }).fill(password);
     await portal.getByRole("button", { name: "登录平台" }).click();
     await expect(
-      portal.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+      portal.getByRole("heading", {
+        name: /^(运营总览|接入汇总|多维度数据筛选)$/,
+      }),
     ).toBeVisible();
     await navigateWorkspace(portal, "企业资料");
     await expect(

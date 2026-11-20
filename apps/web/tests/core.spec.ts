@@ -13,7 +13,7 @@ test("regulator login, station search, durable sync view and logout", async ({
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
   await expect(
-    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总|多维度数据筛选)$/ }),
   ).toBeVisible();
   await expect(page.getByText("演示·鼓楼公共充电站")).toBeVisible();
   await page.getByLabel("搜索场站").fill("不存在的演示场站");
@@ -147,7 +147,9 @@ test("operator material submission and regulator approval across browser context
       await page.getByLabel("密码", { exact: true }).fill(password);
       await page.getByRole("button", { name: "登录平台" }).click();
       await expect(
-        page.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+        page.getByRole("heading", {
+          name: /^(运营总览|接入汇总|多维度数据筛选)$/,
+        }),
       ).toBeVisible();
     }
     await navigateWorkspace(op, /^(场站申请|接入管理)$/);

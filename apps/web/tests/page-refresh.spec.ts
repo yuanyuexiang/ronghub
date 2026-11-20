@@ -61,16 +61,12 @@ test("global refresh keeps applied queries, pages, dirty forms and details while
     ] as const) {
       await navigateWorkspace(page, menu);
       if (label === "补贴") {
-        await page
-          .getByRole("button", { name: "政策与单站申报", exact: true })
-          .click();
+        await navigateWorkspace(page, "政策与单站申报");
         await page
           .getByLabel("补贴开始日期", { exact: true })
           .fill("2026-10-15");
       } else {
-        await page
-          .getByRole("button", { name: "新增星级申报", exact: true })
-          .click();
+        await navigateWorkspace(page, "新增星级申报");
         await page
           .getByLabel("评星依据说明", { exact: true })
           .fill("未保存的评星依据");
