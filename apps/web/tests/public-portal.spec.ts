@@ -15,6 +15,8 @@ async function login(page: Page) {
   await page.getByRole("button", { name: "公告与通知", exact: true }).click();
 }
 async function draft(page: Page, title: string, publicly: boolean) {
+  const back = page.getByRole("button", { name: "关闭内容详情", exact: true });
+  if (await back.isVisible()) await back.click();
   await page.getByRole("button", { name: "新建内容草稿", exact: true }).click();
   const consent = page.getByLabel("向匿名门户公开", { exact: true });
   await expect(consent).not.toBeChecked();

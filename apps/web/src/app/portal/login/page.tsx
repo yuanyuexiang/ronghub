@@ -33,7 +33,7 @@ export default function PortalLogin() {
         <h1>选择您的业务入口</h1>
         <p>使用已有账号完成统一身份认证，按账号实际授权进入对应工作台。</p>
         <div>
-          <Link href="/">
+          <Link href="/?entry=regulator">
             <ShieldCheck size={32} />
             <h2>监管端</h2>
             <p>场站审核、安全监管、补贴与统计</p>
@@ -42,7 +42,7 @@ export default function PortalLogin() {
               <ArrowRight size={17} />
             </span>
           </Link>
-          <Link href="/">
+          <Link href="/?entry=association">
             <Users size={32} />
             <h2>协会端</h2>
             <p>评价标准、申报评审与结果管理</p>
@@ -51,7 +51,7 @@ export default function PortalLogin() {
               <ArrowRight size={17} />
             </span>
           </Link>
-          <Link href="/">
+          <Link href="/?entry=operator">
             <Building2 size={32} />
             <h2>运营商端</h2>
             <p>场站资料、业务申报与整改反馈</p>

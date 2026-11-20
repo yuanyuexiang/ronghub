@@ -20,6 +20,7 @@ import { useCapability, useGlobalScope } from "./permissions";
 import { StationPicker } from "./station-picker";
 import { useEffect, useState } from "react";
 import { RatingPublications, resultStates } from "./rating-publications";
+import { RatingDataSupport } from "./rating-data-support";
 import { RatingMaterials } from "./rating-materials";
 import { RatingStandardWorkbench } from "./rating-standard-workbench";
 import { RatingStandardAvailability } from "./rating-standard-availability";
@@ -75,6 +76,9 @@ export function RatingPanel({
   onChanged: () => void;
   registerLeaveGuard?: LeaveGuardRegistrar;
 }) {
+  const canStatistics = useCapability("statistics.read");
+  const canStations = useCapability("stations.read");
+  const canDataSupport = canStatistics && canStations;
   const api = ratingApi(csrf, onChanged);
   const queue = useBusinessQueue(loadRatingQueue);
   const apps = queue.rows;
@@ -257,6 +261,8 @@ export function RatingPanel({
               role === "association" ? "评价标准管理" : "评价标准查看",
             ],
             ["publications", "评价结果与公示"],
+            ["process", "评审过程管理"],
+            ...(canDataSupport ? [["data", "数据支撑评价"] as const] : []),
             ...(canCreate && role === "operator"
               ? ([["create", "新增星级申报"]] as const)
               : []),
@@ -531,14 +537,32 @@ export function RatingPanel({
           />
         </div>
       </div>
-      <section className="panel" hidden={!detail && view !== "applications"}>
+      <div className="record-pane" hidden={!!detail || view !== "data"}>
+        {canDataSupport && <RatingDataSupport />}
+      </div>
+      <section
+        className="panel"
+        hidden={!detail && !["applications", "process"].includes(view)}
+      >
         <div className="record-pane" hidden={!!detail}>
           <div className="panel-title">
             <div>
               <h2>
-                {role === "association" ? "星级申报与评审" : "星级申报及结果"}
+                {view === "process"
+                  ? "评审过程管理"
+                  : view === "data"
+                    ? "数据支撑评价"
+                    : role === "association"
+                      ? "星级申报与评审"
+                      : "星级申报及结果"}
               </h2>
-              <p>每次评定保留标准版本、初始分、人工修改和公示历史</p>
+              <p>
+                {view === "process"
+                  ? "按申报状态和提交时间定位事项，进入详情核对提交、复核与公示记录。"
+                  : view === "data"
+                    ? "进入评价依据核对指标原始值、数据来源与缺项；资料不足不推定为零分或有效星级。"
+                    : "每次评定保留标准版本、初始分、人工修改和公示历史"}
+              </p>
             </div>
             <button
               className="outline"

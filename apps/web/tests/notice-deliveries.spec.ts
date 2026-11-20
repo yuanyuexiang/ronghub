@@ -60,6 +60,10 @@ test("multi-company notice creates independent records and isolates enterprise r
     await reg
       .getByRole("button", { name: "保存内容草稿", exact: true })
       .click();
+    await expect(reg.locator(".record-detail")).toContainText(fixture.name);
+    await reg
+      .getByRole("button", { name: "关闭内容详情", exact: true })
+      .click();
     const row = reg.getByRole("row").filter({
       has: reg.getByRole("cell", { name: fixture.name, exact: true }),
     });
@@ -68,6 +72,9 @@ test("multi-company notice creates independent records and isolates enterprise r
     await expect(
       reg.getByRole("heading", { name: "逐企业站内记录", exact: true }),
     ).toBeVisible();
+    await reg
+      .getByRole("button", { name: "关闭内容详情", exact: true })
+      .click();
     await reg
       .getByRole("button", { name: "展开通知记录", exact: true })
       .click();
@@ -134,9 +141,7 @@ test("multi-company notice creates independent records and isolates enterprise r
     await expect(
       records.getByRole("cell", { name: "演示运营商乙", exact: true }),
     ).toHaveCount(0);
-    await reg
-      .getByRole("button", { name: "关闭内容详情", exact: true })
-      .click();
+
     await row.getByRole("button", { name: "查看内容", exact: true }).click();
     await expect(
       reg
@@ -147,6 +152,18 @@ test("multi-company notice creates independent records and isolates enterprise r
       path: "test-results/notice-deliveries.png",
       fullPage: true,
     });
+    await reg
+      .getByRole("button", { name: "关闭内容详情", exact: true })
+      .click();
+    await expect(reg.getByLabel("通知记录关键词", { exact: true })).toHaveValue(
+      fixture.name,
+    );
+    await expect(reg.getByLabel("通知记录回复", { exact: true })).toHaveValue(
+      "true",
+    );
+    await expect(
+      records.getByText("第1页 · 共1条", { exact: true }),
+    ).toBeVisible();
   } finally {
     await Promise.all(contexts.map((c) => c.close()));
     execFileSync(

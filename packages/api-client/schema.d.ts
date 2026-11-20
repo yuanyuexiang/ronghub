@@ -5258,6 +5258,38 @@ export interface components {
             /** Latest Observation Id */
             latest_observation_id: number;
         };
+        /** EvidenceConnector */
+        EvidenceConnector: {
+            /** External Id */
+            external_id: string;
+            /** Id */
+            id: number;
+            /** Interface Type */
+            interface_type: string | null;
+            /** Name */
+            name: string | null;
+        };
+        /** EvidenceEquipment */
+        EvidenceEquipment: {
+            /** Connectors */
+            connectors: components["schemas"]["EvidenceConnector"][];
+            /** Equipment Type */
+            equipment_type: string | null;
+            /** External Id */
+            external_id: string;
+            /** Id */
+            id: number;
+            /** Manufactured On */
+            manufactured_on: string | null;
+            /** Model Name */
+            model_name: string | null;
+            /** Name */
+            name: string;
+            /** Power Kw */
+            power_kw: string;
+            /** Source Unique Code */
+            source_unique_code: string | null;
+        };
         /** EvidenceMaterial */
         EvidenceMaterial: {
             /** Category */
@@ -8234,6 +8266,8 @@ export interface components {
         };
         /** ReviewContent */
         ReviewContent: {
+            /** Equipment */
+            equipment?: components["schemas"]["EvidenceEquipment"][] | null;
             /** Materials */
             materials: components["schemas"]["EvidenceMaterial"][];
             /** Payload */
@@ -16094,6 +16128,7 @@ export interface operations {
                 page?: number;
                 q?: string;
                 include_deleted?: boolean;
+                kind?: "" | "announcement" | "news" | "notice" | "protocol" | "contact";
             };
             header?: never;
             path?: never;
@@ -16333,6 +16368,7 @@ export interface operations {
             query?: {
                 q?: string;
                 include_deleted?: boolean;
+                kind?: "" | "announcement" | "news" | "notice" | "protocol" | "contact";
             };
             header?: never;
             path?: never;

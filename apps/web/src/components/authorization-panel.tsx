@@ -1,4 +1,9 @@
 "use client";
+import {
+  WorkspaceViews,
+  useWorkspaceLeave,
+  type LeaveGuardRegistrar,
+} from "./business-workspace";
 import { usePageRefresh } from "./page-refresh";
 import { AdminPasswordReset } from "./password-panel";
 import { DistrictScopeEditor } from "./district-scope-editor";
@@ -8,6 +13,25 @@ import { useEffect, useState, useRef } from "react";
 import { useCapability, useGlobalScope, useDistrictScope } from "./permissions";
 type Profile = ApiSchemas["RoleProfileResponse"];
 type Account = ApiSchemas["ManagedAccountResponse"];
+const permissionModules: Record<string, string> = {
+  stations: "场站",
+  applications: "接入申请",
+  subsidy: "补贴",
+  ratings: "星级评价",
+  hazards: "隐患督办",
+  inspections: "巡检",
+  alerts: "告警",
+  content: "信息发布",
+  companies: "企业档案",
+  orders: "充电订单",
+  statistics: "统计",
+  accounts: "账号",
+  roles: "角色",
+  audits: "审计",
+  sync: "同步",
+  registrations: "企业注册",
+  staff_applications: "工作人员",
+};
 const roleNames: Record<string, string> = {
   regulator: "监管",
   association: "协会",
@@ -18,11 +42,13 @@ export function AuthorizationPanel({
   username,
   currentProfileId,
   permissions,
+  registerLeaveGuard,
 }: {
   csrf: string;
   username: string;
   currentProfileId: number | null;
   permissions: string[];
+  registerLeaveGuard?: LeaveGuardRegistrar;
 }) {
   const globalScope = useGlobalScope();
   const ownScope = useDistrictScope();
@@ -54,11 +80,38 @@ export function AuthorizationPanel({
     [newOperator, setNewOperator] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [view, setView] = useState(canAccounts ? "accounts" : "roles");
+  const roleDirty =
+    showRole &&
+    (roleName !== (profile?.name || "") ||
+      base !== (profile?.base_role || "operator") ||
+      JSON.stringify([...grants].sort()) !==
+        JSON.stringify(
+          [...(profile?.permissions || ["stations.read"])].sort(),
+        ));
+  const accountDirty =
+    !!account &&
+    (chosenRole !== String(account.role_profile_id ?? "") ||
+      enabled !== account.enabled ||
+      !!reason.trim() ||
+      JSON.stringify(accountScope) !==
+        JSON.stringify(account.allowed_districts));
+  const newDirty =
+    showNew &&
+    (!!(newName || newPassword || newRole || newOperator) ||
+      JSON.stringify(newScope) !== JSON.stringify(ownScope));
+  const canLeave = useWorkspaceLeave(
+    roleDirty || accountDirty || newDirty,
+    busy,
+    registerLeaveGuard,
+  );
+  const [listLoading, setListLoading] = useState(true);
   const api = accountApi(csrf);
   const appliedListQuery = useRef({ q: "" });
   const loadSequence = useRef(0);
   async function load() {
     const generation = ++loadSequence.current;
+    setListLoading(true);
     try {
       const data = await api.catalog(canRoles);
       if (generation !== loadSequence.current) return;
@@ -73,6 +126,8 @@ export function AuthorizationPanel({
       }
     } catch (error) {
       if (generation === loadSequence.current) throw error;
+    } finally {
+      if (generation === loadSequence.current) setListLoading(false);
     }
   }
   async function run(fn: () => Promise<void>) {
@@ -106,14 +161,42 @@ export function AuthorizationPanel({
   }
   const selectedNew = profiles.find((p) => String(p.id) === newRole);
   return (
-    <div className="business-stack">
+    <div
+      className="business-stack authorization-workspace"
+      aria-busy={listLoading}
+    >
+      {listLoading && (
+        <p role="status" className="muted">
+          正在读取角色与账号…
+        </p>
+      )}
+      <WorkspaceViews
+        label="权限管理视图"
+        value={view}
+        items={[
+          ...(canRoles ? [["roles", "角色管理"] as const] : []),
+          ...(canAccounts ? [["accounts", "账号管理"] as const] : []),
+        ]}
+        disabled={busy}
+        onChange={(next) => {
+          if (canLeave()) {
+            setShowRole(false);
+            setShowNew(false);
+            setAccount(null);
+            setView(next);
+          }
+        }}
+      />
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
       {canRoles && (
-        <section className="panel">
+        <section
+          className="panel"
+          hidden={view === "accounts" || showNew || !!account}
+        >
           <div className="panel-title">
             <div>
               <h2>业务权限角色</h2>
@@ -123,7 +206,7 @@ export function AuthorizationPanel({
             </div>
             <button
               className="outline"
-              disabled={!globalScope}
+              disabled={!globalScope || busy || showRole}
               onClick={() => startRole(null)}
             >
               新建权限角色
@@ -186,27 +269,43 @@ export function AuthorizationPanel({
                   </select>
                 </label>
               </div>
-              <div className="capability-grid">
-                {catalog
-                  .filter((c) => bases[base]?.includes(c.code))
-                  .map((c) => (
-                    <label key={c.code}>
-                      <input
-                        aria-label={`权限-${c.code}`}
-                        type="checkbox"
-                        checked={grants.includes(c.code)}
-                        disabled={busy || c.code === "stations.read"}
-                        onChange={(e) =>
-                          setGrants(
-                            e.target.checked
-                              ? [...grants, c.code]
-                              : grants.filter((k) => k !== c.code),
-                          )
-                        }
-                      />
-                      {c.name}
-                    </label>
-                  ))}
+              <div className="permission-groups">
+                {Object.entries(
+                  catalog
+                    .filter((c) => bases[base]?.includes(c.code))
+                    .reduce<Record<string, typeof catalog>>(
+                      (groups, capability) => {
+                        const module = capability.code.split(".")[0];
+                        (groups[module] ??= []).push(capability);
+                        return groups;
+                      },
+                      {},
+                    ),
+                ).map(([module, capabilities]) => (
+                  <fieldset className="permission-group" key={module}>
+                    <legend>{permissionModules[module] ?? "其他业务"}</legend>
+                    <div className="capability-grid">
+                      {capabilities.map((c) => (
+                        <label key={c.code}>
+                          <input
+                            aria-label={`权限-${c.code}`}
+                            type="checkbox"
+                            checked={grants.includes(c.code)}
+                            disabled={busy || c.code === "stations.read"}
+                            onChange={(e) =>
+                              setGrants(
+                                e.target.checked
+                                  ? [...grants, c.code]
+                                  : grants.filter((k) => k !== c.code),
+                              )
+                            }
+                          />
+                          {c.name}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                ))}
               </div>
               <div className="business-form">
                 <p className="muted">
@@ -218,14 +317,16 @@ export function AuthorizationPanel({
                 <button
                   className="outline"
                   type="button"
-                  onClick={() => setShowRole(false)}
+                  onClick={() => {
+                    if (canLeave()) setShowRole(false);
+                  }}
                 >
                   取消角色编辑
                 </button>
               </div>
             </form>
           )}
-          <div className="table-wrap">
+          <div className="table-wrap" hidden={showRole}>
             <table>
               <thead>
                 <tr>
@@ -264,14 +365,14 @@ export function AuthorizationPanel({
                 ))}
               </tbody>
             </table>
-            {!profiles.length && (
+            {!listLoading && !profiles.length && (
               <p className="empty">暂无自定义角色，现有账号按基础身份授权</p>
             )}
           </div>
         </section>
       )}
       {canAccounts && (
-        <section className="panel">
+        <section className="panel" hidden={view === "roles" || showRole}>
           <div className="panel-title">
             <div>
               <h2>账号管理</h2>
@@ -279,7 +380,7 @@ export function AuthorizationPanel({
                 调整授权或启停后撤销原会话；不能更改自身账号，也不能维护权限高于自身的账号
               </p>
             </div>
-            <div className="action-row">
+            <div className="action-row" hidden={showNew || !!account}>
               <form
                 className="search"
                 onSubmit={(e) => {
@@ -298,11 +399,41 @@ export function AuthorizationPanel({
                 />
                 <button disabled={busy}>查询账号</button>
               </form>
-              <button className="outline" onClick={() => setShowNew(!showNew)}>
+              <button
+                className="outline"
+                disabled={busy}
+                onClick={() => {
+                  if (canLeave()) {
+                    setAccount(null);
+                    setShowNew(!showNew);
+                  }
+                }}
+              >
                 新建账号
               </button>
             </div>
           </div>
+          {(showNew || account) && (
+            <div className="panel-title">
+              <h2>
+                {showNew ? "新建业务账号" : `${account?.username} · 账号授权`}
+              </h2>
+              <button
+                type="button"
+                className="outline"
+                disabled={busy}
+                onClick={() => {
+                  if (canLeave()) {
+                    setAccount(null);
+                    setShowNew(false);
+                    setNewPassword("");
+                  }
+                }}
+              >
+                返回账号列表
+              </button>
+            </div>
+          )}
           {showNew && (
             <form
               className="business-form"
@@ -402,14 +533,14 @@ export function AuthorizationPanel({
               </button>
             </form>
           )}
-          <div className="table-wrap">
+          <div className="table-wrap" hidden={showNew || !!account}>
             <table>
               <thead>
                 <tr>
                   {[
                     "账号",
                     "基础身份",
-                    "所属企业ID",
+                    "所属企业",
                     "权限角色",
                     "状态",
                     "操作",
@@ -423,7 +554,13 @@ export function AuthorizationPanel({
                   <tr key={u.id}>
                     <td>{u.username}</td>
                     <td>{roleNames[u.role]}</td>
-                    <td>{u.operator_id ?? "—"}</td>
+                    <td>
+                      {u.operator_id == null
+                        ? "—"
+                        : (operators.find(
+                            (operator) => operator.id === u.operator_id,
+                          )?.name ?? `企业 #${u.operator_id}`)}
+                    </td>
                     <td>
                       {profiles.find((p) => p.id === u.role_profile_id)?.name ||
                         (u.role_profile_id ? "受限角色" : "基础身份默认")}
@@ -557,7 +694,9 @@ export function AuthorizationPanel({
               <button
                 className="outline"
                 type="button"
-                onClick={() => setAccount(null)}
+                onClick={() => {
+                  if (canLeave()) setAccount(null);
+                }}
               >
                 取消账号配置
               </button>

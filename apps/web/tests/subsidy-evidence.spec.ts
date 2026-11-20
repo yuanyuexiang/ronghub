@@ -37,6 +37,9 @@ test("subsidy statement and real ZIP freeze on submit and remain private in revi
     await login(reg, "regulator");
     await op.getByRole("button", { name: "补贴申报", exact: true }).click();
     await pickStation(op, "补贴场站", fixture);
+    await op
+      .getByLabel("补贴政策", { exact: true })
+      .selectOption({ label: "演示按电量补贴（非正式政策） V1" });
     await op.getByLabel("补贴申请说明", { exact: true }).fill("本次申报说明");
     const created = op.waitForResponse(
       (r) =>

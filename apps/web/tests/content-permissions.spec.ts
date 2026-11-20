@@ -96,7 +96,7 @@ test("content editor, publisher and withdrawal staff have separate controls", as
     await publisher
       .getByRole("button", { name: "发布内容", exact: true })
       .click();
-    await expect(publishedRow).toContainText("已发布");
+    await expect(publisher.locator(".record-detail")).toContainText("已发布");
     await expect(
       publisher.getByRole("button", { name: "撤下内容", exact: true }),
     ).toHaveCount(0);
@@ -114,7 +114,7 @@ test("content editor, publisher and withdrawal staff have separate controls", as
     await withdrawer
       .getByRole("button", { name: "撤下内容", exact: true })
       .click();
-    await expect(withdrawnRow).toContainText("已撤下");
+    await expect(withdrawer.locator(".record-detail")).toContainText("已撤下");
   } finally {
     await Promise.allSettled(contexts.map((c) => c.close()));
     execFileSync(

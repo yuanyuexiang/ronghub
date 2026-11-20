@@ -593,6 +593,8 @@ select {
 
 .business-stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 24px;
 }
 .business-form {
@@ -5920,5 +5922,63 @@ select {
 .business-record-detail .materials select {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
+}
+
+/* Hidden workspaces retain form/query state without entering layout or tab order. */
+.authorization-workspace [hidden],
+.content-workspace [hidden],
+.protocol-panel [hidden] {
+  display: none !important;
+}
+
+.statistics-workspace [hidden] {
+  display: none !important;
+}
+
+.permission-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 8px 24px;
+}
+.permission-group {
+  min-width: 0;
+  border: 1px solid #e0e7f0;
+  border-radius: 8px;
+}
+.permission-group legend {
+  padding: 0 8px;
+  color: #344d6c;
+  font-size: 13px;
+  font-weight: 600;
+}
+.permission-group .capability-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 12px;
+}
+.rating-data-history {
+  padding: 0 24px;
+}
+.rating-data-notice,
+.statistics-stock-notice {
+  margin: 20px 24px;
+}
+@media (max-width: 700px) {
+  .permission-groups {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 8px 16px;
+  }
+  .permission-group .capability-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rating-data-history {
+    padding: 0 12px;
+  }
+}
+
+.record-pane,
+.rating-data-support,
+.rating-data-history {
   min-width: 0;
 }

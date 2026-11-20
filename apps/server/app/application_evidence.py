@@ -17,6 +17,8 @@ from app.authorization import permissions
 from app.models import (
     ApplicationSubmission,
     Attachment,
+    Connector,
+    Equipment,
     Operator,
     Station,
     StationApplication,
@@ -106,11 +108,32 @@ class EvidenceMaterial(BaseModel):
     category: str | None
 
 
+class EvidenceConnector(BaseModel):
+    id: int
+    external_id: str
+    name: str | None
+    interface_type: str | None
+
+
+class EvidenceEquipment(BaseModel):
+    id: int
+    external_id: str
+    name: str
+    power_kw: str
+    equipment_type: str | None
+    model_name: str | None
+    source_unique_code: str | None
+    manufactured_on: str | None
+    connectors: list[EvidenceConnector]
+
+
 class ReviewContent(BaseModel):
     schema_version: int
     source_profile: SourceProfile | None
     payload: dict[str, JsonValue]
     materials: list[EvidenceMaterial]
+    # None means an older submission did not capture inventory, never an empty fleet.
+    equipment: list[EvidenceEquipment] | None = None
 
 
 class ReviewContext(BaseModel):
@@ -217,6 +240,48 @@ def material(row):
     }
 
 
+def equipment_snapshot(db, a, lock=False):
+    stmt = select(Equipment).where(Equipment.station_id == a.station_id).order_by(Equipment.id)
+    if lock:
+        stmt = stmt.with_for_update().execution_options(populate_existing=True)
+    equipment = list(db.scalars(stmt))
+    connectors_stmt = (
+        select(Connector)
+        .join(Equipment, Equipment.id == Connector.equipment_id)
+        .where(Equipment.station_id == a.station_id)
+        .order_by(Connector.id)
+    )
+    if lock:
+        connectors_stmt = connectors_stmt.with_for_update(of=Connector).execution_options(
+            populate_existing=True
+        )
+    connectors = list(db.scalars(connectors_stmt))
+    groups = {}
+    for c in connectors:
+        groups.setdefault(c.equipment_id, []).append(
+            {
+                "id": c.id,
+                "external_id": c.external_id,
+                "name": c.name,
+                "interface_type": c.interface_type,
+            }
+        )
+    return [
+        {
+            "id": e.id,
+            "external_id": e.external_id,
+            "name": e.name,
+            "power_kw": str(e.power_kw),
+            "equipment_type": e.equipment_type,
+            "model_name": e.model_name,
+            "source_unique_code": e.source_unique_code,
+            "manufactured_on": e.manufactured_on.isoformat() if e.manufactured_on else None,
+            "connectors": groups.get(e.id, []),
+        }
+        for e in equipment
+    ]
+
+
 def content(db, user, a, lock=False):
     profile = source_profile(db, user, a, lock)
     files = list(
@@ -228,10 +293,11 @@ def content(db, user, a, lock=False):
     )
     return ReviewContent.model_validate(
         {
-            "schema_version": 1,
+            "schema_version": 2,
             "source_profile": profile,
             "payload": a.payload,
             "materials": [material(f) for f in files],
+            "equipment": equipment_snapshot(db, a, lock),
         }
     )
 
@@ -257,6 +323,7 @@ def context(db, user, a):
     token = digest(value) if can_source else None
     if not can_source:
         value.source_profile = None
+        value.equipment = None
     return ReviewContext(
         application_id=a.id,
         application_version=a.version,
@@ -308,6 +375,7 @@ def submission_detail(db, user, row):
     can_source = "stations.read" in permissions(db, user)
     if not can_source:
         value.source_profile = None
+        value.equipment = None
     return SubmissionDetail(
         **submission_item(row),
         source_accessible=can_source,

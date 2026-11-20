@@ -4,6 +4,7 @@ import {
   workspaceNavigation,
   type AlertWorkspaceView,
 } from "../components/workspace-navigation";
+import { useWorkspaceRoute } from "../components/use-workspace-route";
 import { DashboardOperations } from "../components/dashboard-operations";
 import { LoginCaptcha } from "../components/login-captcha";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -87,6 +88,25 @@ export default function Home() {
   const navigationGuard = useRef<(() => boolean) | null>(null);
   const registerLeaveGuard = useCallback((guard: (() => boolean) | null) => {
     navigationGuard.current = guard;
+  }, []);
+  const allowedModules = useRef<string[]>([]);
+  useWorkspaceRoute({
+    identity: loading || me?.must_change_password ? undefined : me?.username,
+    tab,
+    alertView,
+    allowed: allowedModules,
+    guard: navigationGuard,
+    onRestore: (target, view) => {
+      setTab(target);
+      setAlertView(view);
+      setNavigationOpen(false);
+    },
+  });
+  const [entry, setEntry] = useState("");
+  useEffect(() => {
+    const requested =
+      new URLSearchParams(window.location.search).get("entry") ?? "";
+    setEntry(roles[requested] ?? "");
   }, []);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [stationPage, setStationPage] = useState(1),
@@ -270,6 +290,11 @@ export default function Home() {
               <ShieldCheck />
             </span>
             <h2>登录工作台</h2>
+            {entry && (
+              <p className="muted">
+                {entry}登录 · 登录后按账号实际授权进入工作台
+              </p>
+            )}
             <p>使用已分配的账号进入对应角色工作台</p>
             <label>
               账号
@@ -433,6 +458,7 @@ export default function Home() {
   if (me.role === "regulator" && geographicScope === null && has("audits.read"))
     menu.push("操作日志");
   if (has("accounts.manage") || has("roles.manage")) menu.push("权限与账号");
+  allowedModules.current = menu;
   const navigation = workspaceNavigation(
     menu,
     me.role,
@@ -476,6 +502,12 @@ export default function Home() {
               onNavigate={(item) => {
                 if (navigationGuard.current && !navigationGuard.current())
                   return;
+                const params = new URLSearchParams({ module: item.tab });
+                if (item.alertView && item.alertView !== "events")
+                  params.set("alert", item.alertView);
+                const href = `/?${params}`;
+                if (window.location.pathname + window.location.search !== href)
+                  window.history.pushState(null, "", href);
                 setTab(item.tab);
                 setAlertView(item.alertView ?? "events");
                 setNavigationOpen(false);
@@ -522,49 +554,61 @@ export default function Home() {
                   <p className="eyebrow">{currentGroup?.label}</p>
                   <h1>{tab === "工作台" ? "运营总览" : pageTitle}</h1>
                   <p className="muted">
-                    {tab.startsWith("补贴")
-                      ? "申报、审核与发放登记，分别留存核算依据和办理记录"
-                      : ["全域地图", "场站地图"].includes(tab)
-                        ? "按授权范围查看场站分布、运行快照与设备档案"
-                        : tab === "运行状态"
-                          ? "分开核对连接与业务状态，查看历史区间和观测覆盖"
-                          : tab === "故障分析"
-                            ? "核对源报故障生命周期、恢复时间与已恢复样本统计"
-                            : tab === "充电时段"
-                              ? "分开查看订单开始分布、源报小时电量与计量缺失"
-                              : tab === "订单汇总"
-                                ? "分场站与源桩编码汇总订单，核对已知指标及缺失覆盖"
-                                : tab === "充电订单"
-                                  ? "查询源报充电记录、桩枪编码与时间，按授权范围导出"
-                                  : tab === "隐患督办"
-                                    ? "独立跟踪隐患整改、留存企业执行事实并明确监管关闭"
-                                    : ["巡检督办", "整改任务"].includes(tab)
-                                      ? "跟踪整改期限、核验证据并保留回复与复核记录"
-                                      : ["告警中心", "企业告警"].includes(tab)
-                                        ? "区分设备事件与人工确认，跟踪异常、恢复及处置依据"
-                                        : tab === "场站申请"
-                                          ? "按编号、类型与状态检索申请，查阅材料并跟踪审核进度"
-                                          : tab === "操作日志"
-                                            ? "按人员、动作与时间追溯已记录的业务操作"
-                                            : tab === "统计分析"
-                                              ? "查看授权范围内的日月年观测电量、排名与数据覆盖情况"
-                                              : tab === "监管协议"
-                                                ? "查阅已发布的监管协议正文与原始文件，核对正式接入要求"
-                                                : tab === "公告与通知"
-                                                  ? "查阅公告、接收定向通知并跟踪企业回复"
-                                                  : [
-                                                        "星级查看",
-                                                        "星级申报",
-                                                        "星级评价",
-                                                      ].includes(tab)
-                                                    ? "申报、复核、公示与申诉，保留每次评定依据"
-                                                    : tab === "人员账号申请"
-                                                      ? "核验工作人员身份，明确角色与区域并留存开通记录"
-                                                      : tab === "账号安全"
-                                                        ? "管理本人登录凭据、验证手机与会话安全"
-                                                        : me.role === "operator"
-                                                          ? "查看本企业场站及设备概况"
-                                                          : "掌握已录入场站信息与接入情况"}
+                    {tab === "权限与账号"
+                      ? "按岗位分配角色与业务权限，管理账号状态和数据授权范围"
+                      : tab === "注册审核"
+                        ? "核验企业入驻资料、资质与联系人，留存审核和账号开通记录"
+                        : ["企业台账", "企业资料"].includes(tab)
+                          ? "维护企业档案、联系人与资质，核对企业资料和变更记录"
+                          : tab.startsWith("补贴")
+                            ? "申报、审核与发放登记，分别留存核算依据和办理记录"
+                            : ["全域地图", "场站地图"].includes(tab)
+                              ? "按授权范围查看场站分布、运行快照与设备档案"
+                              : tab === "运行状态"
+                                ? "分开核对连接与业务状态，查看历史区间和观测覆盖"
+                                : tab === "故障分析"
+                                  ? "核对源报故障生命周期、恢复时间与已恢复样本统计"
+                                  : tab === "充电时段"
+                                    ? "分开查看订单开始分布、源报小时电量与计量缺失"
+                                    : tab === "订单汇总"
+                                      ? "分场站与源桩编码汇总订单，核对已知指标及缺失覆盖"
+                                      : tab === "充电订单"
+                                        ? "查询源报充电记录、桩枪编码与时间，按授权范围导出"
+                                        : tab === "隐患督办"
+                                          ? "独立跟踪隐患整改、留存企业执行事实并明确监管关闭"
+                                          : ["巡检督办", "整改任务"].includes(
+                                                tab,
+                                              )
+                                            ? "跟踪整改期限、核验证据并保留回复与复核记录"
+                                            : ["告警中心", "企业告警"].includes(
+                                                  tab,
+                                                )
+                                              ? "区分设备事件与人工确认，跟踪异常、恢复及处置依据"
+                                              : tab === "场站申请"
+                                                ? "按编号、类型与状态检索申请，查阅材料并跟踪审核进度"
+                                                : tab === "操作日志"
+                                                  ? "按人员、动作与时间追溯已记录的业务操作"
+                                                  : tab === "统计分析"
+                                                    ? "查看授权范围内的日月年观测电量、排名与数据覆盖情况"
+                                                    : tab === "监管协议"
+                                                      ? "查阅已发布的监管协议正文与原始文件，核对正式接入要求"
+                                                      : tab === "公告与通知"
+                                                        ? "查阅公告、接收定向通知并跟踪企业回复"
+                                                        : [
+                                                              "星级查看",
+                                                              "星级申报",
+                                                              "星级评价",
+                                                            ].includes(tab)
+                                                          ? "申报、复核、公示与申诉，保留每次评定依据"
+                                                          : tab ===
+                                                              "人员账号申请"
+                                                            ? "核验工作人员身份，明确角色与区域并留存开通记录"
+                                                            : tab === "账号安全"
+                                                              ? "管理本人登录凭据、验证手机与会话安全"
+                                                              : me.role ===
+                                                                  "operator"
+                                                                ? "查看本企业场站及设备概况"
+                                                                : "掌握已录入场站信息与接入情况"}
                   </p>
                 </div>
                 <PageRefreshButton
@@ -703,7 +747,10 @@ export default function Home() {
                 <DashboardOperations />
               )}
               {tab === "人员账号申请" ? (
-                <StaffApplicationsPanel csrf={me.csrf_token} />
+                <StaffApplicationsPanel
+                  csrf={me.csrf_token}
+                  registerLeaveGuard={registerLeaveGuard}
+                />
               ) : tab === "账号安全" ? (
                 <div className="business-stack">
                   <PhonePanel
@@ -733,13 +780,17 @@ export default function Home() {
               ) : tab === "操作日志" ? (
                 <AuditPanel />
               ) : tab === "注册审核" ? (
-                <RegistrationPanel csrf={me.csrf_token} />
+                <RegistrationPanel
+                  csrf={me.csrf_token}
+                  registerLeaveGuard={registerLeaveGuard}
+                />
               ) : tab === "权限与账号" ? (
                 <AuthorizationPanel
                   csrf={me.csrf_token}
                   username={me.username}
                   currentProfileId={me.role_profile_id}
                   permissions={me.permissions}
+                  registerLeaveGuard={registerLeaveGuard}
                 />
               ) : ["企业台账", "企业资料"].includes(tab) ? (
                 <CompanyPanel
@@ -748,7 +799,11 @@ export default function Home() {
                   registerLeaveGuard={registerLeaveGuard}
                 />
               ) : tab === "公告与通知" ? (
-                <ContentPanel role={me.role} csrf={me.csrf_token} />
+                <ContentPanel
+                  role={me.role}
+                  csrf={me.csrf_token}
+                  registerLeaveGuard={registerLeaveGuard}
+                />
               ) : tab === "监管协议" ? (
                 <ProtocolPanel onManage={() => setTab("公告与通知")} />
               ) : tab === "统计分析" ? (

@@ -1,4 +1,6 @@
 "use client";
+import { WorkspaceViews } from "./business-workspace";
+import { RuntimePanel } from "./runtime-panel";
 import { ChargingSubsidyReport } from "./charging-subsidy-report";
 import { usePageRefresh } from "./page-refresh";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -45,7 +47,7 @@ export function StatisticsPanel({ role }: { role: string }) {
     reportSubsidies = useCapability("subsidy.read"),
     reportStatistics = useCapability("statistics.read");
   const canCombined = reportOrders && reportSubsidies && reportStatistics;
-  const [view, setView] = useState<"energy" | "combined">("energy");
+  const [view, setView] = useState("energy");
   const combined = view === "combined" && canCombined;
   const [draft, setDraft] = useState(initial),
     [filters, setFilters] = useState(initial),
@@ -54,8 +56,17 @@ export function StatisticsPanel({ role }: { role: string }) {
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false),
     [operators, setOperators] = useState<{ id: number; name: string }[]>([]);
+  const effectiveFilters = {
+    ...filters,
+    dimension:
+      view === "district"
+        ? "district"
+        : view === "operator"
+          ? "operator"
+          : filters.dimension,
+  };
   const params = new URLSearchParams(
-    Object.entries(filters).filter(([, v]) => v !== ""),
+    Object.entries(effectiveFilters).filter(([, v]) => v !== ""),
   );
   const pageRefreshRevision = usePageRefresh();
   useEffect(() => {
@@ -84,7 +95,7 @@ export function StatisticsPanel({ role }: { role: string }) {
       .GET("/api/v1/statistics", {
         params: {
           query: {
-            ...filters,
+            ...effectiveFilters,
             operator_id: filters.operator_id
               ? Number(filters.operator_id)
               : undefined,
@@ -106,38 +117,39 @@ export function StatisticsPanel({ role }: { role: string }) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [filters, refresh, pageRefreshRevision]);
+  }, [filters, view, refresh, pageRefreshRevision]);
   const maximum = Math.max(
     1,
     ...(data?.timeline.map((d) => Number(d.kwh || 0)) || []),
   );
   return (
-    <div className="business-stack">
-      {canCombined && (
-        <section className="panel statistics-views" aria-label="统计分析视图">
-          <strong>统计分析范围</strong>
-          <button
-            className={!combined ? "primary" : "outline"}
-            aria-pressed={!combined}
-            onClick={() => setView("energy")}
-          >
-            观测电量分析
-          </button>
-          <button
-            className={combined ? "primary" : "outline"}
-            aria-pressed={combined}
-            onClick={() => setView("combined")}
-          >
-            充电与补贴报表
-          </button>
-        </section>
-      )}
+    <div className="business-stack statistics-workspace">
+      <WorkspaceViews
+        label="统计分析视图"
+        value={view}
+        onChange={setView}
+        items={[
+          ["energy", "观测电量分析"],
+          ["district", "建站统计（区域）"],
+          ["operator", "建站统计（运营商）"],
+          ["power", "用电分析"],
+          ...(role !== "association"
+            ? [["utilization", "利用率统计"] as const]
+            : []),
+          ...(canCombined ? [["combined", "充电与补贴报表"] as const] : []),
+        ]}
+      />
+      <div hidden={view !== "utilization"}>
+        {role !== "association" && <RuntimePanel />}
+      </div>
       <div style={{ display: combined ? "block" : "none" }}>
         <ChargingSubsidyReport />
       </div>
       <div
         className="business-stack"
-        style={{ display: combined ? "none" : "grid" }}
+        style={{
+          display: combined || view === "utilization" ? "none" : "grid",
+        }}
       >
         <section className="panel">
           <div className="panel-title">
@@ -204,7 +216,14 @@ export function StatisticsPanel({ role }: { role: string }) {
               排名维度
               <select
                 aria-label="统计排名维度"
-                value={draft.dimension}
+                value={
+                  view === "district"
+                    ? "district"
+                    : view === "operator"
+                      ? "operator"
+                      : draft.dimension
+                }
+                disabled={view === "district" || view === "operator"}
                 onChange={(e) =>
                   setDraft({ ...draft, dimension: e.target.value })
                 }
@@ -276,8 +295,60 @@ export function StatisticsPanel({ role }: { role: string }) {
             </p>
           )}
         </section>
+        {data && view !== "energy" && (
+          <section className="panel">
+            <div className="panel-title">
+              <div>
+                <h2>
+                  {view === "district"
+                    ? "区域建站统计"
+                    : view === "operator"
+                      ? "运营商建站统计"
+                      : "用电与额定功率分析"}
+                </h2>
+                <p>
+                  建站数量和额定功率取当前授权台账；电量为所选日期区间的独立观测，不将额定功率当作实际用电功率。
+                </p>
+              </div>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    {[
+                      dimensions[data.dimension],
+                      "当前场站数",
+                      "当前接口数",
+                      "台账额定功率 kW",
+                      "区间观测电量 kWh",
+                    ].map((name) => (
+                      <th key={name}>{name}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.dimension_ranking.map((row) => (
+                    <tr key={row.key}>
+                      <td>{row.name}</td>
+                      <td>{row.station_count}</td>
+                      <td>{row.connectors}</td>
+                      <td>{row.power_kw}</td>
+                      <td>{row.kwh ?? "暂无观测"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!data.dimension_ranking.length && (
+                <p className="empty">当前授权范围暂无场站</p>
+              )}
+            </div>
+            <p className="muted">
+              历史建站增量、同比环比与实际用电功率须有对应历史及计量来源后计算，当前不以零代替缺失数据。
+            </p>
+          </section>
+        )}
         {data && (
-          <>
+          <div className="business-stack" hidden={view !== "energy"}>
             <section className="metrics">
               {[
                 ["授权场站", data.station_count, "个"],
@@ -529,7 +600,7 @@ export function StatisticsPanel({ role }: { role: string }) {
                 ))}
               </div>
             </section>
-          </>
+          </div>
         )}
       </div>
     </div>

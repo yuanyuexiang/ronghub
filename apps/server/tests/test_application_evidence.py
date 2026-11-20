@@ -253,10 +253,12 @@ def test_source_and_material_rights_do_not_expand_through_evidence_endpoints(flo
         assert (
             value["source_accessible"] is False
             and value["content"]["source_profile"] is None
+            and value["content"]["equipment"] is None
             and value["review_token"] is None
         )
         hidden = snapshot(f, proof_id).json()
         assert hidden["content"]["source_profile"] is None and hidden["content_digest"] is None
+        assert hidden["content"]["equipment"] is None
         assert hidden["content"]["payload"]["contact"]["phone"] == "APP-CONTACT-ONLY"
         with SessionLocal.begin() as db:
             db.scalar(select(User).where(User.username == f["names"][0])).role_profile_id = None
@@ -448,3 +450,60 @@ def test_review_projection_has_one_snapshot_during_concurrent_source_payload_and
         second["content"]["payload"]["note"] == "new-concurrent-note"
         and second["content"]["materials"][0]["category"] == "other"
     )
+
+
+def test_equipment_and_connector_specs_are_frozen_and_invalidate_review(flow):
+    from app.models import Connector, Equipment
+
+    with SessionLocal.begin() as db:
+        e = Equipment(
+            station_id=flow["sid"], external_id="proof-device", name="原设备", power_kw=60
+        )
+        db.add(e)
+        db.flush()
+        equipment_id = e.id
+        c = Connector(
+            equipment_id=e.id, external_id="proof-plug", name="原枪口", interface_type="GB/T"
+        )
+        db.add(c)
+        db.flush()
+        connector_id = c.id
+    try:
+        first = request_context(flow)
+        assert first["content"]["schema_version"] == 2
+        assert first["content"]["equipment"][0]["name"] == "原设备"
+        with SessionLocal.begin() as db:
+            db.get(Connector, connector_id).status = "charging"
+        assert request_context(flow)["review_token"] == first["review_token"]
+        with SessionLocal.begin() as db:
+            db.get(Equipment, equipment_id).model_name = "更新型号"
+        assert action(flow, "submit", token=first["review_token"]).status_code == 409
+        current = request_context(flow)
+        assert action(flow, "submit", token=current["review_token"]).status_code == 200
+        with SessionLocal.begin() as db:
+            row = db.scalar(
+                select(ApplicationSubmission).where(
+                    ApplicationSubmission.application_id == flow["aid"]
+                )
+            )
+            frozen = json.loads(json.dumps(row.snapshot))
+            db.get(Equipment, equipment_id).name = "同步后的设备"
+            db.get(Connector, connector_id).name = "同步后的枪口"
+        with SessionLocal() as db:
+            row = db.scalar(
+                select(ApplicationSubmission).where(
+                    ApplicationSubmission.application_id == flow["aid"]
+                )
+            )
+            assert row.snapshot == frozen
+            assert row.snapshot["equipment"][0]["connectors"][0]["name"] == "原枪口"
+        assert (
+            evidence.ReviewContent.model_validate(
+                {"schema_version": 1, "source_profile": None, "payload": {}, "materials": []}
+            ).equipment
+            is None
+        )
+    finally:
+        with SessionLocal.begin() as db:
+            db.execute(delete(Connector).where(Connector.id == connector_id))
+            db.execute(delete(Equipment).where(Equipment.id == equipment_id))

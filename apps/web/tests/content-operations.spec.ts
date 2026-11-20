@@ -64,11 +64,9 @@ test("content batch keeps cross-page versions, preserves deleted history and exp
       page.getByText("已选0/100份草稿（跨页保留版本）", { exact: true }),
     ).toBeVisible();
     await expect(
-      page
-        .getByRole("row")
-        .filter({
-          has: page.getByRole("cell", { name: `POST-${ids[0]}`, exact: true }),
-        }),
+      page.getByRole("row").filter({
+        has: page.getByRole("cell", { name: `POST-${ids[0]}`, exact: true }),
+      }),
     ).toContainText("已发布");
     await page.getByLabel(`选择草稿 ${ids[1]}`, { exact: true }).check();
     await page
@@ -85,11 +83,9 @@ test("content batch keeps cross-page versions, preserves deleted history and exp
       page.getByText("第1页 · 共26条", { exact: true }),
     ).toBeVisible();
     await page.getByRole("button", { name: "下一页", exact: true }).click();
-    const deleted = page
-      .getByRole("row")
-      .filter({
-        has: page.getByRole("cell", { name: `POST-${ids[1]}`, exact: true }),
-      });
+    const deleted = page.getByRole("row").filter({
+      has: page.getByRole("cell", { name: `POST-${ids[1]}`, exact: true }),
+    });
     await expect(deleted).toContainText("已删除（保留历史）");
     await deleted
       .getByRole("button", { name: "查看内容", exact: true })
@@ -97,6 +93,12 @@ test("content batch keeps cross-page versions, preserves deleted history and exp
     await expect(
       page.getByRole("button", { name: "编辑草稿正文", exact: true }),
     ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "关闭内容详情", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "发布内容台账", exact: true }),
+    ).toBeFocused();
     await page
       .getByLabel("搜索内容标题", { exact: true })
       .fill("尚未应用的关键词");
@@ -119,11 +121,9 @@ test("content batch keeps cross-page versions, preserves deleted history and exp
     await page
       .getByRole("button", { name: "查询通知记录", exact: true })
       .click();
-    const records = page
-      .locator("section.panel")
-      .filter({
-        has: page.getByRole("heading", { name: "逐企业通知记录", exact: true }),
-      });
+    const records = page.locator("section.panel").filter({
+      has: page.getByRole("heading", { name: "逐企业通知记录", exact: true }),
+    });
     await expect(
       records.getByText("第1页 · 共2条", { exact: true }),
     ).toBeVisible();

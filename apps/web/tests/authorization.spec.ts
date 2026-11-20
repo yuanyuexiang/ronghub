@@ -9,9 +9,7 @@ async function login(page: Page, username: string) {
   await page.getByLabel("账号", { exact: true }).fill(username);
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
-  await expect(
-    page.getByRole("heading", { name: "运营总览" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
 }
 test("configured read-only role hides writes and revokes the prior session", async ({
   browser,
@@ -33,6 +31,7 @@ test("configured read-only role hides writes and revokes the prior session", asy
     await login(reg, "regulator");
     await login(op, fixture.username);
     await reg.getByRole("button", { name: "权限与账号", exact: true }).click();
+    await reg.getByRole("button", { name: "角色管理", exact: true }).click();
     await reg
       .getByRole("button", { name: "新建权限角色", exact: true })
       .click();
@@ -48,6 +47,7 @@ test("configured read-only role hides writes and revokes the prior session", asy
     const response = await created;
     expect(response.status()).toBe(201);
     profileId = (await response.json()).id;
+    await reg.getByRole("button", { name: "账号管理", exact: true }).click();
     await reg.getByLabel("搜索账号").fill(fixture.username);
     await reg.getByRole("button", { name: "查询账号", exact: true }).click();
     const row = reg.getByRole("row").filter({
@@ -67,7 +67,9 @@ test("configured read-only role hides writes and revokes the prior session", asy
     ).toHaveCount(0);
     await expect(op.getByText("已审定补贴", { exact: true })).toHaveCount(0);
     await expect(op.getByText("undefined", { exact: true })).toHaveCount(0);
-    await op.getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true }).click();
+    await op
+      .getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true })
+      .click();
     await expect(
       op.getByRole("heading", { name: "我的场站申请" }),
     ).toBeVisible();
@@ -163,11 +165,9 @@ test("administrator-created account rotates its temporary password before any bu
     await root.getByLabel("搜索账号", { exact: true }).fill(username);
     await root.getByRole("button", { name: "查询账号", exact: true }).click();
     await expect(
-      root
-        .getByRole("row")
-        .filter({
-          has: root.getByRole("cell", { name: username, exact: true }),
-        }),
+      root.getByRole("row").filter({
+        has: root.getByRole("cell", { name: username, exact: true }),
+      }),
     ).toContainText("待首次改密");
     await member.goto("/");
     await member.getByLabel("账号", { exact: true }).fill(username);
@@ -201,11 +201,9 @@ test("administrator-created account rotates its temporary password before any bu
     expect((await member.request.get("/api/v1/accounts")).status()).toBe(403);
     await root.getByRole("button", { name: "刷新数据", exact: true }).click();
     await expect(
-      root
-        .getByRole("row")
-        .filter({
-          has: root.getByRole("cell", { name: username, exact: true }),
-        }),
+      root.getByRole("row").filter({
+        has: root.getByRole("cell", { name: username, exact: true }),
+      }),
     ).not.toContainText("待首次改密");
     await root.screenshot({
       path: "test-results/initial-password-account.png",

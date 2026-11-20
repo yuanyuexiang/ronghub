@@ -1,4 +1,9 @@
 "use client";
+import { useRecordFocus } from "./use-record-focus";
+import {
+  useWorkspaceLeave,
+  type LeaveGuardRegistrar,
+} from "./business-workspace";
 import { usePageRefresh } from "./page-refresh";
 import { NoticeRecords } from "./notice-records";
 import { NoticeRecipients } from "./notice-recipients";
@@ -74,7 +79,15 @@ const empty = {
   operator_id: "",
   recipient_ids: [] as number[],
 };
-export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
+export function ContentPanel({
+  role,
+  csrf,
+  registerLeaveGuard,
+}: {
+  role: string;
+  csrf: string;
+  registerLeaveGuard?: LeaveGuardRegistrar;
+}) {
   const globalScope = useGlobalScope();
   const canCreate = useCapability("content.create");
   const canEdit = useCapability("content.edit");
@@ -116,6 +129,9 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
     [publishAt, setPublishAt] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [kindFilter, setKindFilter] = useState<
+    "" | "announcement" | "news" | "notice" | "protocol" | "contact"
+  >("");
   const replyImageSequence = useRef(1);
   const replyObjectUrls = useRef(new Set<string>());
   useEffect(() => {
@@ -149,7 +165,13 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
     try {
       const { data, error } = await typedApi.GET("/api/v1/content", {
         params: {
-          query: { manage, page, q: appliedQ, include_deleted: includeDeleted },
+          query: {
+            manage,
+            page,
+            q: appliedQ,
+            include_deleted: includeDeleted,
+            kind: kindFilter,
+          },
         },
         signal: controller.signal,
         cache: "no-store",
@@ -283,14 +305,14 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
     )
       return;
     setDetail(null);
-  }, [manage, page, appliedQ, includeDeleted]);
+  }, [manage, page, appliedQ, includeDeleted, kindFilter]);
   useEffect(() => {
     load().catch((e) => setError(e.message));
     return () => {
       ++listSequence.current;
       listController.current?.abort();
     };
-  }, [manage, page, appliedQ, includeDeleted, pageRefreshRevision]);
+  }, [manage, page, appliedQ, includeDeleted, kindFilter, pageRefreshRevision]);
   useEffect(() => {
     if (canManage && role === "regulator")
       typedApi
@@ -375,18 +397,43 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
       await open(detail.id);
     });
   }
+  const draftBaseline = useRef(JSON.stringify(empty));
+  useEffect(() => {
+    if (showForm) draftBaseline.current = JSON.stringify(draft);
+  }, [showForm]);
+  const workspaceRef = useRecordFocus(showForm ? -1 : detail?.id);
+  const canLeave = useWorkspaceLeave(
+    (showForm && JSON.stringify(draft) !== draftBaseline.current) ||
+      !!reply.trim() ||
+      !!replyContact ||
+      !!replyPhone ||
+      replyFiles.length > 0 ||
+      !!publishAt,
+    busy,
+    registerLeaveGuard,
+  );
   return (
-    <div className="business-stack">
+    <section className="business-stack content-workspace" ref={workspaceRef}>
+      {(detail || showForm) && error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       {((canManage && manage && role === "regulator") ||
         role === "operator") && (
-        <NoticeRecords
-          refreshKey={recordsVersion}
-          manage={manage && role === "regulator"}
-          onOpen={(id) => run(() => open(id))}
-        />
+        <div hidden={!!detail || showForm}>
+          <NoticeRecords
+            refreshKey={recordsVersion}
+            manage={manage && role === "regulator"}
+            onOpen={(id) => run(() => open(id))}
+          />
+        </div>
       )}
       {canManage && role === "regulator" && (
-        <section className="panel">
+        <section
+          className={`panel ${showForm ? "record-detail" : ""}`}
+          hidden={!!detail && !showForm}
+        >
           <div className="panel-title">
             <div>
               <h2>内容发布管理</h2>
@@ -396,6 +443,7 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
               <button
                 className="outline"
                 onClick={() => {
+                  if (!canLeave()) return;
                   setManage(!manage);
                   setPage(1);
                 }}
@@ -406,6 +454,7 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                 <button
                   className="outline"
                   onClick={() => {
+                    if (!canLeave()) return;
                     setManage(true);
                     setDraft(empty);
                     setEditing(null);
@@ -668,6 +717,7 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
                 className="outline"
                 disabled={busy}
                 onClick={() => {
+                  if (!canLeave()) return;
                   setShowForm(false);
                   setEditing(null);
                   setDraft(empty);
@@ -680,7 +730,47 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
           )}
         </section>
       )}
-      <section className="panel">
+      {batchPending && (
+        <section className="content-batch-confirm" aria-label="批量操作确认">
+          <h3>
+            {batchPending.action === "publish"
+              ? "确认批量发布"
+              : "确认删除草稿"}
+          </h3>
+          <p>
+            共{batchPending.items.length}份：
+            {batchPending.items
+              .map((row) => `#${row.id} V${row.version}`)
+              .join("、")}
+            。任一版本或状态变化，整批不提交。删除保留正文、附件和历史；发布后正文不可修改。
+          </p>
+          {batchPending.action === "publish" && (
+            <label>
+              批量生效时间（北京时间，可选）
+              <input
+                type="datetime-local"
+                aria-label="批量生效时间"
+                value={batchAt}
+                onChange={(e) => setBatchAt(e.target.value)}
+                disabled={busy}
+              />
+            </label>
+          )}
+          <button className="primary" disabled={busy} onClick={applyBatch}>
+            {batchPending.action === "publish"
+              ? "确认发布所选草稿"
+              : "确认删除所选草稿"}
+          </button>
+          <button
+            className="outline"
+            disabled={busy}
+            onClick={() => setBatchPending(null)}
+          >
+            取消批量操作
+          </button>
+        </section>
+      )}
+      <section className="panel record-pane" hidden={!!detail || showForm}>
         <div className="panel-title">
           <div>
             <h2>{manage ? "发布内容台账" : "公告资讯与通知"}</h2>
@@ -700,6 +790,35 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
               } else run(load);
             }}
           >
+            <label>
+              内容分类
+              <select
+                aria-label="内容分类"
+                value={kindFilter}
+                disabled={busy || listLoading}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (
+                    value === "" ||
+                    value === "announcement" ||
+                    value === "news" ||
+                    value === "notice" ||
+                    value === "protocol" ||
+                    value === "contact"
+                  ) {
+                    setKindFilter(value);
+                    setPage(1);
+                  }
+                }}
+              >
+                <option value="">全部分类</option>
+                {Object.entries(kinds).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <input
               aria-label="搜索内容标题"
               placeholder="搜索内容标题"
@@ -777,53 +896,14 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
             {canExport && !listLoading && (
               <a
                 className="outline"
-                href={`/api/v1/content/export?${new URLSearchParams({ q: appliedQ, include_deleted: String(includeDeleted) })}`}
+                href={`/api/v1/content/export?${new URLSearchParams({ q: appliedQ, include_deleted: String(includeDeleted), kind: kindFilter })}`}
               >
                 导出当前查询内容元数据
               </a>
             )}
           </div>
         )}
-        {batchPending && (
-          <section className="content-batch-confirm" aria-label="批量操作确认">
-            <h3>
-              {batchPending.action === "publish"
-                ? "确认批量发布"
-                : "确认删除草稿"}
-            </h3>
-            <p>
-              共{batchPending.items.length}份：
-              {batchPending.items
-                .map((row) => `#${row.id} V${row.version}`)
-                .join("、")}
-              。任一版本或状态变化，整批不提交。删除保留正文、附件和历史；发布后正文不可修改。
-            </p>
-            {batchPending.action === "publish" && (
-              <label>
-                批量生效时间（北京时间，可选）
-                <input
-                  type="datetime-local"
-                  aria-label="批量生效时间"
-                  value={batchAt}
-                  onChange={(e) => setBatchAt(e.target.value)}
-                  disabled={busy}
-                />
-              </label>
-            )}
-            <button className="primary" disabled={busy} onClick={applyBatch}>
-              {batchPending.action === "publish"
-                ? "确认发布所选草稿"
-                : "确认删除所选草稿"}
-            </button>
-            <button
-              className="outline"
-              disabled={busy}
-              onClick={() => setBatchPending(null)}
-            >
-              取消批量操作
-            </button>
-          </section>
-        )}
+
         {listLoading && <p role="status">正在读取内容…</p>}
         <div className="table-wrap">
           <table>
@@ -907,449 +987,445 @@ export function ContentPanel({ role, csrf }: { role: string; csrf: string }) {
             下一页
           </button>
         </div>
-        {detail && (
-          <div className="application-detail">
-            <div className="panel-title">
-              <div>
-                <h2>{detail.title}</h2>
-                <p>
-                  {kinds[detail.kind]} · {statuses[detail.status]} · V
-                  {detail.version}
+      </section>
+      {detail && (
+        <div
+          className="panel business-record-detail record-detail application-detail"
+          hidden={showForm}
+        >
+          <div className="panel-title">
+            <div>
+              <h2>{detail.title}</h2>
+              <p>
+                {kinds[detail.kind]} · {statuses[detail.status]} · V
+                {detail.version}
+              </p>
+              {detail.portal_public && (
+                <p className="portal-consent">
+                  已选择门户公开：发布且到时后，正文及全部附件对匿名访客开放；撤下后停止访问。
                 </p>
-                {detail.portal_public && (
-                  <p className="portal-consent">
-                    已选择门户公开：发布且到时后，正文及全部附件对匿名访客开放；撤下后停止访问。
-                  </p>
-                )}
-              </div>
-              <button
-                className="outline"
-                disabled={busy}
-                onClick={() => {
-                  setDetail(null);
-                  setReplyFiles([]);
-                  setReply("");
-                  setReplyDocument(null);
-                  setReplyContact("");
-                  setReplyPhone("");
-                }}
-              >
-                关闭内容详情
-              </button>
+              )}
             </div>
-            <div
-              className={
-                manage
-                  ? "detail-grid content-managing"
-                  : "detail-grid content-reading"
-              }
+            <button
+              className="outline"
+              disabled={busy}
+              onClick={() => {
+                if (!canLeave()) return;
+                setDetail(null);
+                setReplyFiles([]);
+                setReply("");
+                setReplyDocument(null);
+                setReplyContact("");
+                setReplyPhone("");
+              }}
             >
-              <div>
-                <RichContent
-                  document={detail.rich_document ?? null}
-                  body={detail.body}
-                  articleId={detail.id}
-                  manage={manage}
-                />
-                {!!detail.attachments.length && (
-                  <section className="article-assets">
-                    <h3>内容附件</h3>
-                    {detail.attachments.map((asset) => (
-                      <div className="material-row" key={asset.id}>
-                        <a
-                          href={`/api/v1/content/${detail.id}/attachments/${asset.id}?manage=${manage}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {asset.filename}
-                        </a>
-                        <small>
-                          {Math.ceil(asset.size / 1024)}KB ·{" "}
-                          {asset.frozen ? "发布已冻结" : "草稿附件"}
-                        </small>
-                      </div>
-                    ))}
-                  </section>
-                )}
-                {(detail.kind === "notice" || detail.replies.length > 0) && (
-                  <>
-                    {!!detail.deliveries.length && (
-                      <section>
-                        <h3>逐企业站内记录</h3>
-                        <p className="muted">
-                          企业名称与联系人在发布操作时留存；未接入短信或邮件通道。
-                        </p>
-                        <div className="table-wrap">
-                          <table className="notice-delivery-table">
-                            <thead>
-                              <tr>
-                                <th>企业（发布快照）</th>
-                                <th>计划生效时间</th>
-                                <th>站内状态</th>
-                                <th>回复情况</th>
-                                <th>企业联系人（发布快照）</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {detail.deliveries.map((row) => (
-                                <tr key={row.id}>
-                                  <td>
-                                    {row.operator_name}
-                                    <small>
-                                      记录 #{row.id} · 发布V
-                                      {row.publication_version}
-                                    </small>
-                                  </td>
-                                  <td>
-                                    {new Date(row.scheduled_at).toLocaleString(
-                                      "zh-CN",
-                                      { timeZone: "Asia/Shanghai" },
-                                    )}
-                                  </td>
-                                  <td>
-                                    {
-                                      {
-                                        scheduled: "定时待生效",
-                                        visible: "站内可见",
-                                        withdrawn: "已撤下",
-                                      }[row.state]
-                                    }
-                                  </td>
-                                  <td>
-                                    {row.reply_count}条回复
-                                    {row.latest_reply_at && (
-                                      <small>
-                                        {new Date(
-                                          row.latest_reply_at,
-                                        ).toLocaleString("zh-CN", {
-                                          timeZone: "Asia/Shanghai",
-                                        })}
-                                      </small>
-                                    )}
-                                  </td>
-                                  <td>
-                                    {row.contacts.length
-                                      ? row.contacts.map((c, i) => (
-                                          <small key={i}>
-                                            {c.name ?? "未留存"} ·{" "}
-                                            {c.phone ?? "未留存"}
-                                          </small>
-                                        ))
-                                      : "未留存"}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </section>
-                    )}
-                    {detail.kind === "notice" && !detail.deliveries.length && (
+              关闭内容详情
+            </button>
+          </div>
+          <div
+            className={
+              manage
+                ? "detail-grid content-managing"
+                : "detail-grid content-reading"
+            }
+          >
+            <div>
+              <RichContent
+                document={detail.rich_document ?? null}
+                body={detail.body}
+                articleId={detail.id}
+                manage={manage}
+              />
+              {!!detail.attachments.length && (
+                <section className="article-assets">
+                  <h3>内容附件</h3>
+                  {detail.attachments.map((asset) => (
+                    <div className="material-row" key={asset.id}>
+                      <a
+                        href={`/api/v1/content/${detail.id}/attachments/${asset.id}?manage=${manage}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {asset.filename}
+                      </a>
+                      <small>
+                        {Math.ceil(asset.size / 1024)}KB ·{" "}
+                        {asset.frozen ? "发布已冻结" : "草稿附件"}
+                      </small>
+                    </div>
+                  ))}
+                </section>
+              )}
+              {(detail.kind === "notice" || detail.replies.length > 0) && (
+                <>
+                  {!!detail.deliveries.length && (
+                    <section>
+                      <h3>逐企业站内记录</h3>
                       <p className="muted">
-                        此通知未留存逐企业记录，不补造历史推送结果。
+                        企业名称与联系人在发布操作时留存；未接入短信或邮件通道。
                       </p>
-                    )}
-                    <h3>企业回复</h3>
-                    {detail.replies?.map((r) => (
-                      <article className="timeline notice-reply" key={r.id}>
-                        <b>{r.operator_name}</b>
-                        <small>提交账号：{r.actor_name}</small>
-                        <small>
-                          回复联系人：{r.contact_name ?? "未留存"} · 联系方式：
-                          {r.contact_phone ?? "未留存"}
-                        </small>
-                        <RichContent
-                          document={r.rich_document ?? null}
-                          body={r.body}
-                          articleId={detail.id}
-                          manage={manage}
-                          imageSource={(id) =>
-                            r.images.some((image) => image.id === id)
-                              ? `/api/v1/content/${detail.id}/replies/${r.id}/images/${id}?manage=${manage}`
-                              : undefined
-                          }
-                        />
-                        {!!r.images?.length && (
-                          <div className="reply-gallery">
-                            {r.images.map((image) => {
-                              const url = `/api/v1/content/${detail.id}/replies/${r.id}/images/${image.id}?manage=${manage}`;
-                              // Direct private image requests preserve cookies and avoid a shared image-optimizer cache.
-                              return (
-                                <a
-                                  key={image.id}
-                                  href={url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  <img
-                                    src={url}
-                                    alt={`回复图片：${image.filename}`}
-                                    loading="lazy"
-                                  />
-                                  <small>{image.filename}</small>
-                                </a>
-                              );
-                            })}
-                          </div>
-                        )}
-                        <small>
-                          {new Date(r.created_at).toLocaleString("zh-CN")}
-                        </small>
-                      </article>
-                    ))}
-                    {!detail.replies?.length && (
-                      <p className="muted">暂无回复</p>
-                    )}
-                    {canReply &&
-                      role === "operator" &&
-                      detail.kind === "notice" && (
-                        <>
-                          <div>
-                            <p>通知回复</p>
-                            <RichEditor
-                              label="通知回复"
-                              document={replyDocument}
-                              body={reply}
-                              articleId={null}
-                              disabled={busy}
-                              images={replyFiles.map((image) => ({
-                                id: image.id,
-                                url: image.url,
-                                label: image.file.name,
-                              }))}
-                              onChange={(document, plain) => {
-                                setReplyDocument(document);
-                                setReply(plain);
-                              }}
-                            />
-                            <small
-                              className={
-                                reply.length > 4000 ? "error" : "muted"
-                              }
-                            >
-                              {reply.length}/4000 字；提交后留档。
-                            </small>
-                          </div>
-                          <label>
-                            回复联系人（可选，与联系方式同时填写）
-                            <input
-                              aria-label="回复联系人"
-                              value={replyContact}
-                              onChange={(e) => setReplyContact(e.target.value)}
-                              maxLength={100}
-                              disabled={busy}
-                            />
-                          </label>
-                          <label>
-                            回复联系方式
-                            <input
-                              aria-label="回复联系方式"
-                              value={replyPhone}
-                              onChange={(e) => setReplyPhone(e.target.value)}
-                              maxLength={80}
-                              disabled={busy}
-                            />
-                          </label>
-                          <label>
-                            回复图片（可选）
-                            <input
-                              aria-label="通知回复图片"
-                              type="file"
-                              accept="image/png,image/jpeg"
-                              multiple
-                              disabled={busy}
-                              onChange={(e) => {
-                                const files = Array.from(e.target.files ?? []);
-                                e.target.value = "";
-                                if (
-                                  files.some(
-                                    (file) =>
-                                      file.size > 5 * 1024 * 1024 ||
-                                      !["image/png", "image/jpeg"].includes(
-                                        file.type,
-                                      ),
-                                  )
-                                ) {
-                                  setError(
-                                    "回复图片仅支持PNG/JPG，单张不超过5MiB",
-                                  );
-                                  return;
-                                }
-                                if (files.length + replyFiles.length > 10) {
-                                  setError("每条回复最多10张图片");
-                                  return;
-                                }
-                                setError("");
-                                setReplyFiles([
-                                  ...replyFiles,
-                                  ...files.map((file) => {
-                                    const url = URL.createObjectURL(file);
-                                    replyObjectUrls.current.add(url);
-                                    return {
-                                      id: replyImageSequence.current++,
-                                      file,
-                                      url,
-                                    };
-                                  }),
-                                ]);
-                              }}
-                            />
-                          </label>
-                          <p className="muted">
-                            正文与图片一次提交，提交后留档；最多10张，每张5MiB，仅PNG/JPG。
-                          </p>
-                          {replyFiles.map((file, index) => (
-                            <div className="material-row" key={file.id}>
-                              <span>
-                                {file.file.name} ·{" "}
-                                {Math.ceil(file.file.size / 1024)}
-                                KB（未提交）
-                              </span>
-                              <button
-                                className="outline"
-                                disabled={busy}
-                                onClick={() => {
-                                  setReplyDocument(
-                                    replyImages(replyDocument, (id) =>
-                                      id === file.id ? null : id,
-                                    ),
-                                  );
-                                  setReplyFiles(
-                                    replyFiles.filter(
-                                      (image) => image.id !== file.id,
-                                    ),
-                                  );
-                                }}
-                              >
-                                移除选图 {index + 1}
-                              </button>
-                            </div>
-                          ))}
-                          <button
-                            className="outline"
-                            disabled={
-                              busy || !reply.trim() || reply.length > 4000
-                            }
-                            onClick={() => run(sendReply)}
-                          >
-                            提交通知回复
-                          </button>
-                        </>
-                      )}
-                  </>
-                )}
-              </div>
-              {manage && (
-                <div>
-                  {((detail.status === "draft" &&
-                    (canEdit || canPublish || canDelete)) ||
-                    (detail.status === "published" && canWithdraw)) && (
-                    <h3>发布处理</h3>
+                      <div className="table-wrap">
+                        <table className="notice-delivery-table">
+                          <thead>
+                            <tr>
+                              <th>企业（发布快照）</th>
+                              <th>计划生效时间</th>
+                              <th>站内状态</th>
+                              <th>回复情况</th>
+                              <th>企业联系人（发布快照）</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {detail.deliveries.map((row) => (
+                              <tr key={row.id}>
+                                <td>
+                                  {row.operator_name}
+                                  <small>
+                                    记录 #{row.id} · 发布V
+                                    {row.publication_version}
+                                  </small>
+                                </td>
+                                <td>
+                                  {new Date(row.scheduled_at).toLocaleString(
+                                    "zh-CN",
+                                    { timeZone: "Asia/Shanghai" },
+                                  )}
+                                </td>
+                                <td>
+                                  {
+                                    {
+                                      scheduled: "定时待生效",
+                                      visible: "站内可见",
+                                      withdrawn: "已撤下",
+                                    }[row.state]
+                                  }
+                                </td>
+                                <td>
+                                  {row.reply_count}条回复
+                                  {row.latest_reply_at && (
+                                    <small>
+                                      {new Date(
+                                        row.latest_reply_at,
+                                      ).toLocaleString("zh-CN", {
+                                        timeZone: "Asia/Shanghai",
+                                      })}
+                                    </small>
+                                  )}
+                                </td>
+                                <td>
+                                  {row.contacts.length
+                                    ? row.contacts.map((c, i) => (
+                                        <small key={i}>
+                                          {c.name ?? "未留存"} ·{" "}
+                                          {c.phone ?? "未留存"}
+                                        </small>
+                                      ))
+                                    : "未留存"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
                   )}
-                  {detail.status === "draft" && (
-                    <>
-                      {canDelete && (
+                  {detail.kind === "notice" && !detail.deliveries.length && (
+                    <p className="muted">
+                      此通知未留存逐企业记录，不补造历史推送结果。
+                    </p>
+                  )}
+                  <h3>企业回复</h3>
+                  {detail.replies?.map((r) => (
+                    <article className="timeline notice-reply" key={r.id}>
+                      <b>{r.operator_name}</b>
+                      <small>提交账号：{r.actor_name}</small>
+                      <small>
+                        回复联系人：{r.contact_name ?? "未留存"} · 联系方式：
+                        {r.contact_phone ?? "未留存"}
+                      </small>
+                      <RichContent
+                        document={r.rich_document ?? null}
+                        body={r.body}
+                        articleId={detail.id}
+                        manage={manage}
+                        imageSource={(id) =>
+                          r.images.some((image) => image.id === id)
+                            ? `/api/v1/content/${detail.id}/replies/${r.id}/images/${id}?manage=${manage}`
+                            : undefined
+                        }
+                      />
+                      {!!r.images?.length && (
+                        <div className="reply-gallery">
+                          {r.images.map((image) => {
+                            const url = `/api/v1/content/${detail.id}/replies/${r.id}/images/${image.id}?manage=${manage}`;
+                            // Direct private image requests preserve cookies and avoid a shared image-optimizer cache.
+                            return (
+                              <a
+                                key={image.id}
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <img
+                                  src={url}
+                                  alt={`回复图片：${image.filename}`}
+                                  loading="lazy"
+                                />
+                                <small>{image.filename}</small>
+                              </a>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <small>
+                        {new Date(r.created_at).toLocaleString("zh-CN")}
+                      </small>
+                    </article>
+                  ))}
+                  {!detail.replies?.length && <p className="muted">暂无回复</p>}
+                  {canReply &&
+                    role === "operator" &&
+                    detail.kind === "notice" && (
+                      <>
+                        <div>
+                          <p>通知回复</p>
+                          <RichEditor
+                            label="通知回复"
+                            document={replyDocument}
+                            body={reply}
+                            articleId={null}
+                            disabled={busy}
+                            images={replyFiles.map((image) => ({
+                              id: image.id,
+                              url: image.url,
+                              label: image.file.name,
+                            }))}
+                            onChange={(document, plain) => {
+                              setReplyDocument(document);
+                              setReply(plain);
+                            }}
+                          />
+                          <small
+                            className={reply.length > 4000 ? "error" : "muted"}
+                          >
+                            {reply.length}/4000 字；提交后留档。
+                          </small>
+                        </div>
+                        <label>
+                          回复联系人（可选，与联系方式同时填写）
+                          <input
+                            aria-label="回复联系人"
+                            value={replyContact}
+                            onChange={(e) => setReplyContact(e.target.value)}
+                            maxLength={100}
+                            disabled={busy}
+                          />
+                        </label>
+                        <label>
+                          回复联系方式
+                          <input
+                            aria-label="回复联系方式"
+                            value={replyPhone}
+                            onChange={(e) => setReplyPhone(e.target.value)}
+                            maxLength={80}
+                            disabled={busy}
+                          />
+                        </label>
+                        <label>
+                          回复图片（可选）
+                          <input
+                            aria-label="通知回复图片"
+                            type="file"
+                            accept="image/png,image/jpeg"
+                            multiple
+                            disabled={busy}
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files ?? []);
+                              e.target.value = "";
+                              if (
+                                files.some(
+                                  (file) =>
+                                    file.size > 5 * 1024 * 1024 ||
+                                    !["image/png", "image/jpeg"].includes(
+                                      file.type,
+                                    ),
+                                )
+                              ) {
+                                setError(
+                                  "回复图片仅支持PNG/JPG，单张不超过5MiB",
+                                );
+                                return;
+                              }
+                              if (files.length + replyFiles.length > 10) {
+                                setError("每条回复最多10张图片");
+                                return;
+                              }
+                              setError("");
+                              setReplyFiles([
+                                ...replyFiles,
+                                ...files.map((file) => {
+                                  const url = URL.createObjectURL(file);
+                                  replyObjectUrls.current.add(url);
+                                  return {
+                                    id: replyImageSequence.current++,
+                                    file,
+                                    url,
+                                  };
+                                }),
+                              ]);
+                            }}
+                          />
+                        </label>
+                        <p className="muted">
+                          正文与图片一次提交，提交后留档；最多10张，每张5MiB，仅PNG/JPG。
+                        </p>
+                        {replyFiles.map((file, index) => (
+                          <div className="material-row" key={file.id}>
+                            <span>
+                              {file.file.name} ·{" "}
+                              {Math.ceil(file.file.size / 1024)}
+                              KB（未提交）
+                            </span>
+                            <button
+                              className="outline"
+                              disabled={busy}
+                              onClick={() => {
+                                setReplyDocument(
+                                  replyImages(replyDocument, (id) =>
+                                    id === file.id ? null : id,
+                                  ),
+                                );
+                                setReplyFiles(
+                                  replyFiles.filter(
+                                    (image) => image.id !== file.id,
+                                  ),
+                                );
+                              }}
+                            >
+                              移除选图 {index + 1}
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          className="outline"
+                          disabled={
+                            busy || !reply.trim() || reply.length > 4000
+                          }
+                          onClick={() => run(sendReply)}
+                        >
+                          提交通知回复
+                        </button>
+                      </>
+                    )}
+                </>
+              )}
+            </div>
+            {manage && (
+              <div>
+                {((detail.status === "draft" &&
+                  (canEdit || canPublish || canDelete)) ||
+                  (detail.status === "published" && canWithdraw)) && (
+                  <h3>发布处理</h3>
+                )}
+                {detail.status === "draft" && (
+                  <>
+                    {canDelete && (
+                      <button
+                        className="outline"
+                        disabled={busy || showForm}
+                        onClick={() =>
+                          setBatchPending({
+                            action: "delete",
+                            items: [{ id: detail.id, version: detail.version }],
+                          })
+                        }
+                      >
+                        删除此草稿
+                      </button>
+                    )}
+                    {canEdit && (
+                      <button
+                        className="outline"
+                        disabled={busy}
+                        onClick={() => {
+                          setEditing(detail);
+                          setDraft({
+                            kind: detail.kind,
+                            portal_public: detail.portal_public,
+                            title: detail.title,
+                            body: detail.body,
+                            rich_document: detail.rich_document ?? null,
+                            audience:
+                              detail.kind === "notice"
+                                ? "operator"
+                                : detail.audience,
+                            recipient_ids:
+                              detail.recipient_ids ??
+                              (detail.operator_id ? [detail.operator_id] : []),
+                            operator_id: detail.operator_id
+                              ? String(detail.operator_id)
+                              : "",
+                          });
+                          setDraftAssets(detail.attachments);
+                          setShowForm(true);
+                        }}
+                      >
+                        编辑草稿正文
+                      </button>
+                    )}
+                    {canPublish && (!detail.portal_public || canPublic) && (
+                      <>
+                        <label>
+                          发布时间（北京，留空立即发布）
+                          <input
+                            type="datetime-local"
+                            aria-label="内容发布时间"
+                            value={publishAt}
+                            onChange={(e) => setPublishAt(e.target.value)}
+                          />
+                        </label>
                         <button
                           className="outline"
                           disabled={busy || showForm}
-                          onClick={() =>
-                            setBatchPending({
-                              action: "delete",
-                              items: [
-                                { id: detail.id, version: detail.version },
-                              ],
-                            })
-                          }
+                          onClick={() => act("publish")}
                         >
-                          删除此草稿
+                          发布内容
                         </button>
-                      )}
-                      {canEdit && (
-                        <button
-                          className="outline"
-                          disabled={busy}
-                          onClick={() => {
-                            setEditing(detail);
-                            setDraft({
-                              kind: detail.kind,
-                              portal_public: detail.portal_public,
-                              title: detail.title,
-                              body: detail.body,
-                              rich_document: detail.rich_document ?? null,
-                              audience:
-                                detail.kind === "notice"
-                                  ? "operator"
-                                  : detail.audience,
-                              recipient_ids:
-                                detail.recipient_ids ??
-                                (detail.operator_id
-                                  ? [detail.operator_id]
-                                  : []),
-                              operator_id: detail.operator_id
-                                ? String(detail.operator_id)
-                                : "",
-                            });
-                            setDraftAssets(detail.attachments);
-                            setShowForm(true);
-                          }}
-                        >
-                          编辑草稿正文
-                        </button>
-                      )}
-                      {canPublish && (!detail.portal_public || canPublic) && (
-                        <>
-                          <label>
-                            发布时间（北京，留空立即发布）
-                            <input
-                              type="datetime-local"
-                              aria-label="内容发布时间"
-                              value={publishAt}
-                              onChange={(e) => setPublishAt(e.target.value)}
-                            />
-                          </label>
-                          <button
-                            className="outline"
-                            disabled={busy || showForm}
-                            onClick={() => act("publish")}
-                          >
-                            发布内容
-                          </button>
-                        </>
-                      )}
-                    </>
-                  )}
-                  {canWithdraw && detail.status === "published" && (
-                    <button
-                      className="outline"
-                      disabled={busy}
-                      onClick={() => act("withdraw")}
-                    >
-                      撤下内容
-                    </button>
-                  )}
-                  <h3>操作记录</h3>
-                  {detail.history?.map((h, i) => (
-                    <article className="timeline" key={i}>
-                      <b>
-                        {{
-                          create: "创建草稿",
-                          edit: "修改草稿",
-                          publish: "发布",
-                          withdraw: "撤下",
-                          delete: "删除草稿（保留历史）",
-                          attachment_upload: "上传内容附件",
-                          attachment_delete: "删除内容附件",
-                        }[h.action] || h.action}
-                      </b>
-                      <p>{new Date(h.created_at).toLocaleString("zh-CN")}</p>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </div>
+                      </>
+                    )}
+                  </>
+                )}
+                {canWithdraw && detail.status === "published" && (
+                  <button
+                    className="outline"
+                    disabled={busy}
+                    onClick={() => act("withdraw")}
+                  >
+                    撤下内容
+                  </button>
+                )}
+                <h3>操作记录</h3>
+                {detail.history?.map((h, i) => (
+                  <article className="timeline" key={i}>
+                    <b>
+                      {{
+                        create: "创建草稿",
+                        edit: "修改草稿",
+                        publish: "发布",
+                        withdraw: "撤下",
+                        delete: "删除草稿（保留历史）",
+                        attachment_upload: "上传内容附件",
+                        attachment_delete: "删除内容附件",
+                      }[h.action] || h.action}
+                    </b>
+                    <p>{new Date(h.created_at).toLocaleString("zh-CN")}</p>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </section>
-    </div>
+        </div>
+      )}
+    </section>
   );
 }

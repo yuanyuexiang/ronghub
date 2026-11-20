@@ -76,6 +76,9 @@ test("annual multi-station form preserves drafts and recovers a lost success res
     );
     // Existing demo policy and actual fixture energy are 2026; do not invent prior-year data.
     await panel.getByLabel("补贴年度", { exact: true }).fill("2026");
+    await panel
+      .getByLabel("年度政策版本", { exact: true })
+      .selectOption({ label: "演示按电量补贴（非正式政策） V1" });
     await panel.getByLabel("年度场站名称", { exact: true }).fill(group);
     await panel
       .getByRole("button", { name: "查询年度场站", exact: true })

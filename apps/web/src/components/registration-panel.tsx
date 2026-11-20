@@ -1,4 +1,9 @@
 "use client";
+import { useRecordFocus } from "./use-record-focus";
+import {
+  useWorkspaceLeave,
+  type LeaveGuardRegistrar,
+} from "./business-workspace";
 import { usePageRefresh } from "./page-refresh";
 import { useEffect, useRef, useState } from "react";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -11,7 +16,13 @@ const states: Record<string, string> = {
   approved: "审核通过已开通",
   draft: "草稿",
 };
-export function RegistrationPanel({ csrf }: { csrf: string }) {
+export function RegistrationPanel({
+  csrf,
+  registerLeaveGuard,
+}: {
+  csrf: string;
+  registerLeaveGuard?: LeaveGuardRegistrar;
+}) {
   const canReview = useCapability("registrations.review");
   const [items, setItems] = useState<Registration[]>([]),
     [detail, setDetail] = useState<Detail | null>(null),
@@ -25,6 +36,12 @@ export function RegistrationPanel({ csrf }: { csrf: string }) {
     [total, setTotal] = useState(0),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const workspaceRef = useRecordFocus(detail?.id);
+  const canLeave = useWorkspaceLeave(
+    !!detail && (!!comment.trim() || !!profile),
+    busy,
+    registerLeaveGuard,
+  );
   const sequence = useRef(0);
   function read<T>(result: { data?: T; error?: unknown }): T {
     if (result.data === undefined)
@@ -109,102 +126,109 @@ export function RegistrationPanel({ csrf }: { csrf: string }) {
     });
   }
   return (
-    <section className="panel">
-      <div className="panel-title">
-        <div>
-          <h2>企业注册审核</h2>
-          <p>
-            核对企业资料与资质，选择账号权限角色；通过后原子创建企业档案与登录账号
-          </p>
-        </div>
-        <form
-          className="search"
-          onSubmit={(e) => {
-            e.preventDefault();
-            appliedListQuery.current = { q };
-            if (page !== 1) setPage(1);
-            else run(load);
-          }}
-        >
-          <input
-            aria-label="搜索注册企业"
-            value={q}
-            maxLength={150}
-            placeholder="企业名称"
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <button disabled={busy}>查询注册申请</button>
-        </form>
-      </div>
-      {error && (
+    <section className="business-stack" ref={workspaceRef}>
+      {detail && error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              {[
-                "申请编号",
-                "企业名称",
-                "信用代码",
-                "申请账号",
-                "状态",
-                "操作",
-              ].map((h) => (
-                <th key={h}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((r) => (
-              <tr key={r.id}>
-                <td>REG-{r.id}</td>
-                <td>{r.company_name}</td>
-                <td>{r.credit_code}</td>
-                <td>{r.username}</td>
-                <td>
-                  <em className={r.status === "approved" ? "green" : "amber"}>
-                    {states[r.status]}
-                  </em>
-                </td>
-                <td>
-                  <button
-                    className="outline"
-                    disabled={busy}
-                    onClick={() => run(() => open(r.id))}
-                  >
-                    查看注册资料
-                  </button>
-                </td>
+      <section className="panel record-pane" hidden={!!detail}>
+        <div className="panel-title">
+          <div>
+            <h2>企业注册审核</h2>
+            <p>
+              核对企业资料与资质，选择账号权限角色；通过后原子创建企业档案与登录账号
+            </p>
+          </div>
+          <form
+            className="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              appliedListQuery.current = { q };
+              if (page !== 1) setPage(1);
+              else run(load);
+            }}
+          >
+            <input
+              aria-label="搜索注册企业"
+              value={q}
+              maxLength={150}
+              placeholder="企业名称"
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <button disabled={busy}>查询注册申请</button>
+          </form>
+        </div>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                {[
+                  "申请编号",
+                  "企业名称",
+                  "信用代码",
+                  "申请账号",
+                  "状态",
+                  "操作",
+                ].map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {!items.length && <p className="empty">暂无已提交的注册申请</p>}
-      </div>
-      <div className="business-form">
-        <button
-          className="outline"
-          disabled={busy || page === 1}
-          onClick={() => setPage(page - 1)}
-        >
-          注册上一页
-        </button>
-        <span>
-          第{page}页 · 共{total}条
-        </span>
-        <button
-          className="outline"
-          disabled={busy || page * 20 >= total}
-          onClick={() => setPage(page + 1)}
-        >
-          注册下一页
-        </button>
-      </div>
+            </thead>
+            <tbody>
+              {items.map((r) => (
+                <tr key={r.id}>
+                  <td>REG-{r.id}</td>
+                  <td>{r.company_name}</td>
+                  <td>{r.credit_code}</td>
+                  <td>{r.username}</td>
+                  <td>
+                    <em className={r.status === "approved" ? "green" : "amber"}>
+                      {states[r.status]}
+                    </em>
+                  </td>
+                  <td>
+                    <button
+                      className="outline"
+                      disabled={busy}
+                      onClick={() => run(() => open(r.id))}
+                    >
+                      查看注册资料
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!items.length && <p className="empty">暂无已提交的注册申请</p>}
+        </div>
+        <div className="business-form">
+          <button
+            className="outline"
+            disabled={busy || page === 1}
+            onClick={() => setPage(page - 1)}
+          >
+            注册上一页
+          </button>
+          <span>
+            第{page}页 · 共{total}条
+          </span>
+          <button
+            className="outline"
+            disabled={busy || page * 20 >= total}
+            onClick={() => setPage(page + 1)}
+          >
+            注册下一页
+          </button>
+        </div>
+      </section>
       {detail && (
-        <div className="application-detail">
+        <div className="panel business-record-detail record-detail">
           <div className="panel-title">
             <div>
               <h2>
@@ -214,7 +238,13 @@ export function RegistrationPanel({ csrf }: { csrf: string }) {
                 {states[detail.status]} · 资料V{detail.version}
               </p>
             </div>
-            <button className="outline" onClick={() => setDetail(null)}>
+            <button
+              className="outline"
+              disabled={busy}
+              onClick={() => {
+                if (canLeave()) setDetail(null);
+              }}
+            >
               关闭注册详情
             </button>
           </div>

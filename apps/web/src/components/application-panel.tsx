@@ -1,4 +1,5 @@
 "use client";
+import { WorkspaceViews } from "./business-workspace";
 import { useRecordFocus } from "./use-record-focus";
 import {
   ApplicationEvidencePanel,
@@ -86,11 +87,18 @@ export function ApplicationPanel({
   useEffect(() => {
     registerLeaveGuard?.(
       () =>
-        !hasUnsaved ||
-        window.confirm("当前申请有未保存的修改或处理意见，确定离开此模块？"),
+        !(busy || materialBusy || editorBusy) &&
+        (!hasUnsaved ||
+          window.confirm("当前申请有未保存的修改或处理意见，确定离开此模块？")),
     );
     return () => registerLeaveGuard?.(null);
-  }, [hasUnsaved, registerLeaveGuard]);
+  }, [hasUnsaved, busy, materialBusy, editorBusy, registerLeaveGuard]);
+  useEffect(() => {
+    if (!hasUnsaved && !busy && !materialBusy && !editorBusy) return;
+    const protect = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", protect);
+    return () => window.removeEventListener("beforeunload", protect);
+  }, [hasUnsaved, busy, materialBusy, editorBusy]);
   function closeDetail() {
     setDetail(null);
     ++detailSequence.current;
@@ -105,6 +113,7 @@ export function ApplicationPanel({
     else closeDetail();
   }
   const workspaceRef = useRecordFocus(detail?.id);
+  const [applicationView, setApplicationView] = useState("all");
   const canSource = useCapability("stations.read");
   const [materialRevision, setMaterialRevision] = useState(0);
   const [review, setReview] = useState<ApplicationReviewState | null>(null);
@@ -166,6 +175,7 @@ export function ApplicationPanel({
     if (busy || materialBusy || editorBusy) return;
     setDetail(null);
     ++detailSequence.current;
+    setApplicationView(draft.kind || "all");
     setQuery({ ...draft, page: 1 });
   }
   async function create() {
@@ -181,6 +191,7 @@ export function ApplicationPanel({
         },
       });
       if (!data) throw new Error(apiError(error, "创建申请失败"));
+      setApplicationView("all");
       setDraft(initialQuery);
       setQuery({ ...initialQuery });
       setDetail(null);
@@ -260,6 +271,19 @@ export function ApplicationPanel({
   return (
     <section ref={workspaceRef} className="panel application-workspace">
       <div className="record-pane" hidden={!!detail}>
+        <WorkspaceViews
+          label="场站申请业务视图"
+          value={applicationView}
+          disabled={busy || materialBusy || editorBusy || listLoading}
+          items={[["all", "全部接入事项"], ...Object.entries(kinds)]}
+          onChange={(view) => {
+            setApplicationView(view);
+            const next = { ...initialQuery, kind: view === "all" ? "" : view };
+            setDraft(next);
+            setQuery(next);
+            if (view !== "all") setKind(view);
+          }}
+        />
         <div className="panel-title">
           <div>
             <h2>{role === "operator" ? "我的场站申请" : "场站申请审核"}</h2>
@@ -351,6 +375,7 @@ export function ApplicationPanel({
             className="outline"
             disabled={busy || materialBusy || editorBusy || listLoading}
             onClick={() => {
+              setApplicationView("all");
               setDraft(initialQuery);
               setQuery({ ...initialQuery });
               setDetail(null);

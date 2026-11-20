@@ -58,6 +58,22 @@ def test_batch_versions_atomic_publication_soft_delete_and_metadata_export(
             return {"id": article["id"], "version": article["version"]}
 
         a, b = create(), create()
+        base_query = {"manage": True, "q": prefix}
+        matched = reg.get("/api/v1/content", params={**base_query, "kind": "notice"})
+        assert matched.status_code == 200 and matched.json()["total"] == 2
+        assert all(item["kind"] == "notice" for item in matched.json()["items"])
+        assert (
+            reg.get("/api/v1/content", params={**base_query, "kind": "news"}).json()["total"] == 0
+        )
+        assert (
+            reg.get("/api/v1/content", params={**base_query, "kind": "invalid"}).status_code == 422
+        )
+        csv_result = reg.get("/api/v1/content/export", params={"q": prefix, "kind": "notice"})
+        assert csv_result.status_code == 200
+        assert len(list(csv.reader(io.StringIO(csv_result.text)))) == 3
+        csv_empty = reg.get("/api/v1/content/export", params={"q": prefix, "kind": "news"})
+        assert csv_empty.status_code == 200
+        assert len(list(csv.reader(io.StringIO(csv_empty.text)))) == 1
         url = "/api/v1/content/batch-actions"
         assert (
             own.post(

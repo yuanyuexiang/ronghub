@@ -95,6 +95,9 @@ test("subsidy snapshot approval and association rating publication", async ({
     await op.getByRole("button", { name: "补贴申报", exact: true }).click();
     await pickStation(op, "补贴场站", fixture);
     await op
+      .getByLabel("补贴政策", { exact: true })
+      .selectOption({ label: "演示按电量补贴（非正式政策） V1" });
+    await op
       .getByLabel("补贴申请说明", { exact: true })
       .fill("演示申报说明与核验材料");
     const created = op.waitForResponse(
@@ -800,7 +803,7 @@ test("published notice reaches the enterprise and scoped energy statistics expor
     const row = reg.getByRole("row", { includeHidden: true }).filter({
       has: reg.getByRole("cell", { name: fixture.name, exact: true }),
     });
-    await expect(row).toContainText("草稿");
+    await expect(reg.locator(".record-detail")).toContainText("草稿");
     await op.getByRole("button", { name: "公告与通知", exact: true }).click();
     await expect(
       op.getByRole("row", { includeHidden: true }).filter({
@@ -808,7 +811,7 @@ test("published notice reaches the enterprise and scoped energy statistics expor
       }),
     ).toHaveCount(0);
     await reg.getByRole("button", { name: "发布内容", exact: true }).click();
-    await expect(row).toContainText("已发布");
+    await expect(reg.locator(".record-detail")).toContainText("已发布");
     await op.getByRole("button", { name: "查询内容", exact: true }).click();
     const visible = op.getByRole("row", { includeHidden: true }).filter({
       has: op.getByRole("cell", { name: fixture.name, exact: true }),

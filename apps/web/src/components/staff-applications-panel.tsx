@@ -1,11 +1,22 @@
 "use client";
+import { useRecordFocus } from "./use-record-focus";
+import {
+  useWorkspaceLeave,
+  type LeaveGuardRegistrar,
+} from "./business-workspace";
 import { usePageRefresh } from "./page-refresh";
 import { useEffect, useRef, useState } from "react";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { StaffRolePicker } from "./staff-role-picker";
 const roles = { regulator: "监管工作人员", association: "协会工作人员" };
 const statuses = { pending: "待审核", approved: "已开通", rejected: "已驳回" };
-export function StaffApplicationsPanel({ csrf }: { csrf: string }) {
+export function StaffApplicationsPanel({
+  csrf,
+  registerLeaveGuard,
+}: {
+  csrf: string;
+  registerLeaveGuard?: LeaveGuardRegistrar;
+}) {
   const [draft, setDraft] = useState({ q: "", status: "", requested_role: "" }),
     [query, setQuery] = useState({ ...draft, page: 1 });
   const [data, setData] = useState<ApiSchemas["StaffApplicationPage"] | null>(
@@ -26,6 +37,15 @@ export function StaffApplicationsPanel({ csrf }: { csrf: string }) {
     [comment, setComment] = useState("");
   const [scope, setScope] = useState(""),
     [districts, setDistricts] = useState("");
+  const workspaceRef = useRecordFocus(detail?.id);
+  const canLeave = useWorkspaceLeave(
+    Boolean(
+      detail?.status === "pending" &&
+      (profile || username || password || comment.trim() || scope || districts),
+    ),
+    busy,
+    registerLeaveGuard,
+  );
   const detailController = useRef<AbortController | null>(null);
   const preservedQuery = useRef<typeof query | null>(null);
   const pageRefreshRevision = usePageRefresh();
@@ -155,8 +175,16 @@ export function StaffApplicationsPanel({ csrf }: { csrf: string }) {
     }
   }
   return (
-    <div className="business-stack">
-      <section className="panel staff-applications">
+    <section className="business-stack" ref={workspaceRef}>
+      {detail && error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <section
+        className="panel staff-applications record-pane"
+        hidden={!!detail}
+      >
         <div className="panel-title">
           <div>
             <h2>工作人员账号申请审核</h2>
@@ -296,7 +324,7 @@ export function StaffApplicationsPanel({ csrf }: { csrf: string }) {
         )}
       </section>
       {detail && (
-        <section className="panel">
+        <section className="panel record-detail">
           <div className="panel-title">
             <div>
               <h2>人员申请 #{detail.id}</h2>
@@ -309,6 +337,7 @@ export function StaffApplicationsPanel({ csrf }: { csrf: string }) {
               className="outline"
               disabled={busy}
               onClick={() => {
+                if (!canLeave()) return;
                 detailController.current?.abort();
                 setDetail(null);
                 setPassword("");
@@ -452,6 +481,6 @@ export function StaffApplicationsPanel({ csrf }: { csrf: string }) {
           </div>
         </section>
       )}
-    </div>
+    </section>
   );
 }

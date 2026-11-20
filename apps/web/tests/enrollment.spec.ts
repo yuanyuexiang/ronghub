@@ -62,7 +62,9 @@ test("enterprise enrollment materials, regulatory approval and first platform lo
     await reg.getByLabel("账号", { exact: true }).fill("regulator");
     await reg.getByLabel("密码", { exact: true }).fill(password);
     await reg.getByRole("button", { name: "登录平台" }).click();
-    await reg.getByRole("button", { name: /^(注册审核|运营商审核)$/, exact: true }).click();
+    await reg
+      .getByRole("button", { name: /^(注册审核|运营商审核)$/, exact: true })
+      .click();
     const row = reg.getByRole("row").filter({
       has: reg.getByRole("cell", { name: `REG-${id}`, exact: true }),
     });
@@ -77,6 +79,13 @@ test("enterprise enrollment materials, regulatory approval and first platform lo
       .selectOption(String(fixture.role_id));
     await reg.getByLabel("注册审核意见").fill("演示资质核验通过");
     await reg.getByRole("button", { name: "通过注册并开通账号" }).click();
+    await expect(reg.locator(".record-detail")).toContainText("审核通过已开通");
+    await reg
+      .getByRole("button", { name: "关闭注册详情", exact: true })
+      .click();
+    await expect(
+      reg.getByRole("heading", { name: "企业注册审核", exact: true }),
+    ).toBeFocused();
     await expect(row).toContainText("审核通过已开通");
     await portal.getByRole("button", { name: "刷新注册进度" }).click();
     await expect(

@@ -67,7 +67,11 @@ export function workspaceNavigation(
           ["系统工具", Settings, ["账号安全"]],
         ]
       : [
-          ["工作概览", LayoutDashboard, ["工作台", "场站地图"]],
+          [
+            role === "association" ? "全域监管" : "接入汇总",
+            LayoutDashboard,
+            ["工作台", "场站地图"],
+          ],
           [
             "场站信息管理",
             Building2,
@@ -79,7 +83,11 @@ export function workspaceNavigation(
             ["企业告警", "整改任务", "隐患督办", "运行状态", "故障分析"],
           ],
           ["补贴管理", Wallet, ["补贴申报"]],
-          ["星级评价管理", Star, ["星级评价", "星级申报"]],
+          [
+            role === "association" ? "星级评价管理" : "星级申报",
+            Star,
+            ["星级评价", "星级申报"],
+          ],
           [
             "统计分析",
             Activity,

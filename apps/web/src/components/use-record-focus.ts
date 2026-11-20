@@ -8,11 +8,11 @@ export function useRecordFocus(identity: number | undefined) {
   useEffect(() => {
     if (previous.current === identity) return;
     previous.current = identity;
-    const heading = root.current?.querySelector<HTMLElement>(
-      identity == null
-        ? ".record-pane .panel-title h2"
-        : ".record-detail .panel-title h2",
-    );
+    const heading = Array.from(
+      root.current?.querySelectorAll<HTMLElement>(
+        identity == null ? ".record-pane h2" : ".record-detail .panel-title h2",
+      ) ?? [],
+    ).find((element) => element.getClientRects().length > 0);
     if (heading) {
       heading.tabIndex = -1;
       heading.focus({ preventScroll: true });

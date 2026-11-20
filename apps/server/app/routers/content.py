@@ -1,7 +1,7 @@
 import csv
 import io
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
@@ -33,6 +33,8 @@ from app.models import (
 from app.reporting import SnapshotDB
 from app.richtext import RichDocument, plain_text
 from app.routers.attachments import metadata
+
+ContentKind = Literal["", "announcement", "news", "notice", "protocol", "contact"]
 
 router = APIRouter(prefix="/api/v1/content", tags=["content"])
 
@@ -141,8 +143,11 @@ def listing(
     page: int = Query(1, ge=1, le=2147483647),
     q: str = Query("", max_length=150),
     include_deleted: bool = False,
+    kind: ContentKind = "",
 ):
     stmt = content.visible(select(Article), user, manage)
+    if kind:
+        stmt = stmt.where(Article.kind == kind)
     if not include_deleted:
         stmt = stmt.where(Article.status != "deleted")
     if q:
@@ -306,6 +311,7 @@ def export_articles(
     db: SnapshotDB,
     q: str = Query("", max_length=150),
     include_deleted: bool = False,
+    kind: ContentKind = "",
 ):
     export_guard(db, user)
     stmt = content.visible(
@@ -321,6 +327,8 @@ def export_articles(
         user,
         True,
     )
+    if kind:
+        stmt = stmt.where(Article.kind == kind)
     if not include_deleted:
         stmt = stmt.where(Article.status != "deleted")
     if q.strip():

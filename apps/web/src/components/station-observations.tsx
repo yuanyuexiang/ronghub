@@ -57,7 +57,7 @@ function initialDates() {
     source: "",
   };
 }
-function EnergyHistory({ stationId }: { stationId: number }) {
+export function EnergyHistory({ stationId }: { stationId: number }) {
   const [draft, setDraft] = useState(initialDates),
     [query, setQuery] = useState(initialDates),
     [data, setData] = useState<ApiSchemas["StationEnergyHistory"] | null>(null),

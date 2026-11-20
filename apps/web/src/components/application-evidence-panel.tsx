@@ -131,6 +131,55 @@ function SubmittedContent({ value }: { value: Content }) {
   return (
     <>
       <SourceInfo value={value.source_profile} />
+      {value.source_profile && (
+        <section className="materials" aria-label="送审设备明细">
+          <h4>设备与枪口明细</h4>
+          {value.equipment == null ? (
+            <p className="muted">
+              此历史版本未归档设备明细，不能用当前台账补作历史证明。
+            </p>
+          ) : (
+            <>
+              <p className="muted">
+                归档设备身份与规格，不将运行中的实时状态作为审核依据。共
+                {value.equipment.length}台设备。
+              </p>
+              {value.equipment.map((equipment) => (
+                <details key={equipment.id}>
+                  <summary>
+                    {equipment.name} · {equipment.external_id} ·{" "}
+                    {equipment.power_kw} kW · {equipment.connectors.length}
+                    个枪口
+                  </summary>
+                  <dl className="station-facts">
+                    <div>
+                      <dt>型号</dt>
+                      <dd>{equipment.model_name ?? "未提供"}</dd>
+                    </div>
+                    <div>
+                      <dt>唯一编码</dt>
+                      <dd>{equipment.source_unique_code ?? "未提供"}</dd>
+                    </div>
+                    <div>
+                      <dt>生产日期</dt>
+                      <dd>{equipment.manufactured_on ?? "未提供"}</dd>
+                    </div>
+                  </dl>
+                  {equipment.connectors.map((connector) => (
+                    <p key={connector.id}>
+                      {connector.name ?? "未命名枪口"} · {connector.external_id}{" "}
+                      · {connector.interface_type ?? "接口类型未提供"}
+                    </p>
+                  ))}
+                </details>
+              ))}
+              {value.equipment.length === 0 && (
+                <p className="empty">本次归档时无设备记录</p>
+              )}
+            </>
+          )}
+        </section>
+      )}
       <h4>申请内容</h4>
       <p>
         {typeof value.payload.note === "string"

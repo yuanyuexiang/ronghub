@@ -132,7 +132,7 @@ test("rich article headings, marks, links, tables and private assets publish con
     ).toContainText("核查说明.pdf");
     await expect(
       reg.getByRole("button", { name: "发布内容", exact: true }),
-    ).toBeDisabled();
+    ).toBeHidden();
     await reg
       .getByRole("button", { name: "保存内容草稿", exact: true })
       .click();

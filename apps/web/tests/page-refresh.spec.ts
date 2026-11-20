@@ -371,16 +371,15 @@ test("automatic page clamp after external draft deletion preserves the open edit
     });
     expect(deleted.status()).toBe(200);
     await page.getByRole("button", { name: "刷新数据", exact: true }).click();
-    await expect(
-      page.getByText("第1页 · 共6条", { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByText("第1页 · 共6条", { exact: true })).toBeHidden();
+    await expect(page.locator(".record-pane")).toContainText("第1页 · 共6条");
     await expect(page.getByLabel("内容标题", { exact: true })).toHaveValue(
       fixture.name + "-未保存标题",
     );
     await expect(editor).toContainText("未保存的正文不能因自动回页而丢失");
     await expect(
       page.getByRole("button", { name: "编辑草稿正文", exact: true }),
-    ).toBeVisible();
+    ).toBeHidden();
   } finally {
     execFileSync(
       "uv",
