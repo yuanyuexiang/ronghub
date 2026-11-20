@@ -5983,3 +5983,16 @@ select {
 .rating-data-history {
   min-width: 0;
 }
+
+.content-managing > div:last-child > label {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+.content-managing > div:last-child > label input {
+  width: 100%;
+  min-width: 0;
+}
+.content-managing > div:last-child > button {
+  margin: 0 8px 10px 0;
+}
