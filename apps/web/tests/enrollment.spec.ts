@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { navigateWorkspace, test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -62,9 +62,7 @@ test("enterprise enrollment materials, regulatory approval and first platform lo
     await reg.getByLabel("账号", { exact: true }).fill("regulator");
     await reg.getByLabel("密码", { exact: true }).fill(password);
     await reg.getByRole("button", { name: "登录平台" }).click();
-    await reg
-      .getByRole("button", { name: /^(注册审核|运营商审核)$/, exact: true })
-      .click();
+    await navigateWorkspace(reg, /^(注册审核|运营商审核)$/);
     const row = reg.getByRole("row").filter({
       has: reg.getByRole("cell", { name: `REG-${id}`, exact: true }),
     });
@@ -100,9 +98,9 @@ test("enterprise enrollment materials, regulatory approval and first platform lo
     await portal.getByLabel("密码", { exact: true }).fill(password);
     await portal.getByRole("button", { name: "登录平台" }).click();
     await expect(
-      portal.getByRole("heading", { name: "运营总览" }),
+      portal.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
     ).toBeVisible();
-    await portal.getByRole("button", { name: "企业资料", exact: true }).click();
+    await navigateWorkspace(portal, "企业资料");
     await expect(
       portal.getByRole("cell", { name: fixture.company_name, exact: true }),
     ).toBeVisible();

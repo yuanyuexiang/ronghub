@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -10,9 +10,7 @@ async function login(page: Page, username: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
   await expect(page.getByRole("button", { name: "退出登录" })).toBeVisible();
-  await page
-    .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
-    .click();
+  await navigateWorkspace(page, /^(公告与通知|新增发布资讯)$/);
 }
 test("multi-company notice creates independent records and isolates enterprise replies", async ({
   browser,
@@ -30,9 +28,7 @@ test("multi-company notice creates independent records and isolates enterprise r
       contexts.map((c) => c.newPage()),
     );
     await login(reg, "regulator");
-    await reg
-      .getByRole("button", { name: "自定义通知发布", exact: true })
-      .click();
+    await navigateWorkspace(reg, "自定义通知发布");
     await login(own, "operator_a");
     await login(other, "operator_b");
     await reg

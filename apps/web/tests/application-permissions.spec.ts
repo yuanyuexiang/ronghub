@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -49,9 +49,7 @@ test("submit-only enterprise staff can submit without editing, uploading or with
     });
     expect(created.status()).toBe(201);
     const record = await created.json();
-    await limited
-      .getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true })
-      .click();
+    await navigateWorkspace(limited, /^(场站申请|接入管理)$/);
     await expect(
       limited.getByRole("button", { name: "新建草稿", exact: true }),
     ).toHaveCount(0);

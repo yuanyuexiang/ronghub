@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { pickStation } from "./station";
@@ -52,7 +52,7 @@ test("safety details preserve paged queries and protect unsaved replies and ackn
     const [op, reg] = await Promise.all(contexts.map((c) => c.newPage()));
     await login(op, "operator_a");
     await login(reg, "regulator");
-    await op.getByRole("button", { name: "整改任务", exact: true }).click();
+    await navigateWorkspace(op, "整改任务");
     await op.getByLabel("巡检检索名称", { exact: true }).fill(value.name);
     await op.getByRole("button", { name: "查询巡检记录", exact: true }).click();
     await expect(
@@ -81,7 +81,7 @@ test("safety details preserve paged queries and protect unsaved replies and ackn
       "尚未提交的现场整改反馈",
     );
     op.once("dialog", (d) => d.dismiss());
-    await op.getByRole("button", { name: "企业资料", exact: true }).click();
+    await navigateWorkspace(op, "企业资料");
     await expect(op.getByLabel("巡检处理说明", { exact: true })).toBeVisible();
     await op.screenshot({
       path: "../../.backups/batch34-current-inspection-detail.png",
@@ -95,7 +95,7 @@ test("safety details preserve paged queries and protect unsaved replies and ackn
     await expect(
       op.getByText("巡检第2页 · 共25条", { exact: true }),
     ).toBeVisible();
-    await reg.getByRole("button", { name: "告警数据", exact: true }).click();
+    await navigateWorkspace(reg, "告警数据");
     await reg.getByLabel("告警检索名称", { exact: true }).fill(value.name);
     await reg
       .getByRole("button", { name: "查询告警记录", exact: true })
@@ -145,7 +145,7 @@ test("subsidy workspaces separate policy and statistics while protecting the sta
   const value = fixture("--operating");
   try {
     await login(page, "operator_a");
-    await page.getByRole("button", { name: "补贴申报", exact: true }).click();
+    await navigateWorkspace(page, "补贴申报");
     const navigation = page.getByRole("navigation", {
       name: "补贴业务视图",
       exact: true,
@@ -188,7 +188,7 @@ test("subsidy workspaces separate policy and statistics while protecting the sta
       page.getByLabel("修改补贴申请说明", { exact: true }),
     ).toHaveValue("暂未保存的申请说明");
     page.once("dialog", (d) => d.dismiss());
-    await page.getByRole("button", { name: "企业资料", exact: true }).click();
+    await navigateWorkspace(page, "企业资料");
     await expect(
       page.getByLabel("修改补贴申请说明", { exact: true }),
     ).toBeVisible();
@@ -203,16 +203,14 @@ test("subsidy workspaces separate policy and statistics while protecting the sta
     await expect(
       page.getByRole("heading", { name: "补贴申请记录", exact: true }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "补贴统计", exact: true }).click();
+    await navigateWorkspace(page, "补贴统计");
     await expect(
       page.getByRole("region", { name: "补贴统计", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByLabel("补贴检索名称", { exact: true }),
     ).not.toBeVisible();
-    await page
-      .getByRole("button", { name: /^(设备电量数据|电量数据)$/, exact: true })
-      .click();
+    await navigateWorkspace(page, /^(设备电量数据|电量数据)$/);
     await expect(
       page.getByRole("region", { name: "设备日观测", exact: true }),
     ).toBeVisible();
@@ -235,7 +233,7 @@ test("rating details distinguish proposed and effective stars and preserve list 
   const value = fixture("--operating", "--business-history", "25");
   try {
     await login(page, "operator_a");
-    await page.getByRole("button", { name: "星级申报", exact: true }).click();
+    await navigateWorkspace(page, "星级申报");
     await page.getByLabel("星级检索名称", { exact: true }).fill(value.name);
     await page
       .getByRole("button", { name: "查询星级记录", exact: true })
@@ -264,12 +262,7 @@ test("rating details distinguish proposed and effective stars and preserve list 
     await expect(
       page.getByText("星级第2页 · 共25条", { exact: true }),
     ).toBeVisible();
-    await page
-      .getByRole("button", {
-        name: /^(评价结果与公示|公示查询查看)$/,
-        exact: true,
-      })
-      .click();
+    await navigateWorkspace(page, /^(评价结果与公示|公示查询查看)$/);
     await expect(
       page.getByRole("heading", { name: "星级公示查询", exact: true }),
     ).toBeVisible();

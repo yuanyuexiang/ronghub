@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -53,7 +53,7 @@ test("station summary and directory remain distinct, export applied filters, and
   const value = fixture();
   try {
     await login(page, "regulator");
-    await page.getByRole("button", { name: "场站汇总", exact: true }).click();
+    await navigateWorkspace(page, "场站汇总");
     await expect(
       page.getByRole("heading", {
         name: "场站接入与充电数据汇总",
@@ -82,9 +82,7 @@ test("station summary and directory remain distinct, export applied filters, and
       path: "../../.backups/prototype-batch2-summary-current.png",
       fullPage: true,
     });
-    await page
-      .getByRole("button", { name: "场站数据同步与场站信息查询", exact: true })
-      .click();
+    await navigateWorkspace(page, "场站数据同步与场站信息查询");
     const source = await (
       await page.request.get(`/api/v1/stations/${value.station_id}`)
     ).json();
@@ -194,7 +192,7 @@ test("application detail returns to its applied list and protects unsaved change
     });
     expect(created.status()).toBe(201);
     const application = await created.json();
-    await page.getByRole("button", { name: "场站申请", exact: true }).click();
+    await navigateWorkspace(page, "场站申请");
     await page
       .getByLabel("检索申请编号", { exact: true })
       .fill(String(application.id));
@@ -226,7 +224,7 @@ test("application detail returns to its applied list and protects unsaved change
       .getByRole("button", { name: "继续编辑申请", exact: true })
       .click();
     page.once("dialog", (dialog) => dialog.dismiss());
-    await page.getByRole("button", { name: "场站台账", exact: true }).click();
+    await navigateWorkspace(page, "场站台账");
     await expect(detail).toBeVisible();
     await expect(page.getByLabel("申请说明", { exact: true })).toHaveValue(
       "未保存的申请内容",
@@ -269,9 +267,7 @@ test("company detail guards unsaved edits and preserves the operator query when 
   );
   try {
     await login(page, "regulator");
-    await page
-      .getByRole("button", { name: "场站运营商管理", exact: true })
-      .click();
+    await navigateWorkspace(page, "场站运营商管理");
     await page.getByLabel("搜索企业名称", { exact: true }).fill(value.name);
     await page.getByRole("button", { name: "查询企业", exact: true }).click();
     await page
@@ -305,9 +301,7 @@ test("company detail guards unsaved edits and preserves the operator query when 
       "尚未保存的企业名称",
     );
     page.once("dialog", (dialog) => dialog.dismiss());
-    await page
-      .getByRole("button", { name: "场站数据同步与场站信息查询", exact: true })
-      .click();
+    await navigateWorkspace(page, "场站数据同步与场站信息查询");
     await expect(detail).toBeVisible();
     await page.screenshot({
       path: "../../.backups/prototype-batch2-company-current.png",

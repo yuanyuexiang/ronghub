@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { navigateWorkspace, test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -29,7 +29,7 @@ test("source fault histories keep lifecycle, recovered sample averages and compl
     await page.getByLabel("账号", { exact: true }).fill("operator_a");
     await page.getByLabel("密码", { exact: true }).fill(password);
     await page.getByRole("button", { name: "登录平台" }).click();
-    await page.getByRole("button", { name: "故障分析", exact: true }).click();
+    await navigateWorkspace(page, "故障分析");
     await page.getByLabel("故障检索名称", { exact: true }).fill(fixture.name);
     await page
       .getByLabel("故障开始时间起", { exact: true })

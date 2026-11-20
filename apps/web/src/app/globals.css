@@ -4826,6 +4826,7 @@ select {
   border-right: 1px solid #e4e9f0;
   height: 100dvh;
   position: sticky;
+  z-index: 20;
   top: 0;
   display: flex;
   flex-direction: column;
@@ -6000,3 +6001,24 @@ select {
 .navigation-subtree { border-left: 1px solid #e4ebf4; margin-left: 32px; }
 .prototype-workspace .navigation-subtree .navigation-leaf { font-size: 12px; line-height: 1.5; padding-left: 18px !important; }
 .alert-category-tabs[hidden] { display:none !important; }
+
+/* Rendered prototype navigation: persistent top level and desktop flyouts. */
+.prototype-workspace .navigation-group-toggle > svg:last-child { transform: none; }
+.prototype-workspace .navigation-group-toggle { min-height: 44px; font-weight: 500; }
+.navigation-flyout { position: fixed; z-index: 1600; width: 258px; max-height: calc(100dvh - 100px); overflow-y: auto; padding: 6px; background: #fff; border: 1px solid #e4e9f0; border-radius: 7px; box-shadow: 0 8px 28px #193d6b24; }
+.navigation-flyout[hidden] { display:none !important; }
+.prototype-workspace .navigation-flyout .navigation-leaf { padding: 11px 12px; min-height: 42px; display:flex; justify-content:space-between; gap: 8px; width:100%; }
+.navigation-leaf > span { flex:1; text-align:left; }
+.navigation-searching .navigation-flyout { position:static; width:auto; box-shadow:none; border:0; padding:0 0 0 10px; max-height:none; overflow:visible; }
+.auxiliary-navigation { position:relative; }
+.auxiliary-navigation > button { font-size:12px; color:inherit; }
+.auxiliary-navigation > nav { position:absolute; right:0; top:calc(100% + 12px); width:230px; max-height:70dvh; overflow:auto; background:#fff; border:1px solid #e4e9f0; border-radius:7px; box-shadow:0 8px 28px #193d6b24; padding:6px; z-index:1600; }
+.auxiliary-navigation > nav[hidden] { display:none; }
+.prototype-workspace .auxiliary-navigation nav button { color:#455468; display:block; width:100%; text-align:left; padding:10px 12px; }
+.workspace-context-actions:empty { display:none; }
+.workspace-context-actions { display:flex; gap:10px; margin-bottom:12px; }
+@media(max-width:800px) {
+ .navigation-flyout { position:static; width:auto; border:0; border-left:1px solid #e4e9f0; border-radius:0; box-shadow:none; margin-left:12px; padding:0; overflow:visible; max-height:none; }
+ .prototype-workspace .workspace > header > div { gap:8px; }
+ .prototype-workspace .auxiliary-navigation > button { padding:6px; font-size:11px; }
+}

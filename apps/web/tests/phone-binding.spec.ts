@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { navigateWorkspace, test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -35,7 +35,7 @@ test("phone binding marks simulation, verifies code, revokes sessions and shows 
       ).toBeVisible();
     };
     await login();
-    await page.getByRole("button", { name: "账号安全", exact: true }).click();
+    await navigateWorkspace(page, "账号安全");
     await expect(
       page.getByText(
         "模拟短信通道：未发送真实短信。请由开发者使用本地模拟验证工具提供本次验证码。",
@@ -86,7 +86,7 @@ test("phone binding marks simulation, verifies code, revokes sessions and shows 
     ).toBeVisible();
     expect((await page.request.get("/api/v1/auth/me")).status()).toBe(401);
     await login();
-    await page.getByRole("button", { name: "账号安全", exact: true }).click();
+    await navigateWorkspace(page, "账号安全");
     await expect(
       page.getByText("已验证手机号（模拟验证）：", { exact: false }),
     ).toBeVisible();
@@ -159,7 +159,7 @@ test("phone binding marks simulation, verifies code, revokes sessions and shows 
     ).toBeVisible();
     expect((await page.request.get("/api/v1/auth/me")).status()).toBe(401);
     await login();
-    await page.getByRole("button", { name: "账号安全", exact: true }).click();
+    await navigateWorkspace(page, "账号安全");
     const changed = await (await page.request.get("/api/v1/auth/phone")).json();
     expect(changed.phone_masked).toBe(
       newPhone.slice(0, 3) + "****" + newPhone.slice(-4),

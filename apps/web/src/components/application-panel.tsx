@@ -120,7 +120,7 @@ export function ApplicationPanel({
   const [review, setReview] = useState<ApplicationReviewState | null>(null);
   const initialViewQuery = {
     ...initialQuery,
-    kind: applicationView === "all" ? "" : applicationView,
+    kind: ["all", "progress"].includes(applicationView) ? "" : applicationView,
   };
   const [query, setQuery] = useState(initialViewQuery),
     [draft, setDraft] = useState(initialViewQuery);
@@ -279,7 +279,7 @@ export function ApplicationPanel({
         <WorkspaceViews
           keepVisible
           label="场站申请业务视图"
-          value={applicationView}
+          value={applicationView === "progress" ? "all" : applicationView}
           disabled={busy || materialBusy || editorBusy || listLoading}
           items={[["all", "全部接入事项"], ...Object.entries(kinds)]}
           onChange={(view) => {
@@ -292,31 +292,39 @@ export function ApplicationPanel({
         />
         <div className="panel-title">
           <div>
-            <h2>{role === "operator" ? "我的场站申请" : "场站申请审核"}</h2>
+            <h2>
+              {applicationView === "progress"
+                ? "场站接入进展查看"
+                : role === "operator"
+                  ? "我的场站申请"
+                  : "场站申请审核"}
+            </h2>
             <p>演示状态规则 · 不作为客户已批准流程，正式模式禁用</p>
           </div>
-          {canCreate && role === "operator" && (
-            <div className="search">
-              <StationPicker label="申请场站" value={sid} onChange={setSid} />
-              <select
-                aria-label="申请类型"
-                value={kind}
-                onChange={(e) => setKind(e.target.value)}
-              >
-                {Object.entries(kinds).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-              <button
-                disabled={busy || materialBusy || editorBusy || !sid}
-                onClick={create}
-              >
-                新建草稿
-              </button>
-            </div>
-          )}
+          {canCreate &&
+            role === "operator" &&
+            applicationView !== "progress" && (
+              <div className="search">
+                <StationPicker label="申请场站" value={sid} onChange={setSid} />
+                <select
+                  aria-label="申请类型"
+                  value={kind}
+                  onChange={(e) => setKind(e.target.value)}
+                >
+                  {Object.entries(kinds).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  disabled={busy || materialBusy || editorBusy || !sid}
+                  onClick={create}
+                >
+                  新建草稿
+                </button>
+              </div>
+            )}
         </div>
         <form className="application-filters" onSubmit={search}>
           <label>

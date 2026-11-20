@@ -1,3 +1,4 @@
+import { navigateWorkspace } from "./fixtures";
 import { test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -62,7 +63,7 @@ with SessionLocal.begin() as db:
       ["补贴", "补贴申报", "补贴详情"],
       ["星级", "星级申报", "评星详情"],
     ] as const) {
-      await page.getByRole("button", { name: menu, exact: true }).click();
+      await navigateWorkspace(page, menu);
       await page.getByLabel(`${label}检索名称`).fill(fixture.name);
       await page
         .getByRole("button", { name: `查询${label}记录`, exact: true })

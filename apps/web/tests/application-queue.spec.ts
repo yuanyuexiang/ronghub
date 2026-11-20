@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { navigateWorkspace, test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { pickStation } from "./station";
@@ -28,9 +28,7 @@ test("application queue reaches history with combined filters and resets after c
     await page.getByLabel("账号", { exact: true }).fill("operator_a");
     await page.getByLabel("密码", { exact: true }).fill(password);
     await page.getByRole("button", { name: "登录平台" }).click();
-    await page
-      .getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true })
-      .click();
+    await navigateWorkspace(page, /^(场站申请|接入管理)$/);
     await page.getByLabel("检索申请场站或企业").fill(fixture.name);
     await page.getByLabel("筛选申请类型").selectOption("access");
     await page.getByLabel("筛选申请状态").selectOption("withdrawn");

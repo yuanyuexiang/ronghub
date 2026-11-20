@@ -18,10 +18,14 @@ export function RatingPublications({
   revision,
   onOpen,
   busy,
+  title = "星级公示查询",
+  testIdPrefix = "publication",
 }: {
   revision: number;
   onOpen: (id: number) => void;
   busy: boolean;
+  title?: string;
+  testIdPrefix?: string;
 }) {
   const [query, setQuery] = useState("");
   const [state, setState] = useState("");
@@ -77,7 +81,7 @@ export function RatingPublications({
     <section className="panel">
       <div className="panel-title">
         <div>
-          <h2>星级公示查询</h2>
+          <h2>{title}</h2>
           <p>当前授权场站的最新结果 · 演示评定 · 到期日当日有效（北京时间）</p>
         </div>
         <span className="pill">{total} 个场站</span>
@@ -156,7 +160,7 @@ export function RatingPublications({
               <article
                 className="publication-card"
                 key={a.id}
-                data-testid={`publication-${a.id}`}
+                data-testid={`${testIdPrefix}-${a.id}`}
               >
                 <div className="action-row">
                   <span

@@ -1,0 +1,320 @@
+{
+  "regulator": [
+    {
+      "label": "全域监管",
+      "children": [
+        {
+          "label": "可视化一张图",
+          "children": []
+        },
+        {
+          "label": "运营总览与多维度数据筛选",
+          "children": []
+        },
+        {
+          "label": "动态监控",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "场站信息管理",
+      "children": [
+        {
+          "label": "场站运营商管理",
+          "children": []
+        },
+        {
+          "label": "场站汇总",
+          "children": []
+        },
+        {
+          "label": "场站数据同步与场站信息查询",
+          "children": []
+        },
+        {
+          "label": "接入管理",
+          "children": []
+        },
+        {
+          "label": "投运与核销管理",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "智慧安全监管",
+      "children": [
+        {
+          "label": "巡检任务管理",
+          "children": []
+        },
+        {
+          "label": "隐患督办管理",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "补贴管理",
+      "children": [
+        {
+          "label": "补贴申请记录",
+          "children": []
+        },
+        {
+          "label": "补贴规则配置",
+          "children": []
+        },
+        {
+          "label": "电量数据",
+          "children": []
+        },
+        {
+          "label": "运营商充电及补贴统计分析",
+          "children": []
+        },
+        {
+          "label": "补贴统计",
+          "children": [
+            {
+              "label": "运营商统计",
+              "children": []
+            },
+            {
+              "label": "补贴明细",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "预警中心",
+      "children": [
+        {
+          "label": "告警分析",
+          "children": []
+        },
+        {
+          "label": "告警数据",
+          "children": []
+        },
+        {
+          "label": "告警配置",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "星级评价管理",
+      "children": [
+        {
+          "label": "评价标准查看",
+          "children": []
+        },
+        {
+          "label": "企业申报查看",
+          "children": []
+        },
+        {
+          "label": "数据支撑查看",
+          "children": []
+        },
+        {
+          "label": "评审过程查看",
+          "children": []
+        },
+        {
+          "label": "评审结果查看",
+          "children": []
+        },
+        {
+          "label": "公示查询查看",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "统计分析",
+      "children": [
+        {
+          "label": "建站统计（区域）",
+          "children": []
+        },
+        {
+          "label": "建站统计（运营商）",
+          "children": []
+        },
+        {
+          "label": "利用率统计",
+          "children": []
+        },
+        {
+          "label": "充电量统计",
+          "children": []
+        },
+        {
+          "label": "充电时段统计",
+          "children": []
+        },
+        {
+          "label": "用电分析",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "权限管理",
+      "children": [
+        {
+          "label": "账号管理",
+          "children": []
+        },
+        {
+          "label": "角色管理",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "信息发布",
+      "children": [
+        {
+          "label": "新增发布资讯",
+          "children": []
+        },
+        {
+          "label": "自定义通知发布",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "操作日志",
+      "children": []
+    },
+    {
+      "label": "监管协议开发",
+      "children": []
+    }
+  ],
+  "association": [
+    {
+      "label": "全域监管",
+      "children": [
+        {
+          "label": "可视化一张图",
+          "children": []
+        },
+        {
+          "label": "多维度数据筛选",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "星级评价管理",
+      "children": [
+        {
+          "label": "评价标准管理",
+          "children": []
+        },
+        {
+          "label": "企业申报管理",
+          "children": []
+        },
+        {
+          "label": "数据支撑评价",
+          "children": []
+        },
+        {
+          "label": "评审过程管理",
+          "children": []
+        },
+        {
+          "label": "评价结果管理",
+          "children": []
+        },
+        {
+          "label": "公示查询服务",
+          "children": []
+        },
+        {
+          "label": "监管协同应用",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "operator": [
+    {
+      "label": "接入汇总",
+      "children": []
+    },
+    {
+      "label": "待办事项",
+      "children": [
+        {
+          "label": "通知",
+          "children": []
+        },
+        {
+          "label": "巡检任务",
+          "children": []
+        },
+        {
+          "label": "隐患督办",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "接入申请",
+      "children": [
+        {
+          "label": "接入场站管理",
+          "children": []
+        },
+        {
+          "label": "场站接入进展查看",
+          "children": []
+        },
+        {
+          "label": "信息推送",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "补贴申报",
+      "children": [
+        {
+          "label": "补贴申请管理",
+          "children": []
+        },
+        {
+          "label": "充电与补贴数据统计",
+          "children": []
+        },
+        {
+          "label": "补贴记录查询与导出",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "星级站申报",
+      "children": [
+        {
+          "label": "申报材料填报",
+          "children": []
+        },
+        {
+          "label": "评定进度查询",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

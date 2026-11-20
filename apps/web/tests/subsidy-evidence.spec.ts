@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { pickStation } from "./station";
@@ -11,7 +11,7 @@ async function login(page: Page, name: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "运营总览", exact: true }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
   ).toBeVisible();
 }
 test("subsidy statement and real ZIP freeze on submit and remain private in review", async ({
@@ -35,7 +35,7 @@ test("subsidy statement and real ZIP freeze on submit and remain private in revi
       reg = await regulator.newPage();
     await login(op, "operator_a");
     await login(reg, "regulator");
-    await op.getByRole("button", { name: "补贴申报", exact: true }).click();
+    await navigateWorkspace(op, "补贴申报");
     await pickStation(op, "补贴场站", fixture);
     await op
       .getByLabel("补贴政策", { exact: true })
@@ -116,9 +116,7 @@ test("subsidy statement and real ZIP freeze on submit and remain private in revi
       path: "test-results/subsidy-evidence-frozen.png",
       fullPage: true,
     });
-    await reg
-      .getByRole("button", { name: "补贴申请记录", exact: true })
-      .click();
+    await navigateWorkspace(reg, "补贴申请记录");
     await reg
       .getByLabel("补贴检索编号", { exact: true })
       .fill(String(claim.id));

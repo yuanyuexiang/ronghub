@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -9,7 +9,9 @@ async function login(page: Page, username: string) {
   await page.getByLabel("账号", { exact: true }).fill(username);
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
-  await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+  ).toBeVisible();
 }
 test("company contacts are maintained and disabling revokes enterprise sessions", async ({
   browser,
@@ -29,7 +31,7 @@ test("company contacts are maintained and disabling revokes enterprise sessions"
     const [op, reg] = await Promise.all(contexts.map((c) => c.newPage()));
     await login(op, fixture.username);
     await login(reg, "regulator");
-    await op.getByRole("button", { name: "企业资料", exact: true }).click();
+    await navigateWorkspace(op, "企业资料");
     await op.getByRole("button", { name: "查看企业资料" }).click();
     await op.getByRole("button", { name: "维护企业资料" }).click();
     await op
@@ -44,9 +46,7 @@ test("company contacts are maintained and disabling revokes enterprise sessions"
     await op.getByLabel("联系人2电话").fill("100002");
     await op.getByRole("button", { name: "保存企业资料" }).click();
     await expect(op.getByText("演示联系人乙", { exact: true })).toBeVisible();
-    await reg
-      .getByRole("button", { name: /^(企业台账|场站运营商管理)$/, exact: true })
-      .click();
+    await navigateWorkspace(reg, /^(企业台账|场站运营商管理)$/);
     await reg.getByLabel("搜索企业名称").fill(fixture.name);
     await reg.getByRole("button", { name: "查询企业", exact: true }).click();
     await reg

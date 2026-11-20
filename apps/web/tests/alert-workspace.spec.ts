@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
   readFileSync("../server/.demo-credentials.json", "utf8"),
@@ -12,15 +12,10 @@ async function login(page: Page, user: string) {
     name: "展开或收起功能导航",
   });
   await expect(
-    page.getByRole("heading", { name: "运营总览", level: 1 }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, level: 1 }),
   ).toBeVisible();
   if (await mobileNavigation.isVisible()) await mobileNavigation.click();
-  await page
-    .getByRole("button", {
-      name: user === "regulator" ? "告警数据" : "企业告警",
-      exact: true,
-    })
-    .click();
+  await navigateWorkspace(page, user === "regulator" ? "告警数据" : "企业告警");
 }
 for (const width of [1440, 768]) {
   test(`alert workspace starts with events and preserves independent drafts at ${width}px`, async ({

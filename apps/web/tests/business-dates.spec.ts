@@ -1,3 +1,4 @@
+import { navigateWorkspace } from "./fixtures";
 import { test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -36,7 +37,7 @@ test("financial dates use Beijing submission receipts, preserve applied export q
       ["补贴", "补贴申报", "SUB", fixture.claim_ids],
       ["星级", "星级申报", "RATE", fixture.rating_ids],
     ] as const) {
-      await page.getByRole("button", { name: menu, exact: true }).click();
+      await navigateWorkspace(page, menu);
       await page.getByLabel(`${label}检索名称`).fill(fixture.name);
       await page.getByLabel(`${label}提交开始日期`).fill("2026-11-15");
       await page.getByLabel(`${label}提交结束日期`).fill("2026-11-15");

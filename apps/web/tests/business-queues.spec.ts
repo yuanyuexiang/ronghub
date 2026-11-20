@@ -1,3 +1,4 @@
+import { navigateWorkspace } from "./fixtures";
 import { returnToBusinessList } from "./business-workspace";
 import { pickStation } from "./station";
 import { test, expect } from "./fixtures";
@@ -34,7 +35,7 @@ test("subsidy and rating queues reach historical details and filter exact record
       ["补贴", "补贴申报", fixture.claim_ids, "SUB", "补贴详情"],
       ["星级", "星级申报", fixture.rating_ids, "RATE", "评星详情"],
     ] as const) {
-      await page.getByRole("button", { name: menu, exact: true }).click();
+      await navigateWorkspace(page, menu);
       await page.getByLabel(`${label}检索名称`).fill(fixture.name);
       await page.getByLabel(`${label}筛选状态`).selectOption("withdrawn");
       if (label === "星级")

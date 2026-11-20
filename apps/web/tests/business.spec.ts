@@ -1,7 +1,7 @@
 import { returnToBusinessList } from "./business-workspace";
 import { subsidyZip } from "./subsidy-fixture";
 import { pickStation } from "./station";
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -21,7 +21,9 @@ async function login(page: Page, username: string) {
     response.status(),
     response.status() === 200 ? "" : (await response.json()).detail,
   ).toBe(200);
-  await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+  ).toBeVisible();
 }
 async function verifyMaterialDownload(
   page: Page,
@@ -92,7 +94,7 @@ test("subsidy snapshot approval and association rating publication", async ({
     const summary = await (await assoc.request.get("/api/v1/dashboard")).json();
     expect(summary).not.toHaveProperty("subsidy_total");
     expect(summary.pending).toBeNull();
-    await op.getByRole("button", { name: "补贴申报", exact: true }).click();
+    await navigateWorkspace(op, "补贴申报");
     await pickStation(op, "补贴场站", fixture);
     await op
       .getByLabel("补贴政策", { exact: true })
@@ -139,9 +141,7 @@ test("subsidy snapshot approval and association rating publication", async ({
     ).toBeEnabled();
     await op.getByRole("button", { name: "提交补贴审核" }).click();
     await expect(opRow).toContainText("待审核");
-    await reg
-      .getByRole("button", { name: "补贴申请记录", exact: true })
-      .click();
+    await navigateWorkspace(reg, "补贴申请记录");
     await reg
       .getByLabel("补贴检索编号", { exact: true })
       .fill(String(claim.id));
@@ -173,7 +173,7 @@ test("subsidy snapshot approval and association rating publication", async ({
       path: "test-results/subsidy-review.png",
       fullPage: true,
     });
-    await op.getByRole("button", { name: "星级申报", exact: true }).click();
+    await navigateWorkspace(op, "星级申报");
     await pickStation(op, "评星场站", fixture);
     await op.getByLabel("自评-service").fill("90");
     await op.getByLabel("自评-safety").fill("80");
@@ -272,7 +272,7 @@ test("subsidy snapshot approval and association rating publication", async ({
         }),
       }),
     ).toContainText("待评审");
-    await assoc.getByRole("button", { name: "星级评价", exact: true }).click();
+    await navigateWorkspace(assoc, "星级评价");
     const ratingRow = assoc.getByRole("row", { includeHidden: true }).filter({
       has: assoc.getByRole("cell", {
         name: `RATE-${rating.id}`,
@@ -378,12 +378,7 @@ test("subsidy snapshot approval and association rating publication", async ({
     expect(appeal.kind).toBe("appeal");
     await op.getByRole("button", { name: "提交星级申报" }).click();
     await returnToBusinessList(op, "星级");
-    await op
-      .getByRole("button", {
-        name: /^(评价结果与公示|公示查询查看)$/,
-        exact: true,
-      })
-      .click();
+    await navigateWorkspace(op, /^(评价结果与公示|公示查询查看)$/);
     await expect(op.getByTestId(`publication-${rating.id}`)).toBeVisible();
     await returnToBusinessList(assoc, "星级");
     await assoc.getByRole("button", { name: "刷新评价", exact: true }).click();
@@ -420,12 +415,7 @@ test("subsidy snapshot approval and association rating publication", async ({
     await expect(appealCard).toContainText("当前有效星级 0");
     await expect(appealCard).not.toContainText("演示评定 5 星");
     await returnToBusinessList(assoc, "星级");
-    await assoc
-      .getByRole("button", {
-        name: /^(评价结果与公示|公示查询查看)$/,
-        exact: true,
-      })
-      .click();
+    await navigateWorkspace(assoc, /^(评价结果与公示|公示查询查看)$/);
     await assoc.getByLabel("公示结果状态").selectOption("delisted");
     await assoc.getByLabel("公示场站企业").fill(fixture.name);
     await assoc.getByRole("button", { name: "查询公示", exact: true }).click();
@@ -469,9 +459,7 @@ test("inspection assignment, enterprise reply and regulator review", async ({
       op = await opContext.newPage();
     await login(reg, "regulator");
     await login(op, "operator_a");
-    await reg
-      .getByRole("button", { name: "巡检任务管理", exact: true })
-      .click();
+    await navigateWorkspace(reg, "巡检任务管理");
     await pickStation(reg, "巡检场站", fixture);
     await reg.getByLabel("巡检标题").fill("浏览器隐患整改");
     await reg.getByLabel("巡检要求").fill("检查设备安全防护并提交整改说明");
@@ -495,7 +483,7 @@ test("inspection assignment, enterprise reply and regulator review", async ({
     await reg
       .getByRole("button", { name: "查询巡检记录", exact: true })
       .click();
-    await op.getByRole("button", { name: "整改任务", exact: true }).click();
+    await navigateWorkspace(op, "整改任务");
     await op.getByLabel("巡检检索编号", { exact: true }).fill(String(task.id));
     await op.getByRole("button", { name: "查询巡检记录", exact: true }).click();
     const row = op.getByRole("row", { includeHidden: true }).filter({
@@ -677,7 +665,7 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
       op = await opContext.newPage();
     await login(reg, "regulator");
     await login(op, "operator_a");
-    await reg.getByRole("button", { name: "告警数据", exact: true }).click();
+    await navigateWorkspace(reg, "告警数据");
     await reg
       .getByRole("navigation", { name: "告警工作区" })
       .getByRole("button", { name: "规则配置", exact: true })
@@ -734,7 +722,7 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
     await reg.getByLabel("告警确认依据").fill("演示异常与恢复已核查");
     await reg.getByRole("button", { name: "确认已查看告警" }).click();
     await expect(row).toContainText("已人工确认");
-    await op.getByRole("button", { name: "企业告警", exact: true }).click();
+    await navigateWorkspace(op, "企业告警");
     const owned = op.getByRole("row", { includeHidden: true }).filter({
       has: op.getByRole("cell", {
         name: `ALERT-${opened.event_id}`,
@@ -795,9 +783,7 @@ test("published notice reaches the enterprise and scoped energy statistics expor
     await login(reg, "regulator");
     await login(op, "operator_a");
     await login(assoc, "association");
-    await reg
-      .getByRole("button", { name: "自定义通知发布", exact: true })
-      .click();
+    await navigateWorkspace(reg, "自定义通知发布");
     await reg.getByRole("button", { name: "新建内容草稿" }).click();
     await reg.getByLabel("内容类型", { exact: true }).selectOption("notice");
     await reg.getByLabel("查找收件企业", { exact: true }).fill("演示运营商甲");
@@ -816,9 +802,7 @@ test("published notice reaches the enterprise and scoped energy statistics expor
       has: reg.getByRole("cell", { name: fixture.name, exact: true }),
     });
     await expect(reg.locator(".record-detail")).toContainText("草稿");
-    await op
-      .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
-      .click();
+    await navigateWorkspace(op, /^(公告与通知|新增发布资讯)$/);
     await expect(
       op.getByRole("row", { includeHidden: true }).filter({
         has: op.getByRole("cell", { name: fixture.name, exact: true }),
@@ -925,9 +909,7 @@ test("published notice reaches the enterprise and scoped energy statistics expor
       path: "test-results/notice-image-reply.png",
       fullPage: true,
     });
-    await op
-      .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
-      .click();
+    await navigateWorkspace(op, /^(统计分析|充电量统计)$/);
     await op.getByLabel("统计开始日期").fill("2026-11-01");
     await op.getByLabel("统计结束日期").fill("2026-11-02");
     await op.getByRole("button", { name: "查询统计", exact: true }).click();
@@ -983,9 +965,7 @@ test("published notice reaches the enterprise and scoped energy statistics expor
     await expect(
       op.getByRole("heading", { name: "运营商电量排行", exact: true }),
     ).toBeVisible();
-    await assoc
-      .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
-      .click();
+    await navigateWorkspace(assoc, /^(统计分析|充电量统计)$/);
     await expect(
       assoc.getByRole("link", { name: "导出场站电量CSV" }),
     ).toHaveCount(0);

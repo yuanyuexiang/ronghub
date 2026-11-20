@@ -1,6 +1,9 @@
 "use client";
 import {
   WorkspaceNavigation,
+  AuxiliaryNavigation,
+  auxiliaryNavigation,
+  type NavigationItem,
   workspaceNavigation,
   flattenNavigation,
   navigationMatches,
@@ -483,7 +486,8 @@ export default function Home() {
     me.permissions.includes("alerts.notifications") && geographicScope === null,
     me.permissions,
   );
-  const allNavigation = flattenNavigation(navigation);
+  const auxiliary = auxiliaryNavigation(menu, me.role, me.permissions);
+  const allNavigation = [...flattenNavigation(navigation), ...auxiliary];
   allowedViews.current = Object.fromEntries(
     menu.map((module) => [
       module,
@@ -528,11 +532,88 @@ export default function Home() {
         ...(me.role !== "association" ? ["utilization", "combined"] : []),
       ],
     });
+  const internalViews: Record<string, string[]> = {
+    场站申请: [
+      "all",
+      "progress",
+      "access",
+      "acceptance",
+      "commission",
+      "decommission",
+      "change",
+    ],
+    巡检督办: [
+      "tasks",
+      ...(has("inspections.assign") ? ["plans", "quick"] : []),
+    ],
+    补贴管理: [
+      "claims",
+      "policies",
+      "energy",
+      "statistics",
+      "statistics.operator",
+      "statistics.station",
+      "statistics.detail",
+    ],
+    补贴申报: [
+      "claims",
+      "records",
+      "policies",
+      "energy",
+      "statistics",
+      ...(has("subsidy.create") ? ["annual"] : []),
+    ],
+    星级评价: [
+      "applications",
+      "standards",
+      "publications",
+      "process",
+      "results",
+      "collaboration",
+      ...(has("statistics.read") && has("stations.read") ? ["data"] : []),
+    ],
+    告警中心: ["", "station_metric", "device_charging"],
+    公告与通知: [
+      "all",
+      "information",
+      "notice",
+      ...(has("content.manage") ? ["protocol"] : []),
+    ],
+  };
+  for (const [module, views] of Object.entries(internalViews))
+    if (menu.includes(module))
+      allowedViews.current[module] = [
+        ...new Set([...(allowedViews.current[module] ?? []), ...views]),
+      ];
   if (has("content.manage"))
     allowedViews.current["公告与通知"] = [
       ...(allowedViews.current["公告与通知"] ?? []),
       "protocol",
     ];
+  function navigateWorkspace(item: NavigationItem) {
+    if (
+      item.tab === tab &&
+      (item.view ?? "") === workspaceView &&
+      (item.alertView ?? "events") === alertView
+    ) {
+      setNavigationOpen(false);
+      return;
+    }
+    if (navigationGuard.current && !navigationGuard.current()) return false;
+    const params = new URLSearchParams({ module: item.tab });
+    if (item.view) params.set("view", item.view);
+    if (item.alertView && item.alertView !== "events")
+      params.set("alert", item.alertView);
+    const href = `/?${params}`;
+    if (window.location.pathname + window.location.search !== href)
+      window.history.pushState(null, "", href);
+    if (item.tab !== tab || !["告警中心", "企业告警"].includes(tab))
+      setPageRevision((value) => value + 1);
+    setSelectedView({ module: item.tab, view: item.view ?? "" });
+    setTab(item.tab);
+    setAlertView(item.alertView ?? "events");
+    setNavigationOpen(false);
+  }
   const currentItem = [...allNavigation]
     .reverse()
     .find((item) => navigationMatches(item, tab, alertView, workspaceView));
@@ -568,31 +649,7 @@ export default function Home() {
               tab={tab}
               alertView={alertView}
               view={workspaceView}
-              onNavigate={(item) => {
-                if (
-                  item.tab === tab &&
-                  (item.view ?? "") === workspaceView &&
-                  (item.alertView ?? "events") === alertView
-                ) {
-                  setNavigationOpen(false);
-                  return;
-                }
-                if (navigationGuard.current && !navigationGuard.current())
-                  return;
-                const params = new URLSearchParams({ module: item.tab });
-                if (item.view) params.set("view", item.view);
-                if (item.alertView && item.alertView !== "events")
-                  params.set("alert", item.alertView);
-                const href = `/?${params}`;
-                if (window.location.pathname + window.location.search !== href)
-                  window.history.pushState(null, "", href);
-                if (item.tab !== tab || !["告警中心", "企业告警"].includes(tab))
-                  setPageRevision((value) => value + 1);
-                setSelectedView({ module: item.tab, view: item.view ?? "" });
-                setTab(item.tab);
-                setAlertView(item.alertView ?? "events");
-                setNavigationOpen(false);
-              }}
+              onNavigate={navigateWorkspace}
             />
             <div className="side-bottom">
               <ShieldCheck size={16} /> {roles[me.role]} · 授权业务空间
@@ -616,6 +673,10 @@ export default function Home() {
                 <strong>{pageTitle}</strong>
               </span>
               <div>
+                <AuxiliaryNavigation
+                  items={auxiliary}
+                  onNavigate={navigateWorkspace}
+                />
                 <Bell size={17} />
                 <b>{me.username}</b>
                 <button onClick={logout} aria-label="退出登录">
@@ -633,7 +694,11 @@ export default function Home() {
               <div className="heading">
                 <div>
                   <p className="eyebrow">{currentGroup?.label}</p>
-                  <h1>{tab === "工作台" ? "运营总览" : pageTitle}</h1>
+                  <h1>
+                    {tab === "工作台" && me.role === "regulator"
+                      ? "运营总览"
+                      : pageTitle}
+                  </h1>
                   <p className="muted">
                     {tab === "权限与账号"
                       ? "按岗位分配角色与业务权限，管理账号状态和数据授权范围"
@@ -827,11 +892,34 @@ export default function Home() {
               {tab === "工作台" && summary && me.role !== "association" && (
                 <DashboardOperations />
               )}
+              {["企业台账", "场站台账"].includes(tab) && (
+                <div className="workspace-context-actions">
+                  {auxiliary
+                    .filter(
+                      (i) =>
+                        (tab === "企业台账" && i.tab === "注册审核") ||
+                        (tab === "场站台账" && i.tab === "数据同步"),
+                    )
+                    .map((i) => (
+                      <button
+                        className="outline"
+                        key={i.tab}
+                        onClick={() => navigateWorkspace(i)}
+                      >
+                        {i.label}
+                      </button>
+                    ))}
+                </div>
+              )}
               <BusinessViewProvider
                 key={pageRevision}
                 view={workspaceView}
                 setView={setWorkspaceView}
-                sidebar={me.role === "regulator"}
+                sidebar={
+                  (me.role === "regulator" &&
+                    ["星级查看", "统计分析", "权限与账号"].includes(tab)) ||
+                  (me.role === "association" && tab === "星级评价")
+                }
               >
                 {tab === "人员账号申请" ? (
                   <StaffApplicationsPanel

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -87,9 +87,7 @@ test("rejected replacement retains the first submitted file and immutable contac
         })
       ).status(),
     ).toBe(200);
-    await op
-      .getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true })
-      .click();
+    await navigateWorkspace(op, /^(场站申请|接入管理)$/);
     await op
       .getByLabel("检索申请编号", { exact: true })
       .fill(String(application.id));

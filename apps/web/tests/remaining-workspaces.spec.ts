@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { pickStation } from "./station";
 import { readFileSync } from "node:fs";
@@ -18,7 +18,7 @@ test("separate roles and accounts protect drafts during browser Back", async ({
   page,
 }) => {
   await login(page);
-  await page.getByRole("button", { name: "账号管理", exact: true }).click();
+  await navigateWorkspace(page, "账号管理");
   await expect(page).toHaveURL(/module=/);
   await expect(
     page.getByRole("heading", { name: "账号管理", exact: true, level: 2 }),
@@ -34,7 +34,7 @@ test("separate roles and accounts protect drafts during browser Back", async ({
     path: "../../.backups/batch567-current-accounts.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "角色管理", exact: true }).click();
+  await navigateWorkspace(page, "角色管理");
   await page.getByRole("button", { name: "新建权限角色", exact: true }).click();
   await page.getByLabel("权限角色名称").fill("未保存的岗位");
   await page.screenshot({
@@ -42,14 +42,14 @@ test("separate roles and accounts protect drafts during browser Back", async ({
     fullPage: true,
   });
   page.once("dialog", (dialog) => dialog.dismiss());
-  await page.getByRole("button", { name: "账号管理", exact: true }).click();
+  await navigateWorkspace(page, "账号管理");
   await expect(page.getByLabel("权限角色名称")).toHaveValue("未保存的岗位");
   page.once("dialog", (dialog) => dialog.dismiss());
   await page.evaluate(() => window.history.back());
   await expect(page.getByLabel("权限角色名称")).toHaveValue("未保存的岗位");
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "取消角色编辑", exact: true }).click();
-  await page.getByRole("button", { name: "账号管理", exact: true }).click();
+  await navigateWorkspace(page, "账号管理");
   await page.getByRole("button", { name: "新建账号", exact: true }).click();
   await expect(page.getByLabel("搜索账号")).toBeHidden();
   await page.getByRole("button", { name: "返回账号列表", exact: true }).click();
@@ -59,9 +59,7 @@ test("construction statistics request actual server dimensions", async ({
   page,
 }) => {
   await login(page);
-  await page
-    .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
-    .click();
+  await navigateWorkspace(page, /^(统计分析|充电量统计)$/);
   await expect(
     page.getByRole("heading", { name: "观测电量同比与环比", exact: true }),
   ).toBeVisible();
@@ -70,9 +68,7 @@ test("construction statistics request actual server dimensions", async ({
       r.url().includes("/api/v1/statistics?") &&
       r.url().includes("dimension=district"),
   );
-  await page
-    .getByRole("button", { name: "建站统计（区域）", exact: true })
-    .click();
+  await navigateWorkspace(page, "建站统计（区域）");
   expect((await response).status()).toBe(200);
   await expect(
     page.getByRole("heading", { name: "区域建站统计", exact: true }),
@@ -85,9 +81,7 @@ test("construction statistics request actual server dimensions", async ({
       r.url().includes("/api/v1/statistics?") &&
       r.url().includes("dimension=operator"),
   );
-  await page
-    .getByRole("button", { name: "建站统计（运营商）", exact: true })
-    .click();
+  await navigateWorkspace(page, "建站统计（运营商）");
   expect((await operator).status()).toBe(200);
   await expect(
     page.getByRole("heading", { name: "运营商建站统计", exact: true }),
@@ -96,9 +90,7 @@ test("construction statistics request actual server dimensions", async ({
     path: "../../.backups/batch567-current-statistics.png",
     fullPage: true,
   });
-  await page
-    .getByRole("button", { name: /^(观测电量分析|充电量统计)$/, exact: true })
-    .click();
+  await navigateWorkspace(page, /^(观测电量分析|充电量统计)$/);
   await expect(
     page.getByRole("heading", { name: "观测电量同比与环比", exact: true }),
   ).toBeVisible();
@@ -107,11 +99,9 @@ test("module URLs restore authorized routes with Back and Forward", async ({
   page,
 }) => {
   await login(page);
-  await page.getByRole("button", { name: "监管协议", exact: true }).click();
+  await navigateWorkspace(page, "监管协议");
   const saved = page.url();
-  await page
-    .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
-    .click();
+  await navigateWorkspace(page, /^(统计分析|充电量统计)$/);
   await page.goBack();
   await expect(
     page.getByRole("heading", { name: "监管协议与接入说明", exact: true }),
@@ -129,9 +119,7 @@ test("content editor hides the list and protects unsaved text", async ({
   page,
 }) => {
   await login(page);
-  await page
-    .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
-    .click();
+  await navigateWorkspace(page, /^(公告与通知|新增发布资讯)$/);
   await page.getByRole("button", { name: "新建内容草稿", exact: true }).click();
   await page.getByLabel("内容标题", { exact: true }).fill("未提交的内容");
   await expect(
@@ -145,7 +133,7 @@ test("content editor hides the list and protects unsaved text", async ({
     fullPage: true,
   });
   page.once("dialog", (dialog) => dialog.dismiss());
-  await page.getByRole("button", { name: "监管协议", exact: true }).click();
+  await navigateWorkspace(page, "监管协议");
   await expect(page.getByLabel("内容标题", { exact: true })).toHaveValue(
     "未提交的内容",
   );
@@ -189,22 +177,20 @@ test("association evaluation process and data entries respect its business bound
   await expect(
     page.getByRole("button", { name: "补贴申请记录", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "星级评价", exact: true }).click();
-  await page
-    .getByRole("button", { name: /^(评审过程管理|评审过程查看)$/, exact: true })
-    .click();
+  await navigateWorkspace(page, "星级评价");
+  await navigateWorkspace(page, /^(评审过程管理|评审过程查看)$/);
   await expect(
     page.getByRole("heading", {
       name: /^(评审过程管理|评审过程查看)$/,
+      level: 2,
       exact: true,
     }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: /^(数据支撑评价|数据支撑查看)$/, exact: true })
-    .click();
+  await navigateWorkspace(page, /^(数据支撑评价|数据支撑查看)$/);
   await expect(
     page.getByRole("heading", {
       name: /^(数据支撑评价|数据支撑查看)$/,
+      level: 2,
       exact: true,
     }),
   ).toBeVisible();
@@ -214,7 +200,7 @@ test("association evaluation process and data entries respect its business bound
   });
   await page.goto("/?module=" + encodeURIComponent("权限与账号"));
   await expect(
-    page.getByRole("heading", { name: "运营总览", exact: true }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "账号管理", exact: true, level: 2 }),
@@ -224,7 +210,7 @@ test("operator commissioning and decommissioning views apply server kind filters
   page,
 }) => {
   await login(page, "operator_a");
-  await page.getByRole("button", { name: "场站申请", exact: true }).click();
+  await navigateWorkspace(page, "场站申请");
   for (const [kind, label] of [
     ["commission", "投运申请"],
     ["decommission", "核销申请"],
@@ -268,13 +254,8 @@ test("association data support queries exact-station history and retains zero ve
   );
   try {
     await login(page, "association");
-    await page.getByRole("button", { name: "星级评价", exact: true }).click();
-    await page
-      .getByRole("button", {
-        name: /^(数据支撑评价|数据支撑查看)$/,
-        exact: true,
-      })
-      .click();
+    await navigateWorkspace(page, "星级评价");
+    await navigateWorkspace(page, /^(数据支撑评价|数据支撑查看)$/);
     await pickStation(page, "评价数据场站", fixture);
     const response = page.waitForResponse(
       (r) =>
@@ -375,9 +356,7 @@ test("long content detail keeps its focused heading below the sticky header", as
       },
     });
     expect(article.status()).toBe(201);
-    await page
-      .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
-      .click();
+    await navigateWorkspace(page, /^(公告与通知|新增发布资讯)$/);
     await page.getByLabel("搜索内容标题", { exact: true }).fill(fixture.name);
     await page.getByRole("button", { name: "查询内容", exact: true }).click();
     await page

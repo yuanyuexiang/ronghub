@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { navigateWorkspace, test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
@@ -56,7 +56,7 @@ test("regional and enterprise quality keeps empty stations, observed cohorts and
     await page.getByLabel("账号", { exact: true }).fill("operator_a");
     await page.getByLabel("密码", { exact: true }).fill(password);
     await page.getByRole("button", { name: "登录平台" }).click();
-    await page.getByRole("button", { name: "运行状态", exact: true }).click();
+    await navigateWorkspace(page, "运行状态");
     await page
       .getByRole("button", { name: "区域与企业质量", exact: true })
       .click();

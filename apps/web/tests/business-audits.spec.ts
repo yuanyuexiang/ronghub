@@ -1,5 +1,5 @@
 import { subsidyZip } from "./subsidy-fixture";
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -91,9 +91,7 @@ test("committed subsidy adjustment exposes exact before and after amounts in aud
         await reg.request.post(url, { headers: regHeaders, data: adjustment })
       ).status(),
     ).toBe(409);
-    await reg
-      .getByRole("button", { name: "系统操作日志", exact: true })
-      .click();
+    await navigateWorkspace(reg, "系统操作日志");
     await reg.getByLabel("动作代码", { exact: true }).fill("subsidy.adjust");
     await reg
       .getByLabel("业务对象编号", { exact: true })

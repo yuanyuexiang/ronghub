@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { subsidyZip } from "./subsidy-fixture";
@@ -11,9 +11,9 @@ async function login(page: Page) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "运营总览", exact: true }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "补贴申报", exact: true }).click();
+  await navigateWorkspace(page, "补贴申报");
   await page.getByRole("button", { name: "年度多站申报", exact: true }).click();
 }
 function fixtures(

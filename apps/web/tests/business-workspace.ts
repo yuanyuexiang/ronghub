@@ -1,4 +1,4 @@
-import { expect, type Page } from "./fixtures";
+import { expect, navigateWorkspace, type Page } from "./fixtures";
 
 /** Follow the explicit return path introduced by prototype correction. */
 export async function returnToBusinessList(page: Page, module: string) {
@@ -21,10 +21,7 @@ export async function returnToBusinessList(page: Page, module: string) {
     const [label, name] = views[module];
     const nav = page.getByRole("navigation", { name: label, exact: true });
     if (!(await nav.isVisible())) {
-      await page
-        .getByRole("navigation", { name: "业务模块导航", exact: true })
-        .getByRole("button", { name, exact: true })
-        .click();
+      await navigateWorkspace(page, name);
       await expect(button).not.toBeVisible();
       return;
     }

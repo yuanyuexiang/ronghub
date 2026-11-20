@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { test, expect } from "./fixtures";
+import { navigateWorkspace, test, expect } from "./fixtures";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 const password = JSON.parse(
@@ -32,13 +32,13 @@ test("station ledger and application picker reach records beyond the first page"
     await page.getByLabel("账号", { exact: true }).fill("operator_a");
     await page.getByLabel("密码", { exact: true }).fill(password);
     await page.getByRole("button", { name: "登录平台" }).click();
-    await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
-    await page
-      .getByRole("button", {
-        name: /^(场站台账|场站信息查询|场站数据同步与场站信息查询)$/,
-        exact: true,
-      })
-      .click();
+    await expect(
+      page.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+    ).toBeVisible();
+    await navigateWorkspace(
+      page,
+      /^(场站台账|场站信息查询|场站数据同步与场站信息查询)$/,
+    );
     await page.getByLabel("搜索场站", { exact: true }).fill(group);
     await page.getByRole("button", { name: "查询", exact: true }).click();
     await expect(
@@ -51,9 +51,7 @@ test("station ledger and application picker reach records beyond the first page"
     await expect(
       page.getByText("第1页 · 共1个场站", { exact: true }),
     ).toBeVisible();
-    await page
-      .getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true })
-      .click();
+    await navigateWorkspace(page, /^(场站申请|接入管理)$/);
     await page.getByLabel("申请场站名称筛选", { exact: true }).fill(group);
     await page
       .locator(".station-picker")

@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
@@ -40,9 +40,7 @@ test("multi-station slots keep the authorized cohort and exact independent meter
   try {
     const page = await context.newPage();
     await login(page, "operator_a");
-    await page
-      .getByRole("button", { name: /^(充电时段|充电时段统计)$/, exact: true })
-      .click();
+    await navigateWorkspace(page, /^(充电时段|充电时段统计)$/);
     await page.getByRole("button", { name: "多站汇总", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "授权范围多站时段汇总", exact: true }),

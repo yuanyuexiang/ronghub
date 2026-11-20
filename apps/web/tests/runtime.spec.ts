@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { navigateWorkspace, test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -29,7 +29,7 @@ test("historical runtime keeps independent axes, unknown gaps and clipped comple
     await page.getByLabel("账号", { exact: true }).fill("operator_a");
     await page.getByLabel("密码", { exact: true }).fill(password);
     await page.getByRole("button", { name: "登录平台" }).click();
-    await page.getByRole("button", { name: "运行状态", exact: true }).click();
+    await navigateWorkspace(page, "运行状态");
     await expect(
       page.getByRole("heading", {
         name: "历史运行状态与观测覆盖",

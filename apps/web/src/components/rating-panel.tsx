@@ -540,6 +540,25 @@ export function RatingPanel({
             busy={busy || materialBusy}
           />
         </div>
+        {view === "collaboration" && role === "association" && (
+          <section className="panel" aria-label="监管协同应用">
+            <h2>监管协同应用</h2>
+            <p>
+              已公示结果可在现有授权范围直接查看。外部监管系统尚未接通，暂不能执行同步。
+            </p>
+            <div className="action-row">
+              <button disabled>同步当前结果</button>
+              <button disabled>全部同步</button>
+            </div>
+            <RatingPublications
+              title="可供协同的场站公示结果"
+              testIdPrefix="collaboration"
+              revision={publicationRevision}
+              onOpen={open}
+              busy={busy || materialBusy}
+            />
+          </section>
+        )}
       </div>
       <div className="record-pane" hidden={!!detail || view !== "data"}>
         {canDataSupport && <RatingDataSupport />}
@@ -555,7 +574,9 @@ export function RatingPanel({
             <div>
               <h2>
                 {view === "results"
-                  ? "评价结果查看"
+                  ? role === "association"
+                    ? "评价结果管理"
+                    : "评审结果查看"
                   : view === "process"
                     ? "评审过程管理"
                     : view === "data"

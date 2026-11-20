@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { pickStation } from "./station";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -50,9 +50,7 @@ test("Beijing time slots keep meter energy separate from order totals and distin
     expect(
       (await association.request.get("/api/v1/orders/time-slots")).status(),
     ).toBe(403);
-    await operator
-      .getByRole("button", { name: /^(充电时段|充电时段统计)$/, exact: true })
-      .click();
+    await navigateWorkspace(operator, /^(充电时段|充电时段统计)$/);
     await pickStation(operator, "时段分析场站", fixture);
     await expect(
       operator.getByLabel("时段数据来源", { exact: true }),

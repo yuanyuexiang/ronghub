@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -9,7 +9,9 @@ async function login(page: Page, username: string) {
   await page.getByLabel("账号", { exact: true }).fill(username);
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
-  await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+  ).toBeVisible();
 }
 test("configured read-only role hides writes and revokes the prior session", async ({
   browser,
@@ -30,8 +32,8 @@ test("configured read-only role hides writes and revokes the prior session", asy
     const [reg, op] = await Promise.all(contexts.map((c) => c.newPage()));
     await login(reg, "regulator");
     await login(op, fixture.username);
-    await reg.getByRole("button", { name: "账号管理", exact: true }).click();
-    await reg.getByRole("button", { name: "角色管理", exact: true }).click();
+    await navigateWorkspace(reg, "账号管理");
+    await navigateWorkspace(reg, "角色管理");
     await reg
       .getByRole("button", { name: "新建权限角色", exact: true })
       .click();
@@ -47,7 +49,7 @@ test("configured read-only role hides writes and revokes the prior session", asy
     const response = await created;
     expect(response.status()).toBe(201);
     profileId = (await response.json()).id;
-    await reg.getByRole("button", { name: "账号管理", exact: true }).click();
+    await navigateWorkspace(reg, "账号管理");
     await reg.getByLabel("搜索账号").fill(fixture.username);
     await reg.getByRole("button", { name: "查询账号", exact: true }).click();
     const row = reg.getByRole("row").filter({
@@ -67,16 +69,14 @@ test("configured read-only role hides writes and revokes the prior session", asy
     ).toHaveCount(0);
     await expect(op.getByText("已审定补贴", { exact: true })).toHaveCount(0);
     await expect(op.getByText("undefined", { exact: true })).toHaveCount(0);
-    await op
-      .getByRole("button", { name: /^(场站申请|接入管理)$/, exact: true })
-      .click();
+    await navigateWorkspace(op, /^(场站申请|接入管理)$/);
     await expect(
       op.getByRole("heading", { name: "我的场站申请" }),
     ).toBeVisible();
     await expect(
       op.getByRole("button", { name: "新建草稿", exact: true }),
     ).toHaveCount(0);
-    await op.getByRole("button", { name: "企业资料", exact: true }).click();
+    await navigateWorkspace(op, "企业资料");
     await op.getByRole("button", { name: "查看企业资料" }).click();
     await expect(op.getByRole("button", { name: "维护企业资料" })).toHaveCount(
       0,
@@ -137,7 +137,7 @@ test("administrator-created account rotates its temporary password before any bu
     });
     expect(profile.status()).toBe(201);
     profileId = (await profile.json()).id;
-    await root.getByRole("button", { name: "账号管理", exact: true }).click();
+    await navigateWorkspace(root, "账号管理");
     await root.getByRole("button", { name: "新建账号", exact: true }).click();
     await expect(
       root.getByText(
@@ -194,7 +194,10 @@ test("administrator-created account rotates its temporary password before any bu
     await member.getByLabel("密码", { exact: true }).fill(personal);
     await member.getByRole("button", { name: "登录平台", exact: true }).click();
     await expect(
-      member.getByRole("heading", { name: "运营总览", exact: true }),
+      member.getByRole("heading", {
+        name: /^(运营总览|接入汇总)$/,
+        exact: true,
+      }),
     ).toBeVisible();
     expect((await member.request.get("/api/v1/auth/me")).status()).toBe(200);
     expect((await member.request.get("/api/v1/stations")).status()).toBe(200);

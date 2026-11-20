@@ -1,5 +1,5 @@
 import { returnToBusinessList } from "./business-workspace";
-import { test, expect } from "./fixtures";
+import { navigateWorkspace, test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -59,7 +59,7 @@ test("global refresh keeps applied queries, pages, dirty forms and details while
         "RATE",
       ],
     ] as const) {
-      await page.getByRole("button", { name: menu, exact: true }).click();
+      await navigateWorkspace(page, menu);
       if (label === "补贴") {
         await page
           .getByRole("button", { name: "政策与单站申报", exact: true })
@@ -293,7 +293,7 @@ test("regulator refresh reaches mounted view readers without applying search dra
     const first = page.waitForResponse(
       (response) => new URL(response.url()).pathname === path,
     );
-    await page.getByRole("button", { name: menu, exact: true }).click();
+    await navigateWorkspace(page, menu);
     expect((await first).status()).toBe(200);
     if (["运营商审核", "账号管理", "场站运营商管理"].includes(menu))
       await page.locator("form.search input").first().fill("unapplied-draft");
@@ -303,12 +303,17 @@ test("regulator refresh reaches mounted view readers without applying search dra
     await page.getByRole("button", { name: "刷新数据", exact: true }).click();
     const response = await refreshed;
     expect(response.status()).toBe(200);
+    await response.finished();
     if (["运营商审核", "账号管理", "场站运营商管理"].includes(menu)) {
       expect(new URL(response.url()).searchParams.get("q")).toBe("");
       await expect(page.locator("form.search input").first()).toHaveValue(
         "unapplied-draft",
       );
     }
+    if (menu === "运营商审核")
+      await expect(
+        page.getByRole("button", { name: "查询注册申请", exact: true }),
+      ).toBeEnabled();
   }
   expect(mutations).toEqual([]);
 });
@@ -342,9 +347,7 @@ test("automatic page clamp after external draft deletion preserves the open edit
       expect(response.status()).toBe(201);
       ids.push((await response.json()).id);
     }
-    await page
-      .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
-      .click();
+    await navigateWorkspace(page, /^(公告与通知|新增发布资讯)$/);
     await page.getByLabel("搜索内容标题", { exact: true }).fill(fixture.name);
     await page.getByRole("button", { name: "查询内容", exact: true }).click();
     await expect(

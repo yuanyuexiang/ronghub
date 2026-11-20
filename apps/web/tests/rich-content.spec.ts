@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -12,9 +12,7 @@ async function login(page: Page, username: string) {
   await expect(page.getByRole("button", { name: "退出登录" })).toBeVisible();
 }
 async function open(page: Page, title: string) {
-  await page
-    .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
-    .click();
+  await navigateWorkspace(page, /^(公告与通知|新增发布资讯)$/);
   await page.getByLabel("搜索内容标题", { exact: true }).fill(title);
   await page.getByRole("button", { name: "查询内容", exact: true }).click();
   await page
@@ -41,9 +39,7 @@ test("rich article headings, marks, links, tables and private assets publish con
     await login(reg, "regulator");
     await login(own, "operator_a");
     await login(association, "association");
-    await reg
-      .getByRole("button", { name: /^(公告与通知|新增发布资讯)$/, exact: true })
-      .click();
+    await navigateWorkspace(reg, /^(公告与通知|新增发布资讯)$/);
     await reg
       .getByRole("button", { name: "新建内容草稿", exact: true })
       .click();

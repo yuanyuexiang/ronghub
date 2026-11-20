@@ -100,7 +100,7 @@ export function SubsidyPanel({
   const busy =
     operationBusy || batchOpen || batchBusy || evidenceBusy || annualBusy;
   const [routeView, setView] = useBusinessView("claims");
-  const view = routeView.split(".")[0];
+  const view = routeView === "records" ? "claims" : routeView.split(".")[0];
   const [evidenceDirty, setEvidenceDirty] = useState(false);
   const workspaceRef = useRecordFocus(detail?.id);
   const canLeave = useWorkspaceLeave(
@@ -431,7 +431,11 @@ export function SubsidyPanel({
         <div className="record-pane" hidden={!!detail}>
           <div className="panel-title">
             <div>
-              <h2>补贴申请记录</h2>
+              <h2>
+                {routeView === "records"
+                  ? "补贴记录查询与导出"
+                  : "补贴申请记录"}
+              </h2>
               <p>原始核算、人工调整与发放记录分别留存</p>
             </div>
             <button

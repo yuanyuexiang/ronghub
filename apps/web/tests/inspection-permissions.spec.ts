@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -19,12 +19,7 @@ async function login(page: Page, name: string) {
   await expect(page.getByRole("button", { name: "退出登录" })).toBeVisible();
 }
 async function open(page: Page, id: number, operator: boolean) {
-  await page
-    .getByRole("button", {
-      name: operator ? "整改任务" : "巡检任务管理",
-      exact: true,
-    })
-    .click();
+  await navigateWorkspace(page, operator ? "整改任务" : "巡检任务管理");
   await page.getByLabel("巡检检索编号").fill(String(id));
   await page.getByRole("button", { name: "查询巡检记录", exact: true }).click();
   const row = page.getByRole("row", { includeHidden: true }).filter({

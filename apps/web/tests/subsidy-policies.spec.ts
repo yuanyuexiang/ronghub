@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -11,7 +11,7 @@ async function login(page: Page, name: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "运营总览", exact: true }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
   ).toBeVisible();
 }
 
@@ -27,12 +27,8 @@ test("complete device policy versions persist precise rules and remain outside l
     const manager = await contexts[0].newPage(),
       owner = await contexts[1].newPage();
     await login(manager, "regulator");
-    await manager
-      .getByRole("button", { name: "补贴申请记录", exact: true })
-      .click();
-    await manager
-      .getByRole("button", { name: "补贴规则配置", exact: true })
-      .click();
+    await navigateWorkspace(manager, "补贴申请记录");
+    await navigateWorkspace(manager, "补贴规则配置");
     for (const version of [1, 2]) {
       await manager
         .getByRole("button", { name: "新增政策版本", exact: true })
@@ -120,12 +116,8 @@ test("complete device policy versions persist precise rules and remain outside l
       policies.find((row: { version: number }) => row.version === 1)
         .device_rules.star_coefficients["5"],
     ).toBe("1.200001");
-    await manager
-      .getByRole("button", { name: "补贴申请记录", exact: true })
-      .click();
-    await manager
-      .getByRole("button", { name: "补贴规则配置", exact: true })
-      .click();
+    await navigateWorkspace(manager, "补贴申请记录");
+    await navigateWorkspace(manager, "补贴规则配置");
     await manager
       .getByRole("button", { name: `查看设备规则 ${code} V2`, exact: true })
       .click();
@@ -146,7 +138,7 @@ test("complete device policy versions persist precise rules and remain outside l
       fullPage: true,
     });
     await login(owner, "operator_a");
-    await owner.getByRole("button", { name: "补贴申报", exact: true }).click();
+    await navigateWorkspace(owner, "补贴申报");
     await expect(
       owner
         .getByLabel("补贴政策", { exact: true })

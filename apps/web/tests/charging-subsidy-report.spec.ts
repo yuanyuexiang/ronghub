@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync, copyFileSync } from "node:fs";
 const password = JSON.parse(
@@ -39,12 +39,8 @@ test("combined report keeps source identities, all-query totals and real Excel d
       contexts.map((context) => context.newPage()),
     );
     await login(own, "operator_a");
-    await own
-      .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
-      .click();
-    await own
-      .getByRole("button", { name: "充电与补贴报表", exact: true })
-      .click();
+    await navigateWorkspace(own, /^(统计分析|充电量统计)$/);
+    await navigateWorkspace(own, "充电与补贴报表");
     const section = own.getByLabel("充电与补贴综合报表", { exact: true });
     await own.getByLabel("综合周期日期", { exact: true }).fill("2026-11-15");
     await own.getByLabel("综合场站名称", { exact: true }).fill(fixture.name);
@@ -83,12 +79,8 @@ test("combined report keeps source identities, all-query totals and real Excel d
     expect(path).toBeTruthy();
     expect(readFileSync(path!).subarray(0, 2).toString()).toBe("PK");
     copyFileSync(path!, "test-results/charging-subsidy-sample.xlsx");
-    await own
-      .getByRole("button", { name: /^(观测电量分析|充电量统计)$/, exact: true })
-      .click();
-    await own
-      .getByRole("button", { name: "充电与补贴报表", exact: true })
-      .click();
+    await navigateWorkspace(own, /^(观测电量分析|充电量统计)$/);
+    await navigateWorkspace(own, "充电与补贴报表");
     await expect(section).toContainText("综合第2页 · 共26个对象");
     await expect(own.getByLabel("综合场站名称", { exact: true })).toHaveValue(
       "unapplied-combined-name",
@@ -103,19 +95,13 @@ test("combined report keeps source identities, all-query totals and real Excel d
       fullPage: true,
     });
     await login(reg, "regulator");
-    await reg
-      .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
-      .click();
-    await reg
-      .getByRole("button", { name: "充电与补贴报表", exact: true })
-      .click();
+    await navigateWorkspace(reg, /^(统计分析|充电量统计)$/);
+    await navigateWorkspace(reg, "充电与补贴报表");
     await expect(
       reg.getByLabel("充电与补贴综合报表", { exact: true }),
     ).toBeVisible();
     await login(association, "association");
-    await association
-      .getByRole("button", { name: /^(统计分析|充电量统计)$/, exact: true })
-      .click();
+    await navigateWorkspace(association, /^(统计分析|充电量统计)$/);
     await expect(
       association.getByLabel("充电与补贴综合报表", { exact: true }),
     ).toHaveCount(0);

@@ -1,5 +1,5 @@
 import { subsidyZip } from "./subsidy-fixture";
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { pickStation } from "./station";
@@ -38,7 +38,7 @@ test("review-only staff can approve but cannot adjust, edit policy or record dis
       reg = await contexts[1].newPage();
     await login(owner, "operator_a");
     await login(reg, reviewer.username);
-    await owner.getByRole("button", { name: "补贴申报", exact: true }).click();
+    await navigateWorkspace(owner, "补贴申报");
     await pickStation(owner, "补贴场站", station);
     await owner
       .getByLabel("补贴政策")
@@ -74,9 +74,7 @@ test("review-only staff can approve but cannot adjust, edit policy or record dis
       .getByRole("button", { name: "提交补贴审核", exact: true })
       .click();
     expect((await submitted).status()).toBe(200);
-    await reg
-      .getByRole("button", { name: "补贴申请记录", exact: true })
-      .click();
+    await navigateWorkspace(reg, "补贴申请记录");
     await expect(
       reg.getByRole("button", { name: "新增政策版本", exact: true }),
     ).toHaveCount(0);

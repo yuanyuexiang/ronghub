@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { test, expect, navigateWorkspace, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -48,7 +48,7 @@ async function login(page: Page, name: string) {
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   expect((await done).status()).toBe(200);
   await expect(
-    page.getByRole("heading", { name: "运营总览", exact: true }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
   ).toBeVisible();
 }
 async function query(page: Page, name: string) {
@@ -76,7 +76,7 @@ test("batch review freezes cross-page versions, rolls back conflicts and support
   try {
     const page = await context.newPage();
     await login(page, "regulator");
-    await button(page, "补贴申请记录").click();
+    await navigateWorkspace(page, "补贴申请记录");
     await query(page, data.name);
     await expect(
       page.getByText("补贴第1页 · 共26条", { exact: true }),
@@ -200,7 +200,7 @@ test("batch review freezes cross-page versions, rolls back conflicts and support
     );
     const op = await operatorContext.newPage();
     await login(op, "operator_a");
-    await button(op, "补贴申报").click();
+    await navigateWorkspace(op, "补贴申报");
     await expect(
       op.getByRole("region", { name: "补贴批量审核", exact: true }),
     ).toHaveCount(0);
@@ -230,7 +230,7 @@ test("batch selection caps at one hundred and query reset clears cross-page sele
   const data = fixture(101);
   try {
     await login(page, "regulator");
-    await button(page, "补贴申请记录").click();
+    await navigateWorkspace(page, "补贴申请记录");
     await query(page, data.name);
     const batch = page.getByRole("region", {
       name: "补贴批量审核",

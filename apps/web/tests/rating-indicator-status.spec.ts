@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -12,7 +12,7 @@ async function login(page: Page, name: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "运营总览", exact: true }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
   ).toBeVisible();
 }
 async function token(page: Page) {
@@ -43,10 +43,8 @@ test("indicator-level activation previews real denominators and new versions nev
     const ass = await association.newPage(),
       op = await operator.newPage();
     await login(ass, "association");
-    await ass.getByRole("button", { name: "星级评价", exact: true }).click();
-    await ass
-      .getByRole("button", { name: "评价标准管理", exact: true })
-      .click();
+    await navigateWorkspace(ass, "星级评价");
+    await navigateWorkspace(ass, "评价标准管理");
     await ass
       .getByRole("button", { name: "配置新标准版本", exact: true })
       .click();
@@ -109,7 +107,7 @@ test("indicator-level activation previews real denominators and new versions nev
     expect(first.activation_state).toBe("effective");
     expect(first.effective_on).toBe(today);
     await login(op, "operator_a");
-    await op.getByRole("button", { name: "星级申报", exact: true }).click();
+    await navigateWorkspace(op, "星级申报");
     await op.getByRole("button", { name: "新增星级申报", exact: true }).click();
     await op
       .getByLabel("评星标准", { exact: true })
@@ -285,10 +283,8 @@ test("legacy draft status stays unknown until explicitly chosen and weight previ
     expect(created.status()).toBe(201);
     const draft = await created.json();
     expect(draft.data.indicators[0].enabled).toBeNull();
-    await page.getByRole("button", { name: "星级评价", exact: true }).click();
-    await page
-      .getByRole("button", { name: "评价标准管理", exact: true })
-      .click();
+    await navigateWorkspace(page, "星级评价");
+    await navigateWorkspace(page, "评价标准管理");
     await page
       .getByRole("button", { name: "配置新标准版本", exact: true })
       .click();

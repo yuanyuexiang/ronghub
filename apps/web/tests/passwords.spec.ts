@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -36,9 +36,9 @@ test("admin reset revokes sessions and user must change temporary password befor
     await login(reg, "regulator", password);
     await login(owner, fixture.username, password);
     await expect(
-      owner.getByRole("heading", { name: "运营总览" }),
+      owner.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
     ).toBeVisible();
-    await reg.getByRole("button", { name: "账号管理", exact: true }).click();
+    await navigateWorkspace(reg, "账号管理");
     await reg.getByLabel("搜索账号").fill(fixture.username);
     await reg.getByRole("button", { name: "查询账号", exact: true }).click();
     await reg
@@ -80,9 +80,9 @@ test("admin reset revokes sessions and user must change temporary password befor
     await expect(owner.getByRole("status")).toContainText("密码已更新");
     await login(owner, fixture.username, permanent);
     await expect(
-      owner.getByRole("heading", { name: "运营总览" }),
+      owner.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
     ).toBeVisible();
-    await owner.getByRole("button", { name: "账号安全", exact: true }).click();
+    await navigateWorkspace(owner, "账号安全");
     await expect(
       owner.getByRole("heading", { name: "修改本人密码" }),
     ).toBeVisible();

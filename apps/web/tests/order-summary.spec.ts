@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -46,9 +46,7 @@ test("order summary shows partial metric coverage and pages equipment groups wit
     expect(
       (await association.request.get("/api/v1/orders/summary")).status(),
     ).toBe(403);
-    await operator
-      .getByRole("button", { name: "订单汇总", exact: true })
-      .click();
+    await navigateWorkspace(operator, "订单汇总");
     await operator
       .getByLabel("汇总检索名称", { exact: true })
       .fill(fixture.name);

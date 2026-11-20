@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -9,7 +9,9 @@ async function login(page: Page, username: string) {
   await page.getByLabel("账号", { exact: true }).fill(username);
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
-  await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+  ).toBeVisible();
 }
 test("district assignment narrows the same enterprise and scopes exports", async ({
   browser,
@@ -54,7 +56,7 @@ test("district assignment narrows the same enterprise and scopes exports", async
     });
     expect(response.status()).toBe(201);
     profileId = (await response.json()).id;
-    await reg.getByRole("button", { name: "账号管理", exact: true }).click();
+    await navigateWorkspace(reg, "账号管理");
     await reg.getByLabel("搜索账号").fill(fixture.username);
     await reg.getByRole("button", { name: "查询账号", exact: true }).click();
     const row = reg.getByRole("row").filter({
@@ -99,7 +101,7 @@ test("district assignment narrows the same enterprise and scopes exports", async
       path: "test-results/district-scoped-workspace.png",
       fullPage: true,
     });
-    await op.getByRole("button", { name: "企业资料", exact: true }).click();
+    await navigateWorkspace(op, "企业资料");
     await op.getByRole("button", { name: "查看企业资料" }).click();
     await expect(op.getByRole("button", { name: "维护企业资料" })).toHaveCount(
       0,

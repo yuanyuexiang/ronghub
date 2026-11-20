@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -13,7 +13,9 @@ async function login(page: Page, username: string) {
   );
   await page.getByRole("button", { name: "登录平台" }).click();
   expect((await response).status()).toBe(200);
-  await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/ }),
+  ).toBeVisible();
 }
 test("three roles use scoped map, clustering, filters and unlocated station details", async ({
   browser,
@@ -55,7 +57,7 @@ test("three roles use scoped map, clustering, filters and unlocated station deta
     await login(other, "operator_b");
     await login(assoc, "association");
     await login(reg, "regulator");
-    await op.getByRole("button", { name: "场站地图", exact: true }).click();
+    await navigateWorkspace(op, "场站地图");
     await expect(
       op.getByRole("region", { name: "场站交互地图" }),
     ).toBeVisible();
@@ -116,7 +118,7 @@ test("three roles use scoped map, clustering, filters and unlocated station deta
       path: "test-results/station-map.png",
       fullPage: true,
     });
-    await other.getByRole("button", { name: "场站地图", exact: true }).click();
+    await navigateWorkspace(other, "场站地图");
     await other.getByLabel("地图场站名称").fill(located[0].name);
     await other.getByRole("button", { name: "筛选地图", exact: true }).click();
     await expect(
@@ -125,7 +127,7 @@ test("three roles use scoped map, clustering, filters and unlocated station deta
         exact: true,
       }),
     ).toHaveCount(0);
-    await assoc.getByRole("button", { name: "场站地图", exact: true }).click();
+    await navigateWorkspace(assoc, "场站地图");
     await assoc.getByLabel("地图场站名称").fill(located[0].name);
     await assoc.getByRole("button", { name: "筛选地图", exact: true }).click();
     await expect(
@@ -134,9 +136,7 @@ test("three roles use scoped map, clustering, filters and unlocated station deta
         exact: true,
       }),
     ).toBeVisible();
-    await reg
-      .getByRole("button", { name: "可视化一张图", exact: true })
-      .click();
+    await navigateWorkspace(reg, "可视化一张图");
     await reg.getByLabel("地图场站名称").fill(located[0].name);
     await reg.getByRole("button", { name: "筛选地图", exact: true }).click();
     await expect(

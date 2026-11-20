@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -45,9 +45,7 @@ test("operator pages source orders, preserves unknown fields and exports the ful
     expect((await association.request.get("/api/v1/orders")).status()).toBe(
       403,
     );
-    await operator
-      .getByRole("button", { name: "充电订单", exact: true })
-      .click();
+    await navigateWorkspace(operator, "充电订单");
     await operator
       .getByLabel("订单检索名称", { exact: true })
       .fill(fixture.name);

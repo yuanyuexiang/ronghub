@@ -1,5 +1,5 @@
 import { returnToBusinessList } from "./business-workspace";
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -93,9 +93,7 @@ with SessionLocal.begin() as db:
     );
     const reg = await contexts[0].newPage();
     await login(reg, "regulator");
-    await reg
-      .getByRole("button", { name: "巡检任务管理", exact: true })
-      .click();
+    await navigateWorkspace(reg, "巡检任务管理");
     await reg.getByLabel("巡检检索名称", { exact: true }).fill(value.name);
     await reg
       .getByLabel("巡检创建开始日期", { exact: true })
@@ -281,7 +279,7 @@ test("inspection read and reply staff cannot download without independent export
     );
   try {
     await login(page, actor.username);
-    await page.getByRole("button", { name: "整改任务", exact: true }).click();
+    await navigateWorkspace(page, "整改任务");
     await returnToBusinessList(page, "巡检");
     await page
       .getByLabel("巡检检索编号", { exact: true })

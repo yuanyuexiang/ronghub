@@ -1,5 +1,5 @@
 import { returnToBusinessList } from "./business-workspace";
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -13,7 +13,7 @@ async function login(page: Page, name: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "运营总览", exact: true }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
   ).toBeVisible();
 }
 test("indicator configuration versions preserve effective dates, frozen platform fields and mapped scores", async ({
@@ -42,10 +42,8 @@ test("indicator configuration versions preserve effective dates, frozen platform
     const ass = await association.newPage(),
       op = await operator.newPage();
     await login(ass, "association");
-    await ass.getByRole("button", { name: "星级评价", exact: true }).click();
-    await ass
-      .getByRole("button", { name: "评价标准管理", exact: true })
-      .click();
+    await navigateWorkspace(ass, "星级评价");
+    await navigateWorkspace(ass, "评价标准管理");
     await ass
       .getByRole("button", { name: "配置新标准版本", exact: true })
       .click();
@@ -108,7 +106,7 @@ test("indicator configuration versions preserve effective dates, frozen platform
     const scheduled = await (await saved).json();
     expect(scheduled.activation_state).toBe("scheduled");
     await login(op, "operator_a");
-    await op.getByRole("button", { name: "星级申报", exact: true }).click();
+    await navigateWorkspace(op, "星级申报");
     await op.getByRole("button", { name: "新增星级申报", exact: true }).click();
     await expect(
       op

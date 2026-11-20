@@ -1,4 +1,4 @@
-import { test, expect, Page } from "./fixtures";
+import { navigateWorkspace, test, expect, Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -42,9 +42,7 @@ test("global regulator searches committed audit events while enterprise cannot a
         (await owner.request.get("/api/v1/companies/export")).status(),
       ).toBe(200);
     await login(reg, "regulator");
-    await reg
-      .getByRole("button", { name: "系统操作日志", exact: true })
-      .click();
+    await navigateWorkspace(reg, "系统操作日志");
     await reg.getByLabel("操作人账号").fill(fixture.username);
     await reg.getByLabel("动作代码").fill("company.export");
     await expect(reg.getByRole("button", { name: "查询日志" })).toBeEnabled();

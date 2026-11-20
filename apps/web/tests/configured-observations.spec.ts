@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -20,12 +20,7 @@ async function login(page: Page, user: string) {
   await expect(
     page.getByRole("button", { name: "退出登录", exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("button", {
-      name: user === "regulator" ? "告警数据" : "企业告警",
-      exact: true,
-    })
-    .click();
+  await navigateWorkspace(page, user === "regulator" ? "告警数据" : "企业告警");
   await page
     .getByRole("navigation", { name: "告警工作区" })
     .getByRole("button", { name: "来源与观测", exact: true })

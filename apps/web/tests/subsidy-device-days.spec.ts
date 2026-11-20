@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -11,7 +11,7 @@ async function login(page: Page, name: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "运营总览", exact: true }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
   ).toBeVisible();
 }
 
@@ -57,10 +57,8 @@ test("worker device days distinguish zero and missing with scoped applied-query 
     ).items.find((row: { id: number }) => row.id === taskId);
     expect(receipt.status).toBe("succeeded");
     expect(receipt.result.subsidy_device_days).toBe(3);
-    await owner.getByRole("button", { name: "补贴申报", exact: true }).click();
-    await owner
-      .getByRole("button", { name: /^(设备电量数据|电量数据)$/, exact: true })
-      .click();
+    await navigateWorkspace(owner, "补贴申报");
+    await navigateWorkspace(owner, /^(设备电量数据|电量数据)$/);
     const section = owner.getByRole("region", {
       name: "设备日观测",
       exact: true,

@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { navigateWorkspace, test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -42,9 +42,7 @@ test("content batch keeps cross-page versions, preserves deleted history and exp
       expect(created.status()).toBe(201);
       ids.push((await created.json()).id);
     }
-    await page
-      .getByRole("button", { name: "自定义通知发布", exact: true })
-      .click();
+    await navigateWorkspace(page, "自定义通知发布");
     await page.getByLabel("搜索内容标题", { exact: true }).fill(fixture.name);
     await page.getByRole("button", { name: "查询内容", exact: true }).click();
     await expect(

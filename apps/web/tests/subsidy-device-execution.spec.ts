@@ -1,5 +1,5 @@
 import { returnToBusinessList } from "./business-workspace";
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -42,12 +42,8 @@ test("device claim freezes historical evidence through materials review and disb
     const reg = await contexts[0].newPage(),
       owner = await contexts[1].newPage();
     await login(reg, "regulator");
-    await reg
-      .getByRole("button", { name: "补贴申请记录", exact: true })
-      .click();
-    await reg
-      .getByRole("button", { name: "补贴规则配置", exact: true })
-      .click();
+    await navigateWorkspace(reg, "补贴申请记录");
+    await navigateWorkspace(reg, "补贴规则配置");
     await reg
       .getByRole("button", { name: "新增政策版本", exact: true })
       .click();
@@ -84,7 +80,7 @@ test("device claim freezes historical evidence through materials review and disb
     const policy = await saved.json();
     expect(policy.claim_supported).toBe(true);
     await login(owner, "operator_a");
-    await owner.getByRole("button", { name: "补贴申报", exact: true }).click();
+    await navigateWorkspace(owner, "补贴申报");
     await pickStation(owner, "补贴场站", station);
     await owner
       .getByLabel("补贴政策", { exact: true })
@@ -131,9 +127,7 @@ test("device claim freezes historical evidence through materials review and disb
       .getByRole("button", { name: "提交补贴审核", exact: true })
       .click();
     expect((await submitted).status()).toBe(200);
-    await reg
-      .getByRole("button", { name: "补贴申请记录", exact: true })
-      .click();
+    await navigateWorkspace(reg, "补贴申请记录");
     await returnToBusinessList(reg, "补贴");
     await reg.getByLabel("补贴检索编号").fill(String(claim.id));
     await reg
@@ -164,7 +158,7 @@ test("device claim freezes historical evidence through materials review and disb
       original.snapshot.device_calculation,
     );
     await returnToBusinessList(reg, "补贴");
-    await reg.getByRole("button", { name: "补贴统计", exact: true }).click();
+    await navigateWorkspace(reg, "补贴统计");
     const statistics = reg.getByRole("region", {
       name: "补贴统计",
       exact: true,

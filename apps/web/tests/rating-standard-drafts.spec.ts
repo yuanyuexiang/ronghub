@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -11,7 +11,7 @@ async function login(page: Page, name: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "运营总览", exact: true }),
+    page.getByRole("heading", { name: /^(运营总览|接入汇总)$/, exact: true }),
   ).toBeVisible();
 }
 function cleanup(code: string) {
@@ -31,10 +31,8 @@ test("standard draft survives partial save, refresh and conflict then finalizes 
     name = "草稿定稿 " + code;
   try {
     await login(page, "association");
-    await page.getByRole("button", { name: "星级评价", exact: true }).click();
-    await page
-      .getByRole("button", { name: "评价标准管理", exact: true })
-      .click();
+    await navigateWorkspace(page, "星级评价");
+    await navigateWorkspace(page, "评价标准管理");
     await page
       .getByRole("button", { name: "配置新标准版本", exact: true })
       .click();
@@ -231,10 +229,8 @@ test("referenced standards can be disabled but not deleted and deleted drafts st
     const ass = await association.newPage(),
       op = await operator.newPage();
     await login(ass, "association");
-    await ass.getByRole("button", { name: "星级评价", exact: true }).click();
-    await ass
-      .getByRole("button", { name: "评价标准管理", exact: true })
-      .click();
+    await navigateWorkspace(ass, "星级评价");
+    await navigateWorkspace(ass, "评价标准管理");
     await ass
       .getByRole("button", { name: "配置新标准版本", exact: true })
       .click();

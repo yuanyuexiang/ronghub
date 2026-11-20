@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { randomBytes, randomInt } from "node:crypto";
@@ -98,9 +98,7 @@ test("staff applicant gains no account until explicit scoped approval and must r
     });
     expect(profile.status()).toBe(201);
     profileId = (await profile.json()).id;
-    await reg
-      .getByRole("button", { name: "人员账号申请", exact: true })
-      .click();
+    await navigateWorkspace(reg, "人员账号申请");
     await reg.getByLabel("人员申请关键词", { exact: true }).fill(name);
     await reg
       .getByRole("button", { name: "查询人员申请", exact: true })

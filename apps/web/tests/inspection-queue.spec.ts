@@ -1,5 +1,5 @@
 import { returnToBusinessList } from "./business-workspace";
-import { test, expect } from "./fixtures";
+import { navigateWorkspace, test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -28,7 +28,7 @@ test("inspection overdue and severity filters reach older task details", async (
     await page.getByLabel("账号", { exact: true }).fill("operator_a");
     await page.getByLabel("密码", { exact: true }).fill(password);
     await page.getByRole("button", { name: "登录平台" }).click();
-    await page.getByRole("button", { name: "整改任务", exact: true }).click();
+    await navigateWorkspace(page, "整改任务");
     await page.getByLabel("巡检检索名称").fill(fixture.name);
     await page.getByLabel("巡检筛选等级").selectOption("major");
     await page.getByLabel("巡检筛选状态").selectOption("assigned");

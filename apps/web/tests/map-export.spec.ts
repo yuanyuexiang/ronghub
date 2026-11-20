@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { navigateWorkspace, test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
@@ -18,7 +18,7 @@ async function login(page: Page, username: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   await expect(page.getByRole("button", { name: "退出登录" })).toBeVisible();
-  await page.getByRole("button", { name: "场站地图", exact: true }).click();
+  await navigateWorkspace(page, "场站地图");
 }
 
 test("map download uses applied list scope, handles rejection inline and preserves independent role permissions", async ({
