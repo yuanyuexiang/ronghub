@@ -14,7 +14,7 @@ async function login(page: Page, username: string) {
   await page.getByRole("button", { name: "登录平台" }).click();
   expect((await response).status()).toBe(200);
   await expect(
-    page.getByRole("heading", { name: "城市充电，一目了然" }),
+    page.getByRole("heading", { name: "运营总览" }),
   ).toBeVisible();
 }
 test("three roles use scoped map, clustering, filters and unlocated station details", async ({
@@ -87,6 +87,7 @@ test("three roles use scoped map, clustering, filters and unlocated station deta
     ).toBeVisible();
     await expect(op.getByText(/已观察 1 \/ 台账 1 个接口/)).toBeVisible();
     await op.getByLabel("地图运行快照").selectOption("available");
+    await op.getByText("更多筛选（用途、场所、功率、星级）", {exact:true}).click();
     await op.getByLabel("地图用途").selectOption("public");
     await op.getByLabel("地图建设场所").selectOption("building_parking");
     await op.getByLabel("地图站点运营状态").selectOption("normal");
@@ -133,7 +134,7 @@ test("three roles use scoped map, clustering, filters and unlocated station deta
         exact: true,
       }),
     ).toBeVisible();
-    await reg.getByRole("button", { name: "全域地图", exact: true }).click();
+    await reg.getByRole("button", { name: "可视化一张图", exact: true }).click();
     await reg.getByLabel("地图场站名称").fill(located[0].name);
     await reg.getByRole("button", { name: "筛选地图", exact: true }).click();
     await expect(

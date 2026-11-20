@@ -16,12 +16,28 @@ import {
 import { useCapability, useGlobalScope } from "./permissions";
 import { StationPicker } from "./station-picker";
 import { useEffect, useId, useState } from "react";
+import type { AlertWorkspaceView } from "./workspace-navigation";
 type Rule = ApiSchemas["LegacyAlertRule"];
 type Event = ApiSchemas["AlertDetail"];
-export function AlertPanel({ role, csrf }: { role: string; csrf: string }) {
+export function AlertPanel({
+  role,
+  csrf,
+  view: controlledView,
+  onViewChange,
+}: {
+  role: string;
+  csrf: string;
+  view?: AlertWorkspaceView;
+  onViewChange?: (view: AlertWorkspaceView) => void;
+}) {
   const globalScope = useGlobalScope();
   const workspaceId = useId();
-  const [view, setView] = useState("events");
+  const [localView, setLocalView] = useState<AlertWorkspaceView>("events");
+  const view = controlledView ?? localView;
+  function setView(value: AlertWorkspaceView) {
+    setLocalView(value);
+    onViewChange?.(value);
+  }
   const canExport = useCapability("statistics.export");
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
@@ -147,7 +163,7 @@ export function AlertPanel({ role, csrf }: { role: string; csrf: string }) {
             aria-label={title}
             aria-pressed={currentView === key}
             aria-controls={`${workspaceId}-${key}`}
-            onClick={() => setView(key)}
+            onClick={() => setView(key as AlertWorkspaceView)}
           >
             <strong>{title}</strong>
             <span>{caption}</span>
@@ -178,6 +194,29 @@ export function AlertPanel({ role, csrf }: { role: string; csrf: string }) {
               刷新告警
             </button>
           </div>
+          <nav className="alert-category-tabs" aria-label="告警数据分类">
+            {[
+              ["", "全部告警"],
+              ["station_metric", "电站指标告警"],
+              ["device_charging", "设备充电告警"],
+              ["device_offline", "设备离线告警"],
+              ["device_fault", "设备故障告警"],
+              ["energy_power", "电量功率异常"],
+              ["unconnected_device", "未接入设备告警"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={(queue.query.category ?? "") === value}
+                onClick={() => {
+                  setDetail(null);
+                  queue.apply({ category: value as AlertCategory | "" });
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
           <form
             className="application-filters"
             onSubmit={(e) => {

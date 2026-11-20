@@ -12,7 +12,7 @@ async function login(page: Page, name: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "城市充电，一目了然", exact: true }),
+    page.getByRole("heading", { name: "运营总览", exact: true }),
   ).toBeVisible();
 }
 test("indicator configuration versions preserve effective dates, frozen platform fields and mapped scores", async ({

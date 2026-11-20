@@ -22,7 +22,7 @@ async function login(page: Page, user: string) {
   ).toBeVisible();
   await page
     .getByRole("button", {
-      name: user === "regulator" ? "告警中心" : "企业告警",
+      name: user === "regulator" ? "告警数据" : "企业告警",
       exact: true,
     })
     .click();

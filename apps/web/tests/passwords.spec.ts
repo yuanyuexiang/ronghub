@@ -36,7 +36,7 @@ test("admin reset revokes sessions and user must change temporary password befor
     await login(reg, "regulator", password);
     await login(owner, fixture.username, password);
     await expect(
-      owner.getByRole("heading", { name: "城市充电，一目了然" }),
+      owner.getByRole("heading", { name: "运营总览" }),
     ).toBeVisible();
     await reg.getByRole("button", { name: "权限与账号", exact: true }).click();
     await reg.getByLabel("搜索账号").fill(fixture.username);
@@ -77,7 +77,7 @@ test("admin reset revokes sessions and user must change temporary password befor
     await expect(owner.getByRole("status")).toContainText("密码已更新");
     await login(owner, fixture.username, permanent);
     await expect(
-      owner.getByRole("heading", { name: "城市充电，一目了然" }),
+      owner.getByRole("heading", { name: "运营总览" }),
     ).toBeVisible();
     await owner.getByRole("button", { name: "账号安全", exact: true }).click();
     await expect(

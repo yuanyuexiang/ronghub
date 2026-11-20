@@ -21,7 +21,7 @@ test("station ledger and application picker reach records beyond the first page"
     await page.getByLabel("密码", { exact: true }).fill(password);
     await page.getByRole("button", { name: "登录平台" }).click();
     await expect(
-      page.getByRole("heading", { name: "城市充电，一目了然" }),
+      page.getByRole("heading", { name: "运营总览" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "场站台账", exact: true }).click();
     await page.getByRole("button", { name: "场站下一页", exact: true }).click();

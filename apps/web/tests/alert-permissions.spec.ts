@@ -18,7 +18,7 @@ async function login(page: Page, name: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
   await expect(page.getByRole("button", { name: "退出登录" })).toBeVisible();
-  await page.getByRole("button", { name: "告警中心", exact: true }).click();
+  await page.getByRole("button", { name: "告警数据", exact: true }).click();
 }
 test("alert confirmation staff cannot configure rules or inject observations", async ({
   browser,

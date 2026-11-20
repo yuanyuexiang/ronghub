@@ -15,7 +15,7 @@ async function login(page: Page, name: string) {
   ).toBeVisible();
   await page
     .getByRole("button", {
-      name: name === "operator_a" ? "企业告警" : "告警中心",
+      name: name === "operator_a" ? "企业告警" : "告警数据",
       exact: true,
     })
     .click();

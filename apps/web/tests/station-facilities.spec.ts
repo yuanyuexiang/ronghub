@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { test, expect, openWorkspaceNavigation, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -24,6 +24,7 @@ async function login(page: Page, name: string) {
   ).toBeVisible();
 }
 async function detail(page: Page, name: string) {
+  await openWorkspaceNavigation(page);
   await page.getByRole("button", { name: "场站台账", exact: true }).click();
   await page.getByLabel("搜索场站", { exact: true }).fill(name);
   await page.getByRole("button", { name: "查询", exact: true }).click();

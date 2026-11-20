@@ -225,7 +225,11 @@ export function useBusinessQueue<T>(
     setDraft,
     reload,
     reset,
-    apply: () => setQuery({ ...draft, page: 1 }),
+    apply: (patch?: Partial<QueueQuery>) => {
+      const next = { ...draft, ...patch, page: 1 };
+      setDraft(next);
+      setQuery(next);
+    },
     goToPage: (page: number) => setQuery({ ...query, page }),
   };
 }

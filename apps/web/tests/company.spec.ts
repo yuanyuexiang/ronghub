@@ -10,7 +10,7 @@ async function login(page: Page, username: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
   await expect(
-    page.getByRole("heading", { name: "城市充电，一目了然" }),
+    page.getByRole("heading", { name: "运营总览" }),
   ).toBeVisible();
 }
 test("company contacts are maintained and disabling revokes enterprise sessions", async ({

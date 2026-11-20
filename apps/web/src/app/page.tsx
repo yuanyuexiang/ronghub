@@ -1,4 +1,9 @@
 "use client";
+import {
+  WorkspaceNavigation,
+  workspaceNavigation,
+  type AlertWorkspaceView,
+} from "../components/workspace-navigation";
 import { DashboardOperations } from "../components/dashboard-operations";
 import { LoginCaptcha } from "../components/login-captcha";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -37,7 +42,6 @@ import {
   Activity,
   Building2,
   ChevronRight,
-  LayoutDashboard,
   LogOut,
   Search,
   ShieldCheck,
@@ -63,7 +67,10 @@ const roles: Record<string, string> = {
 };
 const states: Record<string, string> = {
   pending: "待接入审核",
+  access_approved: "接入通过",
+  accepted: "验收通过",
   operating: "运营中",
+  decommissioned: "已核销",
 };
 export default function Home() {
   const [me, setMe] = useState<Me | null>(null),
@@ -74,6 +81,8 @@ export default function Home() {
     [summary, setSummary] = useState<Summary | null>(null),
     [q, setQ] = useState(""),
     [tab, setTab] = useState("工作台");
+  const [alertView, setAlertView] = useState<AlertWorkspaceView>("events");
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [stationPage, setStationPage] = useState(1),
     [stationTotal, setStationTotal] = useState(0),
@@ -232,7 +241,10 @@ export default function Home() {
       <main className="login">
         <section className="intro">
           <div className="brand">
-            <Zap /> RONGHUB
+            <Zap />
+            <div>
+              充电监管平台<small>福州市</small>
+            </div>
           </div>
           <p className="eyebrow">FUZHOU · CHARGING SUPERVISION</p>
           <h1>
@@ -414,16 +426,34 @@ export default function Home() {
   if (me.role === "regulator" && geographicScope === null && has("audits.read"))
     menu.push("操作日志");
   if (has("accounts.manage") || has("roles.manage")) menu.push("权限与账号");
+  const navigation = workspaceNavigation(
+    menu,
+    me.role,
+    me.permissions.includes("alerts.notifications") && geographicScope === null,
+  );
+  const currentGroup = navigation.find((group) =>
+    group.items.some((item) => item.tab === tab),
+  );
+  const currentItem = currentGroup?.items.find(
+    (item) =>
+      item.tab === tab && (!item.alertView || item.alertView === alertView),
+  );
+  const pageTitle = currentItem?.label ?? (tab === "工作台" ? "运营总览" : tab);
   return (
     <PageRefreshProvider>
       <PermissionProvider
         permissions={me.permissions}
         allowedDistricts={geographicScope}
       >
-        <div className="shell">
-          <aside>
+        <div
+          className={`shell prototype-workspace ${navigationOpen ? "navigation-open" : ""}`}
+        >
+          <aside className="workspace-sidebar" aria-label="功能导航">
             <div className="brand">
-              <Zap /> RONGHUB
+              <Zap />
+              <div>
+                充电监管平台<small>福州市 · {roles[me.role]}</small>
+              </div>
             </div>
             <p className="side-sub">福州市充电监管平台</p>
             <div className="role-label">
@@ -432,30 +462,36 @@ export default function Home() {
                 <p>授权区域：{geographicScope!.join("、") || "无场站区域"}</p>
               )}
             </div>
-            <nav>
-              {menu.map((x, i) => (
-                <button
-                  className={tab === x ? "selected" : ""}
-                  key={x}
-                  onClick={() => setTab(x)}
-                >
-                  {i === 0 ? (
-                    <LayoutDashboard size={18} />
-                  ) : (
-                    <Building2 size={18} />
-                  )}{" "}
-                  {x}
-                </button>
-              ))}
-            </nav>
+            <WorkspaceNavigation
+              groups={navigation}
+              tab={tab}
+              alertView={alertView}
+              onNavigate={(item) => {
+                setTab(item.tab);
+                setAlertView(item.alertView ?? "events");
+                setNavigationOpen(false);
+              }}
+            />
             <div className="side-bottom">
-              <ShieldCheck size={18} /> 数据范围由服务端验证
+              <ShieldCheck size={16} /> {roles[me.role]} · 授权业务空间
             </div>
           </aside>
           <div className="workspace">
             <header>
-              <span>
-                业务工作空间 <ChevronRight size={14} /> {tab}
+              <span className="workspace-breadcrumb">
+                <button
+                  className="navigation-mobile-toggle"
+                  aria-label="展开或收起功能导航"
+                  aria-expanded={navigationOpen}
+                  onClick={() => setNavigationOpen((value) => !value)}
+                >
+                  ☰
+                </button>
+                <span>{roles[me.role]}</span>
+                <ChevronRight size={14} />
+                <span>{currentGroup?.label}</span>
+                <ChevronRight size={14} />
+                <strong>{pageTitle}</strong>
               </span>
               <div>
                 <Bell size={17} />
@@ -468,20 +504,14 @@ export default function Home() {
             <main className="content">
               {me.demo_mode && (
                 <div className="demo">
-                  开发演示环境 ·
-                  当前场站为模拟数据，未接入客户接口；暂未实现的业务入口不作可用展示。
+                  <span className="demo-badge">演示环境</span>{" "}
+                  当前为模拟数据，客户接口尚未接入。
                 </div>
               )}
               <div className="heading">
                 <div>
-                  <p className="eyebrow">{roles[me.role]} / OVERVIEW</p>
-                  <h1>
-                    {tab === "工作台"
-                      ? "城市充电，一目了然"
-                      : tab === "场站台账"
-                        ? "场站信息台账"
-                        : tab}
-                  </h1>
+                  <p className="eyebrow">{currentGroup?.label}</p>
+                  <h1>{tab === "工作台" ? "运营总览" : pageTitle}</h1>
                   <p className="muted">
                     {["全域地图", "场站地图"].includes(tab)
                       ? "按授权范围查看场站分布、运行快照与设备档案"
@@ -616,9 +646,6 @@ export default function Home() {
                     })}
                 </section>
               )}
-              {tab === "工作台" && summary && me.role !== "association" && (
-                <DashboardOperations />
-              )}
               {tab === "工作台" && summary && (
                 <section className="panel workspace-tasks">
                   <h2>
@@ -626,7 +653,7 @@ export default function Home() {
                       ? "协会评审工作台"
                       : me.role === "operator"
                         ? "企业申报工作台"
-                        : "监管业务工作台"}
+                        : "待处理事项与常用入口"}
                   </h2>
                   <p className="muted">
                     {me.role === "association"
@@ -636,21 +663,33 @@ export default function Home() {
                         : "集中处理场站审批、补贴核定与数据接入事项"}
                   </p>
                   <div className="action-row">
-                    {menu.slice(2).map((item) => (
-                      <button
-                        key={item}
-                        className="outline"
-                        onClick={() => setTab(item)}
-                      >
-                        进入{item}
-                        <ChevronRight size={14} />
-                      </button>
-                    ))}
+                    {menu
+                      .filter((item) =>
+                        (me.role === "regulator"
+                          ? ["场站申请", "补贴管理", "星级查看", "隐患督办"]
+                          : me.role === "operator"
+                            ? ["场站申请", "补贴申报", "星级申报", "整改任务"]
+                            : ["星级评价", "场站台账"]
+                        ).includes(item),
+                      )
+                      .map((item) => (
+                        <button
+                          key={item}
+                          className="outline"
+                          onClick={() => setTab(item)}
+                        >
+                          进入{item}
+                          <ChevronRight size={14} />
+                        </button>
+                      ))}
                   </div>
                   <p className="muted">
                     以上汇总来自当前授权范围；示例电量及金额不作为正式结算依据。
                   </p>
                 </section>
+              )}
+              {tab === "工作台" && summary && me.role !== "association" && (
+                <DashboardOperations />
               )}
               {tab === "人员账号申请" ? (
                 <StaffApplicationsPanel csrf={me.csrf_token} />
@@ -700,7 +739,12 @@ export default function Home() {
               ) : tab === "统计分析" ? (
                 <StatisticsPanel role={me.role} />
               ) : ["告警中心", "企业告警"].includes(tab) ? (
-                <AlertPanel role={me.role} csrf={me.csrf_token} />
+                <AlertPanel
+                  role={me.role}
+                  csrf={me.csrf_token}
+                  view={alertView}
+                  onViewChange={setAlertView}
+                />
               ) : tab === "隐患督办" ? (
                 <HazardPanel role={me.role} csrf={me.csrf_token} />
               ) : ["巡检督办", "整改任务"].includes(tab) ? (

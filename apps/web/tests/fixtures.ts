@@ -35,6 +35,19 @@ export async function prepareCaptcha(page: Page) {
   );
   await page.getByLabel("图片验证码", { exact: true }).fill(seeded.answer);
 }
+export async function openWorkspaceNavigation(page: Page) {
+  const toggle = page.getByRole("button", {
+    name: "展开或收起功能导航",
+    exact: true,
+  });
+  if (
+    (await toggle.isVisible()) &&
+    (await toggle.getAttribute("aria-expanded")) === "false"
+  ) {
+    await toggle.click();
+  }
+}
+
 export const test = base.extend<{
   localAuthState: void;
   automaticCaptcha: boolean;

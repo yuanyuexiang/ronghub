@@ -70,7 +70,7 @@ export function DashboardOperations() {
     <section className="panel operations-dashboard" aria-label="运营周期总览">
       <div className="panel-title">
         <div>
-          <h2>运营总览</h2>
+          <h2>运营数据概览</h2>
           <p>当前场站分布与独立来源的周期观测</p>
         </div>
       </div>

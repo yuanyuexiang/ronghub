@@ -27,7 +27,7 @@ test("alert queue distinguishes confirmation from recovery and reaches historica
     await page.getByLabel("账号", { exact: true }).fill("regulator");
     await page.getByLabel("密码", { exact: true }).fill(password);
     await page.getByRole("button", { name: "登录平台" }).click();
-    await page.getByRole("button", { name: "告警中心", exact: true }).click();
+    await page.getByRole("button", { name: "告警数据", exact: true }).click();
     await page.getByLabel("告警检索名称").fill(fixture.name);
     await page.getByLabel("告警筛选状态").selectOption("active");
     await page.getByLabel("告警筛选确认").selectOption("false");

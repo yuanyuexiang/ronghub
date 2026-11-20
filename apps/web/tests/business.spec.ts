@@ -21,7 +21,7 @@ async function login(page: Page, username: string) {
     response.status() === 200 ? "" : (await response.json()).detail,
   ).toBe(200);
   await expect(
-    page.getByRole("heading", { name: "城市充电，一目了然" }),
+    page.getByRole("heading", { name: "运营总览" }),
   ).toBeVisible();
 }
 async function verifyMaterialDownload(
@@ -618,7 +618,7 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
       op = await opContext.newPage();
     await login(reg, "regulator");
     await login(op, "operator_a");
-    await reg.getByRole("button", { name: "告警中心", exact: true }).click();
+    await reg.getByRole("button", { name: "告警数据", exact: true }).click();
     await reg
       .getByRole("navigation", { name: "告警工作区" })
       .getByRole("button", { name: "规则配置", exact: true })

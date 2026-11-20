@@ -8,9 +8,16 @@ async function login(page: Page, user: string) {
   await page.getByLabel("账号", { exact: true }).fill(user);
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台", exact: true }).click();
+  const mobileNavigation = page.getByRole("button", {
+    name: "展开或收起功能导航",
+  });
+  await expect(
+    page.getByRole("heading", { name: "运营总览", level: 1 }),
+  ).toBeVisible();
+  if (await mobileNavigation.isVisible()) await mobileNavigation.click();
   await page
     .getByRole("button", {
-      name: user === "regulator" ? "告警中心" : "企业告警",
+      name: user === "regulator" ? "告警数据" : "企业告警",
       exact: true,
     })
     .click();

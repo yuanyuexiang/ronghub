@@ -10,7 +10,7 @@ async function login(page: Page, username: string) {
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
   await expect(
-    page.getByRole("heading", { name: "城市充电，一目了然" }),
+    page.getByRole("heading", { name: "运营总览" }),
   ).toBeVisible();
 }
 test("configured read-only role hides writes and revokes the prior session", async ({
@@ -194,7 +194,7 @@ test("administrator-created account rotates its temporary password before any bu
     await member.getByLabel("密码", { exact: true }).fill(personal);
     await member.getByRole("button", { name: "登录平台", exact: true }).click();
     await expect(
-      member.getByRole("heading", { name: "城市充电，一目了然", exact: true }),
+      member.getByRole("heading", { name: "运营总览", exact: true }),
     ).toBeVisible();
     expect((await member.request.get("/api/v1/auth/me")).status()).toBe(200);
     expect((await member.request.get("/api/v1/stations")).status()).toBe(200);
