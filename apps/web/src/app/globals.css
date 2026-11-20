@@ -5757,6 +5757,9 @@ select {
   border-radius: 7px;
 }
 .business-view-navigation button {
+  width: auto;
+  flex: 0 0 auto;
+  margin: 0;
   border: 0;
   background: transparent;
   color: #63758c;

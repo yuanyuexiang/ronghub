@@ -146,6 +146,18 @@ test("subsidy workspaces separate policy and statistics while protecting the sta
   try {
     await login(page, "operator_a");
     await page.getByRole("button", { name: "补贴申报", exact: true }).click();
+    const navigation = page.getByRole("navigation", {
+      name: "补贴业务视图",
+      exact: true,
+    });
+    expect((await navigation.boundingBox())!.height).toBeLessThan(80);
+    await expect(
+      page.getByRole("button", { name: "查询补贴记录", exact: true }),
+    ).toBeEnabled();
+    await page.screenshot({
+      path: "../../.backups/batch34-current-subsidy-list.png",
+      fullPage: true,
+    });
     await expect(
       page.getByRole("heading", { name: "补贴申请记录", exact: true }),
     ).toBeVisible();
@@ -153,6 +165,9 @@ test("subsidy workspaces separate policy and statistics while protecting the sta
       page.getByLabel("补贴场站", { exact: true }),
     ).not.toBeVisible();
     await pickStation(page, "补贴场站", value);
+    await page
+      .getByLabel("补贴政策", { exact: true })
+      .selectOption({ label: "演示按电量补贴（非正式政策） V1" });
     await page
       .getByLabel("补贴申请说明", { exact: true })
       .fill("校正验证申报说明");
