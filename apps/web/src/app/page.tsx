@@ -757,13 +757,23 @@ export default function Home() {
                   csrf={me.csrf_token}
                   view={alertView}
                   onViewChange={setAlertView}
+                  registerLeaveGuard={registerLeaveGuard}
                 />
               ) : tab === "隐患督办" ? (
-                <HazardPanel role={me.role} csrf={me.csrf_token} />
+                <HazardPanel
+                  role={me.role}
+                  csrf={me.csrf_token}
+                  registerLeaveGuard={registerLeaveGuard}
+                />
               ) : ["巡检督办", "整改任务"].includes(tab) ? (
-                <InspectionPanel role={me.role} csrf={me.csrf_token} />
+                <InspectionPanel
+                  role={me.role}
+                  csrf={me.csrf_token}
+                  registerLeaveGuard={registerLeaveGuard}
+                />
               ) : tab.startsWith("补贴") ? (
                 <SubsidyPanel
+                  registerLeaveGuard={registerLeaveGuard}
                   role={me.role}
                   csrf={me.csrf_token}
                   onChanged={() => {
@@ -777,6 +787,7 @@ export default function Home() {
                 />
               ) : tab.startsWith("星级") ? (
                 <RatingPanel
+                  registerLeaveGuard={registerLeaveGuard}
                   role={me.role}
                   csrf={me.csrf_token}
                   onChanged={() => {

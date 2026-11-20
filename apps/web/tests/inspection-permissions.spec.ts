@@ -27,8 +27,12 @@ async function open(page: Page, id: number, operator: boolean) {
     .click();
   await page.getByLabel("巡检检索编号").fill(String(id));
   await page.getByRole("button", { name: "查询巡检记录", exact: true }).click();
-  const row = page.getByRole("row").filter({
-    has: page.getByRole("cell", { name: `TASK-${id}`, exact: true }),
+  const row = page.getByRole("row", { includeHidden: true }).filter({
+    has: page.getByRole("cell", {
+      name: `TASK-${id}`,
+      exact: true,
+      includeHidden: true,
+    }),
   });
   await row.getByRole("button", { name: "处理任务", exact: true }).click();
   return row;

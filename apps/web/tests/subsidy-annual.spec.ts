@@ -14,6 +14,7 @@ async function login(page: Page) {
     page.getByRole("heading", { name: "运营总览", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "补贴申报", exact: true }).click();
+  await page.getByRole("button", { name: "年度多站申报", exact: true }).click();
 }
 function fixtures(
   count: number,
@@ -128,7 +129,7 @@ test("annual multi-station form preserves drafts and recovers a lost success res
     });
     await expect(confirmation).toContainText("确认2026年度 · 2座场站");
     await expect(
-      page.getByRole("button", { name: "核算并创建草稿", exact: true }),
+      page.getByRole("button", { name: "政策与单站申报", exact: true }),
     ).toBeDisabled();
     await confirmation
       .getByRole("button", { name: "确认办理年度申请", exact: true })

@@ -1,3 +1,4 @@
+import { returnToBusinessList } from "./business-workspace";
 import { pickStation } from "./station";
 import { test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
@@ -115,6 +116,7 @@ test("subsidy and rating queues reach historical details and filter exact record
           name: new RegExp(`^${prefix}-${oldest} ·`),
         }),
       ).toBeVisible();
+      await returnToBusinessList(page, label);
       await page.getByLabel(`${label}检索编号`).fill(String(oldest));
       await page
         .getByRole("button", { name: `查询${label}记录`, exact: true })
@@ -173,6 +175,13 @@ test("subsidy and rating queues reach historical details and filter exact record
       const response = await created;
       expect(response.status()).toBe(201);
       const record = await response.json();
+      await expect(
+        page.getByRole("button", {
+          name: label === "补贴" ? "关闭补贴详情" : "关闭评价详情",
+          exact: true,
+        }),
+      ).toBeVisible();
+      await returnToBusinessList(page, label);
       await expect(page.getByLabel(`${label}筛选状态`)).toHaveValue("");
       await expect(page.getByLabel(`${label}检索编号`)).toHaveValue("");
       await expect(page.getByLabel(`${label}检索名称`)).toHaveValue("");

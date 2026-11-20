@@ -100,7 +100,7 @@ def main():
         )
         for day, kwh in [(1, "42.125000"), (2, "0")]:
             day_text = f"2026-11-0{day}"
-            scope = f"browser-scope-{day}"
+            scope = f"browser-scope-{station.id}-{day}"
             updated = "2026-11-05T01:00:00+08:00"
             subsidy_device_scopes.ingest(
                 db,
@@ -125,7 +125,7 @@ def main():
                 station,
                 [
                     {
-                        "external_id": f"browser-fact-{day}",
+                        "external_id": f"browser-fact-{station.id}-{day}",
                         "scope_external_id": scope,
                         "equipment_external_id": "browser-device",
                         "day": day_text,

@@ -10,6 +10,7 @@ export function SubsidyEvidence({
   csrf,
   parentBusy,
   onBusy,
+  onDirty,
   onReady,
   onUpdated,
 }: {
@@ -19,6 +20,7 @@ export function SubsidyEvidence({
   csrf: string;
   parentBusy: boolean;
   onBusy: (busy: boolean) => void;
+  onDirty?: (value: boolean) => void;
   onReady: (ready: boolean) => void;
   onUpdated: () => Promise<void>;
 }) {
@@ -50,6 +52,10 @@ export function SubsidyEvidence({
   );
   const { items, loading, error, setError } = usePrivateMaterials(read);
   const dirty = note !== (claim.application_note ?? "");
+  useEffect(() => {
+    onDirty?.(dirty);
+    return () => onDirty?.(false);
+  }, [dirty, onDirty]);
   const listedForCurrent = listing?.basis === claim.version;
   const stale =
     !loading && listedForCurrent && listing.actual !== claim.version;

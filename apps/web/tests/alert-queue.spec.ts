@@ -58,6 +58,9 @@ test("alert queue distinguishes confirmation from recovery and reaches historica
     await page
       .getByRole("button", { name: "确认已查看告警", exact: true })
       .click();
+    await page
+      .getByRole("button", { name: "关闭告警详情", exact: true })
+      .click();
     await expect(
       page.getByText("告警第2页 · 共24条", { exact: true }),
     ).toBeVisible();

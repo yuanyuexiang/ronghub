@@ -1,3 +1,4 @@
+import { returnToBusinessList } from "./business-workspace";
 import { test, expect } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -56,6 +57,7 @@ test("inspection overdue and severity filters reach older task details", async (
     await expect(
       page.getByRole("heading", { name: new RegExp(`^TASK-${id} ·`) }),
     ).toBeVisible();
+    await returnToBusinessList(page, "巡检");
     await page.getByLabel("巡检检索编号").fill(String(id));
     await page
       .getByRole("button", { name: "查询巡检记录", exact: true })

@@ -188,11 +188,15 @@ export function InspectionPlans({
   parentBusy,
   onPublished,
   onOpenTask,
+  onDirty,
+  onBusy,
 }: {
   csrf: string;
   parentBusy: boolean;
   onPublished: () => Promise<void>;
   onOpenTask: (id: number) => Promise<void>;
+  onDirty?: (value: boolean) => void;
+  onBusy?: (value: boolean) => void;
 }) {
   const [queryInput, setQueryInput] = useState(""),
     [query, setQuery] = useState(""),
@@ -236,6 +240,14 @@ export function InspectionPlans({
     detail && form && JSON.stringify(form) !== JSON.stringify(editable(detail)),
   );
   const disabled = busy || parentBusy;
+  useEffect(() => {
+    onDirty?.(dirty);
+    return () => onDirty?.(false);
+  }, [dirty, onDirty]);
+  useEffect(() => {
+    onBusy?.(busy);
+    return () => onBusy?.(false);
+  }, [busy, onBusy]);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -442,125 +454,130 @@ export function InspectionPlans({
           新建巡检计划
         </button>
       </div>
-      <form
-        className="plan-list-filters"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setPage(1);
-          setQuery(queryInput);
-        }}
-      >
-        <label>
-          计划标题
-          <input
-            aria-label="计划标题筛选"
-            value={queryInput}
-            maxLength={150}
-            onChange={(e) => setQueryInput(e.target.value)}
-          />
-        </label>
-        <label>
-          计划状态
-          <select
-            aria-label="计划状态筛选"
-            value={status}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v === "draft" || v === "published" || v === "deleted") {
-                setStatus(v);
-                setPage(1);
-              }
-            }}
+      <div className="record-pane" hidden={!!detail}>
+        <form
+          className="plan-list-filters"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setPage(1);
+            setQuery(queryInput);
+          }}
+        >
+          <label>
+            计划标题
+            <input
+              aria-label="计划标题筛选"
+              value={queryInput}
+              maxLength={150}
+              onChange={(e) => setQueryInput(e.target.value)}
+            />
+          </label>
+          <label>
+            计划状态
+            <select
+              aria-label="计划状态筛选"
+              value={status}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "draft" || v === "published" || v === "deleted") {
+                  setStatus(v);
+                  setPage(1);
+                }
+              }}
+            >
+              {Object.entries(states).map(([key, value]) => (
+                <option key={key} value={key}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className="outline" disabled={loading || disabled}>
+            查询巡检计划
+          </button>
+          <button
+            type="button"
+            className="outline"
+            disabled={loading || disabled}
+            onClick={() => setRevision((n) => n + 1)}
           >
-            {Object.entries(states).map(([key, value]) => (
-              <option key={key} value={key}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button className="outline" disabled={loading || disabled}>
-          查询巡检计划
-        </button>
-        <button
-          type="button"
-          className="outline"
-          disabled={loading || disabled}
-          onClick={() => setRevision((n) => n + 1)}
-        >
-          刷新计划列表
-        </button>
-      </form>
-      {listError && (
-        <p role="alert" className="error">
-          {listError}
-        </p>
-      )}
-      {loading && <p role="status">正在读取计划列表…</p>}
-      <div className="table-scroll">
-        <table aria-label="我的巡检计划">
-          <thead>
-            <tr>
-              <th>计划编号 / 标题</th>
-              <th>状态</th>
-              <th>目标场站</th>
-              <th>最近保存</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows?.items.map((row) => (
-              <tr key={row.id}>
-                <td>
-                  PLAN-{row.id}
-                  <small>{row.title || "未命名草稿"}</small>
-                </td>
-                <td>{states[row.status]}</td>
-                <td>{row.target_count}站</td>
-                <td>{clock(row.updated_at)}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="outline"
-                    aria-label={`打开计划 PLAN-${row.id}`}
-                    disabled={disabled}
-                    onClick={() => void select(row.id)}
-                  >
-                    查看计划
-                  </button>
-                </td>
+            刷新计划列表
+          </button>
+        </form>
+        {listError && (
+          <p role="alert" className="error">
+            {listError}
+          </p>
+        )}
+        {loading && <p role="status">正在读取计划列表…</p>}
+        <div className="table-scroll">
+          <table aria-label="我的巡检计划">
+            <thead>
+              <tr>
+                <th>计划编号 / 标题</th>
+                <th>状态</th>
+                <th>目标场站</th>
+                <th>最近保存</th>
+                <th>操作</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {!loading && rows?.total === 0 && (
-        <p className="empty">当前条件下没有我的巡检计划</p>
-      )}
-      <div className="device-pagination">
-        <button
-          type="button"
-          className="outline"
-          aria-label="巡检计划上一页"
-          disabled={loading || disabled || page === 1}
-          onClick={() => setPage(page - 1)}
-        >
-          上一页
-        </button>
-        <span>
-          计划第{page}页 · 共{rows?.total ?? 0}条
-        </span>
-        <button
-          type="button"
-          className="outline"
-          aria-label="巡检计划下一页"
-          disabled={
-            loading || disabled || !rows || page * rows.page_size >= rows.total
-          }
-          onClick={() => setPage(page + 1)}
-        >
-          下一页
-        </button>
+            </thead>
+            <tbody>
+              {rows?.items.map((row) => (
+                <tr key={row.id}>
+                  <td>
+                    PLAN-{row.id}
+                    <small>{row.title || "未命名草稿"}</small>
+                  </td>
+                  <td>{states[row.status]}</td>
+                  <td>{row.target_count}站</td>
+                  <td>{clock(row.updated_at)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="outline"
+                      aria-label={`打开计划 PLAN-${row.id}`}
+                      disabled={disabled}
+                      onClick={() => void select(row.id)}
+                    >
+                      查看计划
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!loading && rows?.total === 0 && (
+          <p className="empty">当前条件下没有我的巡检计划</p>
+        )}
+        <div className="device-pagination">
+          <button
+            type="button"
+            className="outline"
+            aria-label="巡检计划上一页"
+            disabled={loading || disabled || page === 1}
+            onClick={() => setPage(page - 1)}
+          >
+            上一页
+          </button>
+          <span>
+            计划第{page}页 · 共{rows?.total ?? 0}条
+          </span>
+          <button
+            type="button"
+            className="outline"
+            aria-label="巡检计划下一页"
+            disabled={
+              loading ||
+              disabled ||
+              !rows ||
+              page * rows.page_size >= rows.total
+            }
+            onClick={() => setPage(page + 1)}
+          >
+            下一页
+          </button>
+        </div>
       </div>
       {choice !== null && (
         <div role="alert" className="plan-confirm">
@@ -596,7 +613,7 @@ export function InspectionPlans({
       )}
       {detail && form && (
         <section
-          className="inspection-plan-detail"
+          className="inspection-plan-detail record-detail business-record-detail"
           aria-label="巡检计划详情"
           aria-busy={busy}
         >

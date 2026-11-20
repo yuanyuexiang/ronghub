@@ -1,4 +1,9 @@
 "use client";
+import {
+  useWorkspaceLeave,
+  type LeaveGuardRegistrar,
+} from "./business-workspace";
+import { useRecordFocus } from "./use-record-focus";
 import { AlertNotifications } from "./alert-notifications";
 import { ConfiguredEventEvidence } from "./configured-event-evidence";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -24,7 +29,9 @@ export function AlertPanel({
   csrf,
   view: controlledView,
   onViewChange,
+  registerLeaveGuard,
 }: {
+  registerLeaveGuard?: LeaveGuardRegistrar;
   role: string;
   csrf: string;
   view?: AlertWorkspaceView;
@@ -35,6 +42,7 @@ export function AlertPanel({
   const [localView, setLocalView] = useState<AlertWorkspaceView>("events");
   const view = controlledView ?? localView;
   function setView(value: AlertWorkspaceView) {
+    if (value !== view && !canLeave()) return;
     setLocalView(value);
     onViewChange?.(value);
   }
@@ -63,6 +71,18 @@ export function AlertPanel({
     [showSamples, setShowSamples] = useState(false),
     [showRules, setShowRules] = useState(false),
     [result, setResult] = useState("");
+  const workspaceRef = useRecordFocus(detail?.id);
+  const canLeave = useWorkspaceLeave(
+    Boolean(note.trim()),
+    busy,
+    registerLeaveGuard,
+  );
+  function closeDetail() {
+    if (canLeave()) {
+      setDetail(null);
+      setNote("");
+    }
+  }
   function read<T>(result: { data?: T; error?: unknown }): T {
     if (result.data === undefined)
       throw new Error(apiError(result.error, "请检查填写内容"));
@@ -147,7 +167,7 @@ export function AlertPanel({
     return () => controller.abort();
   }, [role, pageRefreshRevision]);
   return (
-    <div className="business-stack">
+    <section className="business-stack safety-workspace" ref={workspaceRef}>
       <nav className="alert-workspace-nav" aria-label="告警工作区">
         {[
           ["events", "事件跟踪", "查询、处置与导出"],
@@ -181,280 +201,294 @@ export function AlertPanel({
         hidden={currentView !== "events"}
       >
         <section className="panel alert-queue">
-          <div className="panel-title">
-            <div>
-              <h2>{role === "regulator" ? "告警事件跟踪" : "企业告警事件"}</h2>
-              <p>持续异常合并、恢复后留档，人工确认与设备恢复分别记录。</p>
-            </div>
-            <button
-              className="outline"
-              disabled={busy}
-              onClick={() => run(load)}
-            >
-              刷新告警
-            </button>
-          </div>
-          <nav className="alert-category-tabs" aria-label="告警数据分类">
-            {[
-              ["", "全部告警"],
-              ["station_metric", "电站指标告警"],
-              ["device_charging", "设备充电告警"],
-              ["device_offline", "设备离线告警"],
-              ["device_fault", "设备故障告警"],
-              ["energy_power", "电量功率异常"],
-              ["unconnected_device", "未接入设备告警"],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={(queue.query.category ?? "") === value}
-                onClick={() => {
-                  setDetail(null);
-                  queue.apply({ category: value as AlertCategory | "" });
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-          <form
-            className="application-filters"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setDetail(null);
-              queue.apply();
-            }}
-          >
-            <label>
-              对象、场站或企业
-              <input
-                aria-label="告警检索名称"
-                maxLength={150}
-                value={queue.draft.q}
-                onChange={(e) =>
-                  queue.setDraft({ ...queue.draft, q: e.target.value })
-                }
-              />
-            </label>
-            <label>
-              事件编号
-              <input
-                aria-label="告警检索编号"
-                type="number"
-                min="1"
-                value={queue.draft.record_id}
-                onChange={(e) =>
-                  queue.setDraft({ ...queue.draft, record_id: e.target.value })
-                }
-              />
-            </label>
-            <label>
-              设备事件状态
-              <select
-                aria-label="告警筛选状态"
-                value={queue.draft.status}
-                onChange={(e) =>
-                  queue.setDraft({ ...queue.draft, status: e.target.value })
-                }
-              >
-                <option value="">全部状态</option>
-                <option value="active">持续异常</option>
-                <option value="recovered">已恢复</option>
-              </select>
-            </label>
-            <label>
-              人工确认
-              <select
-                aria-label="告警筛选确认"
-                value={queue.draft.acknowledged || ""}
-                onChange={(e) =>
-                  queue.setDraft({
-                    ...queue.draft,
-                    acknowledged: e.target.value,
-                  })
-                }
-              >
-                <option value="">全部确认情况</option>
-                <option value="false">未确认</option>
-                <option value="true">已确认</option>
-              </select>
-            </label>
-            <label>
-              规则版本
-              <select
-                aria-label="告警筛选规则"
-                value={queue.draft.kind}
-                onChange={(e) =>
-                  queue.setDraft({ ...queue.draft, kind: e.target.value })
-                }
-              >
-                <option value="">全部规则</option>
-                {rules.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} / {r.code} V{r.version}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              触发开始时间（本地）
-              <input
-                aria-label="告警触发开始时间"
-                type="datetime-local"
-                value={queue.draft.start_at || ""}
-                onChange={(e) =>
-                  queue.setDraft({ ...queue.draft, start_at: e.target.value })
-                }
-              />
-            </label>
-            <label>
-              触发结束时间（不含）
-              <input
-                aria-label="告警触发结束时间"
-                type="datetime-local"
-                value={queue.draft.end_at || ""}
-                onChange={(e) =>
-                  queue.setDraft({ ...queue.draft, end_at: e.target.value })
-                }
-              />
-            </label>
-            <label>
-              告警类型
-              <select
-                aria-label="告警筛选类型"
-                value={queue.draft.category || ""}
-                onChange={(e) =>
-                  queue.setDraft({
-                    ...queue.draft,
-                    category: e.target.value as AlertCategory | "",
-                  })
-                }
-              >
-                <option value="">全部类型</option>
-                <option value="station_metric">场站指标告警</option>
-                <option value="device_charging">设备充电告警</option>
-                <option value="device_offline">设备离线告警</option>
-                <option value="device_fault">设备故障告警</option>
-                <option value="energy_power">电量功率异常</option>
-                <option value="unconnected_device">未接入设备告警</option>
-                <option value="unknown">旧版未分类</option>
-              </select>
-            </label>
-            <button className="primary" disabled={busy || queue.loading}>
-              查询告警记录
-            </button>
-            <button
-              className="outline"
-              type="button"
-              disabled={busy || queue.loading}
-              onClick={() => {
-                setDetail(null);
-                queue.reset();
-              }}
-            >
-              重置告警筛选
-            </button>
-          </form>
-          {canExport && (
-            <div className="alert-config-pagination">
+          <div className="record-pane" hidden={!!detail}>
+            <div className="panel-title">
+              <div>
+                <h2>
+                  {role === "regulator" ? "告警事件跟踪" : "企业告警事件"}
+                </h2>
+                <p>持续异常合并、恢复后留档，人工确认与设备恢复分别记录。</p>
+              </div>
               <button
                 className="outline"
-                disabled={exporting || queue.loading || !!queue.error}
-                onClick={exportEvents}
+                disabled={busy}
+                onClick={() => run(load)}
               >
-                {exporting ? "正在导出…" : "导出告警CSV"}
+                刷新告警
               </button>
-              <span className="muted">
-                使用已查询条件，最多两个自然月、10000条；不含接收人手机号。
-              </span>
             </div>
-          )}
-          {exportError && (
-            <p role="alert" className="error">
-              {exportError}
-            </p>
-          )}
-          <p className="muted application-list-note">
-            按首次触发时间筛选，开始包含、结束不含。人工确认不代表设备恢复；缺少来源的类型不推断为正常。
-          </p>
-          {queue.loading && (
-            <p role="status" className="empty">
-              正在加载告警记录…
-            </p>
-          )}
-          {queue.error && (
-            <p role="alert" className="error">
-              {queue.error}
-            </p>
-          )}
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  {[
-                    "事件编号",
-                    "监测对象",
-                    "场站 / 企业",
-                    "状态",
-                    "累计异常样本",
-                    "最后值",
-                    "最近观测",
-                    "操作",
-                  ].map((h) => (
-                    <th key={h}>{h}</th>
+            <nav className="alert-category-tabs" aria-label="告警数据分类">
+              {[
+                ["", "全部告警"],
+                ["station_metric", "电站指标告警"],
+                ["device_charging", "设备充电告警"],
+                ["device_offline", "设备离线告警"],
+                ["device_fault", "设备故障告警"],
+                ["energy_power", "电量功率异常"],
+                ["unconnected_device", "未接入设备告警"],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={(queue.query.category ?? "") === value}
+                  onClick={() => {
+                    setDetail(null);
+                    queue.apply({ category: value as AlertCategory | "" });
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+            <form
+              className="application-filters"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setDetail(null);
+                queue.apply();
+              }}
+            >
+              <label>
+                对象、场站或企业
+                <input
+                  aria-label="告警检索名称"
+                  maxLength={150}
+                  value={queue.draft.q}
+                  onChange={(e) =>
+                    queue.setDraft({ ...queue.draft, q: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                事件编号
+                <input
+                  aria-label="告警检索编号"
+                  type="number"
+                  min="1"
+                  value={queue.draft.record_id}
+                  onChange={(e) =>
+                    queue.setDraft({
+                      ...queue.draft,
+                      record_id: e.target.value,
+                    })
+                  }
+                />
+              </label>
+              <label>
+                设备事件状态
+                <select
+                  aria-label="告警筛选状态"
+                  value={queue.draft.status}
+                  onChange={(e) =>
+                    queue.setDraft({ ...queue.draft, status: e.target.value })
+                  }
+                >
+                  <option value="">全部状态</option>
+                  <option value="active">持续异常</option>
+                  <option value="recovered">已恢复</option>
+                </select>
+              </label>
+              <label>
+                人工确认
+                <select
+                  aria-label="告警筛选确认"
+                  value={queue.draft.acknowledged || ""}
+                  onChange={(e) =>
+                    queue.setDraft({
+                      ...queue.draft,
+                      acknowledged: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">全部确认情况</option>
+                  <option value="false">未确认</option>
+                  <option value="true">已确认</option>
+                </select>
+              </label>
+              <label>
+                规则版本
+                <select
+                  aria-label="告警筛选规则"
+                  value={queue.draft.kind}
+                  onChange={(e) =>
+                    queue.setDraft({ ...queue.draft, kind: e.target.value })
+                  }
+                >
+                  <option value="">全部规则</option>
+                  {rules.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} / {r.code} V{r.version}
+                    </option>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {events.map((e) => (
-                  <tr key={e.id}>
-                    <td>ALERT-{e.id}</td>
-                    <td>{e.target}</td>
-                    <td>
-                      {e.station_name}
-                      <br />
-                      <small>
-                        {e.operator_name} / #{e.station_id}
-                      </small>
-                    </td>
-                    <td>
-                      <em className={e.status === "active" ? "amber" : "green"}>
-                        {e.status === "active" ? "持续异常" : "已恢复"}
-                      </em>
-                      {e.acknowledged_at && <span>已人工确认</span>}
-                    </td>
-                    <td>{e.occurrences}</td>
-                    <td>
-                      {e.last_value} {e.rule_snapshot.unit}
-                    </td>
-                    <td>
-                      {new Date(e.last_observed_at).toLocaleString("zh-CN")}
-                    </td>
-                    <td>
-                      <button
-                        className="outline"
-                        disabled={busy}
-                        onClick={() =>
-                          run(async () => {
-                            setDetail(await readDetail(e.id));
-                            setNote("");
-                          })
-                        }
-                      >
-                        告警详情
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {!events.length && !queue.loading && !queue.error && (
-              <p className="empty">当前条件下没有告警记录</p>
+                </select>
+              </label>
+              <label>
+                触发开始时间（本地）
+                <input
+                  aria-label="告警触发开始时间"
+                  type="datetime-local"
+                  value={queue.draft.start_at || ""}
+                  onChange={(e) =>
+                    queue.setDraft({ ...queue.draft, start_at: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                触发结束时间（不含）
+                <input
+                  aria-label="告警触发结束时间"
+                  type="datetime-local"
+                  value={queue.draft.end_at || ""}
+                  onChange={(e) =>
+                    queue.setDraft({ ...queue.draft, end_at: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                告警类型
+                <select
+                  aria-label="告警筛选类型"
+                  value={queue.draft.category || ""}
+                  onChange={(e) =>
+                    queue.setDraft({
+                      ...queue.draft,
+                      category: e.target.value as AlertCategory | "",
+                    })
+                  }
+                >
+                  <option value="">全部类型</option>
+                  <option value="station_metric">场站指标告警</option>
+                  <option value="device_charging">设备充电告警</option>
+                  <option value="device_offline">设备离线告警</option>
+                  <option value="device_fault">设备故障告警</option>
+                  <option value="energy_power">电量功率异常</option>
+                  <option value="unconnected_device">未接入设备告警</option>
+                  <option value="unknown">旧版未分类</option>
+                </select>
+              </label>
+              <button className="primary" disabled={busy || queue.loading}>
+                查询告警记录
+              </button>
+              <button
+                className="outline"
+                type="button"
+                disabled={busy || queue.loading}
+                onClick={() => {
+                  setDetail(null);
+                  queue.reset();
+                }}
+              >
+                重置告警筛选
+              </button>
+            </form>
+            {canExport && (
+              <div className="alert-config-pagination">
+                <button
+                  className="outline"
+                  disabled={exporting || queue.loading || !!queue.error}
+                  onClick={exportEvents}
+                >
+                  {exporting ? "正在导出…" : "导出告警CSV"}
+                </button>
+                <span className="muted">
+                  使用已查询条件，最多两个自然月、10000条；不含接收人手机号。
+                </span>
+              </div>
             )}
+            {exportError && (
+              <p role="alert" className="error">
+                {exportError}
+              </p>
+            )}
+            <p className="muted application-list-note">
+              按首次触发时间筛选，开始包含、结束不含。人工确认不代表设备恢复；缺少来源的类型不推断为正常。
+            </p>
+            {queue.loading && (
+              <p role="status" className="empty">
+                正在加载告警记录…
+              </p>
+            )}
+            {queue.error && (
+              <p role="alert" className="error">
+                {queue.error}
+              </p>
+            )}
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    {[
+                      "事件编号",
+                      "监测对象",
+                      "场站 / 企业",
+                      "状态",
+                      "累计异常样本",
+                      "最后值",
+                      "最近观测",
+                      "操作",
+                    ].map((h) => (
+                      <th key={h}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {events.map((e) => (
+                    <tr key={e.id}>
+                      <td>ALERT-{e.id}</td>
+                      <td>{e.target}</td>
+                      <td>
+                        {e.station_name}
+                        <br />
+                        <small>
+                          {e.operator_name} / #{e.station_id}
+                        </small>
+                      </td>
+                      <td>
+                        <em
+                          className={e.status === "active" ? "amber" : "green"}
+                        >
+                          {e.status === "active" ? "持续异常" : "已恢复"}
+                        </em>
+                        {e.acknowledged_at && <span>已人工确认</span>}
+                      </td>
+                      <td>{e.occurrences}</td>
+                      <td>
+                        {e.last_value} {e.rule_snapshot.unit}
+                      </td>
+                      <td>
+                        {new Date(e.last_observed_at).toLocaleString("zh-CN", {
+                          timeZone: "Asia/Shanghai",
+                        })}
+                      </td>
+                      <td>
+                        <button
+                          className="outline"
+                          disabled={busy}
+                          onClick={() =>
+                            run(async () => {
+                              setDetail(await readDetail(e.id));
+                              setNote("");
+                            })
+                          }
+                        >
+                          告警详情
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!events.length && !queue.loading && !queue.error && (
+                <p className="empty">当前条件下没有告警记录</p>
+              )}
+            </div>
+            <QueuePagination queue={queue} label="告警" busy={busy} />
           </div>
-          <QueuePagination queue={queue} label="告警" busy={busy} />
           {detail && (
-            <div className="application-detail">
+            <div
+              className="record-detail business-record-detail"
+              aria-label="告警事件详情"
+            >
               <div className="panel-title">
                 <div>
                   <h2>
@@ -476,7 +510,7 @@ export function AlertPanel({
                 <button
                   className="outline"
                   disabled={busy}
-                  onClick={() => setDetail(null)}
+                  onClick={closeDetail}
                 >
                   关闭告警详情
                 </button>
@@ -491,19 +525,28 @@ export function AlertPanel({
                 <div>
                   <h3>发生与恢复</h3>
                   <p>
-                    发生：{new Date(detail.opened_at).toLocaleString("zh-CN")}
+                    发生：
+                    {new Date(detail.opened_at).toLocaleString("zh-CN", {
+                      timeZone: "Asia/Shanghai",
+                    })}
                   </p>
                   <p>
                     恢复：
                     {detail.recovered_at
-                      ? new Date(detail.recovered_at).toLocaleString("zh-CN")
+                      ? new Date(detail.recovered_at).toLocaleString("zh-CN", {
+                          timeZone: "Asia/Shanghai",
+                        })
                       : "尚未恢复"}
                   </p>
                   <h3>站内通知记录</h3>
                   {detail.notices?.map((n, i) => (
                     <article className="timeline" key={i}>
                       <b>{n.message}</b>
-                      <p>{new Date(n.created_at).toLocaleString("zh-CN")}</p>
+                      <p>
+                        {new Date(n.created_at).toLocaleString("zh-CN", {
+                          timeZone: "Asia/Shanghai",
+                        })}
+                      </p>
                     </article>
                   ))}
                   {!detail.notices?.length && (
@@ -793,6 +836,6 @@ export function AlertPanel({
           <AlertNotifications csrf={csrf} />
         </div>
       )}
-    </div>
+    </section>
   );
 }

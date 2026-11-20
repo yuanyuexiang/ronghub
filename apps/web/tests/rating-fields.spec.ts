@@ -1,3 +1,4 @@
+import { returnToBusinessList } from "./business-workspace";
 import { test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -42,6 +43,9 @@ test("indicator configuration versions preserve effective dates, frozen platform
       op = await operator.newPage();
     await login(ass, "association");
     await ass.getByRole("button", { name: "星级评价", exact: true }).click();
+    await ass
+      .getByRole("button", { name: "评价标准管理", exact: true })
+      .click();
     await ass
       .getByRole("button", { name: "配置新标准版本", exact: true })
       .click();
@@ -105,6 +109,7 @@ test("indicator configuration versions preserve effective dates, frozen platform
     expect(scheduled.activation_state).toBe("scheduled");
     await login(op, "operator_a");
     await op.getByRole("button", { name: "星级申报", exact: true }).click();
+    await op.getByRole("button", { name: "新增星级申报", exact: true }).click();
     await expect(
       op
         .getByLabel("评星标准", { exact: true })
@@ -153,6 +158,7 @@ test("indicator configuration versions preserve effective dates, frozen platform
       ).status(),
     ).toBe(200);
     await ass.getByRole("button", { name: "刷新数据", exact: true }).click();
+    await returnToBusinessList(ass, "星级");
     await ass
       .getByLabel("星级检索编号", { exact: true })
       .fill(String(createdApplication.id));
@@ -195,6 +201,7 @@ test("indicator configuration versions preserve effective dates, frozen platform
     expect(html).toContain("equipment_count");
     expect(html).toContain("76.00");
     await ass.getByRole("button", { name: "刷新数据", exact: true }).click();
+    await returnToBusinessList(ass, "星级");
     await ass
       .getByLabel("星级检索编号", { exact: true })
       .fill(String(createdApplication.id));

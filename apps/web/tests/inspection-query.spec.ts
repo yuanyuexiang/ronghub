@@ -1,3 +1,4 @@
+import { returnToBusinessList } from "./business-workspace";
 import { test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -201,6 +202,7 @@ with SessionLocal.begin() as db:
     await expect(reg.getByLabel("巡检反馈状态", { exact: true })).toHaveValue(
       "",
     );
+    await returnToBusinessList(reg, "巡检");
     await reg
       .getByLabel("巡检检索编号", { exact: true })
       .fill(String(value.task_ids[0]));
@@ -219,6 +221,7 @@ with SessionLocal.begin() as db:
       });
     await expect(unknown).toContainText("历史未留存");
     await expect(unknown).toContainText("填报：未留存");
+    await returnToBusinessList(reg, "巡检");
     await reg
       .getByLabel("巡检检索编号", { exact: true })
       .fill(String(value.task_ids[1]));
@@ -277,6 +280,7 @@ test("inspection read and reply staff cannot download without independent export
   try {
     await login(page, actor.username);
     await page.getByRole("button", { name: "整改任务", exact: true }).click();
+    await returnToBusinessList(page, "巡检");
     await page
       .getByLabel("巡检检索编号", { exact: true })
       .fill(String(value.task_ids[0]));

@@ -26,9 +26,13 @@ async function open(page: Page, id: number) {
   ).toBeEnabled();
   await page.getByRole("button", { name: "查询星级记录", exact: true }).click();
   await page
-    .getByRole("row")
+    .getByRole("row", { includeHidden: true })
     .filter({
-      has: page.getByRole("cell", { name: `RATE-${id}`, exact: true }),
+      has: page.getByRole("cell", {
+        name: `RATE-${id}`,
+        exact: true,
+        includeHidden: true,
+      }),
     })
     .getByRole("button", { name: "评星详情", exact: true })
     .click();
@@ -111,8 +115,12 @@ test("association review and publication can be assigned to different staff", as
       .click();
     expect((await reviewed).status()).toBe(200);
     await expect(
-      review.getByRole("row").filter({
-        has: review.getByRole("cell", { name: `RATE-${record.id}`, exact: true }),
+      review.getByRole("row", { includeHidden: true }).filter({
+        has: review.getByRole("cell", {
+          name: `RATE-${record.id}`,
+          exact: true,
+          includeHidden: true,
+        }),
       }),
     ).toContainText("已复核待公示");
     await expect(
@@ -145,14 +153,13 @@ test("association review and publication can be assigned to different staff", as
       .click();
     expect((await published).status()).toBe(200);
     await expect(
-      publish
-        .getByRole("row")
-        .filter({
-          has: publish.getByRole("cell", {
-            name: `RATE-${record.id}`,
-            exact: true,
-          }),
+      publish.getByRole("row", { includeHidden: true }).filter({
+        has: publish.getByRole("cell", {
+          name: `RATE-${record.id}`,
+          exact: true,
+          includeHidden: true,
         }),
+      }),
     ).toContainText("已公示");
     await expect(
       publish.getByRole("button", { name: "摘牌并留存记录", exact: true }),

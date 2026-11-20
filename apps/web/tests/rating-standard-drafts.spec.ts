@@ -33,6 +33,9 @@ test("standard draft survives partial save, refresh and conflict then finalizes 
     await login(page, "association");
     await page.getByRole("button", { name: "星级评价", exact: true }).click();
     await page
+      .getByRole("button", { name: "评价标准管理", exact: true })
+      .click();
+    await page
       .getByRole("button", { name: "配置新标准版本", exact: true })
       .click();
     const work = page.getByRole("region", {
@@ -229,6 +232,9 @@ test("referenced standards can be disabled but not deleted and deleted drafts st
       op = await operator.newPage();
     await login(ass, "association");
     await ass.getByRole("button", { name: "星级评价", exact: true }).click();
+    await ass
+      .getByRole("button", { name: "评价标准管理", exact: true })
+      .click();
     await ass
       .getByRole("button", { name: "配置新标准版本", exact: true })
       .click();

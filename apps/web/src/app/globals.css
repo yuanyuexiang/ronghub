@@ -5739,3 +5739,183 @@ select {
   height: auto;
   font-size: 10px;
 }
+
+/* Prototype batches 3–4: a query workspace followed by a focused record. */
+.safety-workspace [hidden],
+.subsidy-workspace [hidden],
+.rating-workspace [hidden] {
+  display: none !important;
+}
+.business-view-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 6px;
+  margin-bottom: 18px;
+  border: 1px solid #e1e8f1;
+  background: white;
+  border-radius: 7px;
+}
+.business-view-navigation button {
+  border: 0;
+  background: transparent;
+  color: #63758c;
+  padding: 11px 18px;
+  font-size: 13px;
+  border-radius: 5px;
+}
+.business-view-navigation button[aria-pressed="true"] {
+  color: #2163b5;
+  background: #ecf3fd;
+  font-weight: 600;
+}
+.business-view-navigation button:focus-visible {
+  outline: 2px solid #4387d9;
+  outline-offset: 2px;
+}
+.business-record-detail {
+  padding: 0 22px 22px;
+  min-width: 0;
+}
+.business-record-detail > .panel-title {
+  margin: 0 -22px 20px;
+  border-bottom: 1px solid #e7edf4;
+  padding: 18px 22px;
+}
+.business-record-detail > .detail-grid {
+  align-items: start;
+  gap: 22px;
+}
+.business-record-detail > .detail-grid > div {
+  min-width: 0;
+  background: #f8fafc;
+  border: 1px solid #e5ebf3;
+  border-radius: 6px;
+  padding: 18px;
+}
+.business-record-detail > .detail-grid > div > h3:first-child {
+  margin-top: 0;
+}
+.business-record-detail .timeline {
+  background: white;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border: 1px solid #e6edf5;
+  border-left: 3px solid #7ca7dc;
+  border-radius: 3px;
+}
+.business-record-detail .timeline > small {
+  color: #8190a4;
+}
+.business-record-detail .inspection-requirement,
+.business-record-detail .rating-submission-info,
+.business-record-detail .claim-summary {
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  background: #f8fafc;
+  border: 1px solid #e5ebf3;
+  border-radius: 6px;
+}
+.rating-score-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.rating-score-summary > div {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid #dce7f5;
+  border-radius: 6px;
+  background: #f3f7fd;
+}
+.rating-score-summary span,
+.rating-score-summary small {
+  font-size: 12px;
+  color: #75869c;
+}
+.rating-score-summary strong {
+  font-size: 28px;
+  font-weight: 600;
+  color: #235a9f;
+}
+.safety-workspace .hazard-principles {
+  display: none;
+}
+.safety-workspace .application-filters,
+.subsidy-workspace .application-filters,
+.rating-workspace .application-filters {
+  background: #f8fafc;
+  border: 1px solid #e6ecf3;
+  border-radius: 6px;
+  padding: 16px;
+}
+@media (max-width: 800px) {
+  .business-record-detail {
+    padding: 0 12px 14px;
+  }
+  .business-record-detail > .panel-title {
+    margin: 0 -12px 16px;
+    padding: 14px 12px;
+    flex-wrap: wrap;
+  }
+  .business-view-navigation button {
+    padding: 10px 12px;
+  }
+  .rating-score-summary {
+    gap: 8px;
+  }
+  .rating-score-summary > div {
+    padding: 12px 8px;
+  }
+  .rating-score-summary strong {
+    font-size: 20px;
+  }
+  .business-record-detail > .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .business-record-detail .station-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.rating-indicator-group {
+  min-width: 0;
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid #dce5f0;
+  border-radius: 5px;
+  background: white;
+}
+.rating-indicator-group legend {
+  color: #365b84;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 6px;
+}
+.rating-indicator-group .score-field {
+  padding: 12px 0;
+  border-bottom: 1px solid #edf1f6;
+}
+@media (min-width: 1100px) {
+  .rating-workspace .business-record-detail > .detail-grid {
+    grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.4fr);
+  }
+}
+.safety-workspace,
+.subsidy-workspace,
+.rating-workspace {
+  scroll-margin-top: 90px;
+}
+.business-record-detail .materials > label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 12px;
+}
+.business-record-detail .materials input[type="file"],
+.business-record-detail .materials select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}

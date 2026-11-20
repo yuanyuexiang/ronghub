@@ -30,6 +30,9 @@ test("complete device policy versions persist precise rules and remain outside l
     await manager
       .getByRole("button", { name: "补贴管理", exact: true })
       .click();
+    await manager
+      .getByRole("button", { name: "补贴规则配置", exact: true })
+      .click();
     for (const version of [1, 2]) {
       await manager
         .getByRole("button", { name: "新增政策版本", exact: true })
@@ -121,6 +124,9 @@ test("complete device policy versions persist precise rules and remain outside l
       .getByRole("button", { name: "补贴管理", exact: true })
       .click();
     await manager
+      .getByRole("button", { name: "补贴规则配置", exact: true })
+      .click();
+    await manager
       .getByRole("button", { name: `查看设备规则 ${code} V2`, exact: true })
       .click();
     await expect(
@@ -147,6 +153,9 @@ test("complete device policy versions persist precise rules and remain outside l
         .locator("option")
         .filter({ hasText: code }),
     ).toHaveCount(0);
+    await owner
+      .getByRole("button", { name: "年度多站申报", exact: true })
+      .click();
     await owner.getByLabel("补贴年度", { exact: true }).fill("2026");
     await expect(
       owner

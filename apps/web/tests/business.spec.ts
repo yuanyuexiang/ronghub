@@ -1,3 +1,4 @@
+import { returnToBusinessList } from "./business-workspace";
 import { subsidyZip } from "./subsidy-fixture";
 import { pickStation } from "./station";
 import { test, expect, Page } from "./fixtures";
@@ -20,9 +21,7 @@ async function login(page: Page, username: string) {
     response.status(),
     response.status() === 200 ? "" : (await response.json()).detail,
   ).toBe(200);
-  await expect(
-    page.getByRole("heading", { name: "运营总览" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "运营总览" })).toBeVisible();
 }
 async function verifyMaterialDownload(
   page: Page,
@@ -109,11 +108,19 @@ test("subsidy snapshot approval and association rating publication", async ({
     );
     expect(response.status(), await response.text()).toBe(201);
     const claim = await response.json();
+    await expect(
+      op.getByRole("button", { name: "关闭补贴详情", exact: true }),
+    ).toBeVisible();
+    await returnToBusinessList(op, "补贴");
     await op.getByLabel("补贴检索编号", { exact: true }).fill(String(claim.id));
     await op.getByRole("button", { name: "查询补贴记录", exact: true }).click();
 
-    const opRow = op.getByRole("row").filter({
-      has: op.getByRole("cell", { name: `SUB-${claim.id}`, exact: true }),
+    const opRow = op.getByRole("row", { includeHidden: true }).filter({
+      has: op.getByRole("cell", {
+        name: `SUB-${claim.id}`,
+        exact: true,
+        includeHidden: true,
+      }),
     });
     await opRow.getByRole("button", { name: "补贴详情" }).click();
     await expect(
@@ -137,8 +144,12 @@ test("subsidy snapshot approval and association rating publication", async ({
       .getByRole("button", { name: "查询补贴记录", exact: true })
       .click();
 
-    const regRow = reg.getByRole("row").filter({
-      has: reg.getByRole("cell", { name: `SUB-${claim.id}`, exact: true }),
+    const regRow = reg.getByRole("row", { includeHidden: true }).filter({
+      has: reg.getByRole("cell", {
+        name: `SUB-${claim.id}`,
+        exact: true,
+        includeHidden: true,
+      }),
     });
     await regRow.getByRole("button", { name: "补贴详情" }).click();
     await reg.getByLabel("补贴处理意见").fill("演示核算依据已核验");
@@ -248,15 +259,20 @@ test("subsidy snapshot approval and association rating publication", async ({
       "评星中",
     );
     await expect(
-      op.getByRole("row").filter({
-        has: op.getByRole("cell", { name: `RATE-${rating.id}`, exact: true }),
+      op.getByRole("row", { includeHidden: true }).filter({
+        has: op.getByRole("cell", {
+          name: `RATE-${rating.id}`,
+          exact: true,
+          includeHidden: true,
+        }),
       }),
     ).toContainText("待评审");
     await assoc.getByRole("button", { name: "星级评价", exact: true }).click();
-    const ratingRow = assoc.getByRole("row").filter({
+    const ratingRow = assoc.getByRole("row", { includeHidden: true }).filter({
       has: assoc.getByRole("cell", {
         name: `RATE-${rating.id}`,
         exact: true,
+        includeHidden: true,
       }),
     });
     await ratingRow.getByRole("button", { name: "评星详情" }).click();
@@ -279,10 +295,17 @@ test("subsidy snapshot approval and association rating publication", async ({
     await assoc.getByLabel("评审意见").fill("补充自评与现场依据");
     await assoc.getByRole("button", { name: "驳回星级申报" }).click();
     await expect(ratingRow).toContainText("已驳回");
+    await returnToBusinessList(op, "星级");
     await op.getByRole("button", { name: "刷新评价", exact: true }).click();
-    const operatorRatingRow = op.getByRole("row").filter({
-      has: op.getByRole("cell", { name: `RATE-${rating.id}`, exact: true }),
-    });
+    const operatorRatingRow = op
+      .getByRole("row", { includeHidden: true })
+      .filter({
+        has: op.getByRole("cell", {
+          name: `RATE-${rating.id}`,
+          exact: true,
+          includeHidden: true,
+        }),
+      });
     await operatorRatingRow.getByRole("button", { name: "评星详情" }).click();
     await op.getByLabel("修改自评-service").fill("95");
     await op.getByLabel("修改评星依据").fill("补交现场证据与修正自评");
@@ -292,6 +315,7 @@ test("subsidy snapshot approval and association rating publication", async ({
     await op.getByRole("button", { name: "保存申报修改" }).click();
     await op.getByRole("button", { name: "提交星级申报" }).click();
     await expect(operatorRatingRow).toContainText("待评审");
+    await returnToBusinessList(assoc, "星级");
     await assoc.getByRole("button", { name: "刷新评价", exact: true }).click();
     await ratingRow.getByRole("button", { name: "评星详情" }).click();
     await assoc.getByLabel("评审意见").fill("演示复核完成");
@@ -330,6 +354,7 @@ test("subsidy snapshot approval and association rating publication", async ({
       fullPage: true,
     });
     await reportPreview.close();
+    await returnToBusinessList(op, "星级");
     await op.getByRole("button", { name: "刷新评价", exact: true }).click();
     await operatorRatingRow.getByRole("button", { name: "评星详情" }).click();
     await op
@@ -347,12 +372,18 @@ test("subsidy snapshot approval and association rating publication", async ({
     expect(appeal.parent_id).toBe(rating.id);
     expect(appeal.kind).toBe("appeal");
     await op.getByRole("button", { name: "提交星级申报" }).click();
+    await returnToBusinessList(op, "星级");
+    await op
+      .getByRole("button", { name: "评价结果与公示", exact: true })
+      .click();
     await expect(op.getByTestId(`publication-${rating.id}`)).toBeVisible();
+    await returnToBusinessList(assoc, "星级");
     await assoc.getByRole("button", { name: "刷新评价", exact: true }).click();
-    const appealRow = assoc.getByRole("row").filter({
+    const appealRow = assoc.getByRole("row", { includeHidden: true }).filter({
       has: assoc.getByRole("cell", {
         name: `RATE-${appeal.id}`,
         exact: true,
+        includeHidden: true,
       }),
     });
     await appealRow.getByRole("button", { name: "评星详情" }).click();
@@ -380,6 +411,10 @@ test("subsidy snapshot approval and association rating publication", async ({
     await expect(appealCard).toContainText("已摘牌");
     await expect(appealCard).toContainText("当前有效星级 0");
     await expect(appealCard).not.toContainText("演示评定 5 星");
+    await returnToBusinessList(assoc, "星级");
+    await assoc
+      .getByRole("button", { name: "评价结果与公示", exact: true })
+      .click();
     await assoc.getByLabel("公示结果状态").selectOption("delisted");
     await assoc.getByLabel("公示场站企业").fill(fixture.name);
     await assoc.getByRole("button", { name: "查询公示", exact: true }).click();
@@ -442,6 +477,7 @@ test("inspection assignment, enterprise reply and regulator review", async ({
     await expect(reg.getByLabel("巡检标题", { exact: true })).toHaveValue("");
     await expect(reg.getByLabel("巡检要求", { exact: true })).toHaveText("");
     // Keep this workflow's task visible when another spec adds a page of history.
+    await returnToBusinessList(reg, "巡检");
     await reg.getByLabel("巡检检索编号", { exact: true }).fill(String(task.id));
     await reg
       .getByRole("button", { name: "查询巡检记录", exact: true })
@@ -449,8 +485,12 @@ test("inspection assignment, enterprise reply and regulator review", async ({
     await op.getByRole("button", { name: "整改任务", exact: true }).click();
     await op.getByLabel("巡检检索编号", { exact: true }).fill(String(task.id));
     await op.getByRole("button", { name: "查询巡检记录", exact: true }).click();
-    const row = op.getByRole("row").filter({
-      has: op.getByRole("cell", { name: `TASK-${task.id}`, exact: true }),
+    const row = op.getByRole("row", { includeHidden: true }).filter({
+      has: op.getByRole("cell", {
+        name: `TASK-${task.id}`,
+        exact: true,
+        includeHidden: true,
+      }),
     });
     await row.getByRole("button", { name: "处理任务" }).click();
     await op.getByLabel("巡检处理说明").fill("上传期间保留整改说明");
@@ -486,7 +526,9 @@ test("inspection assignment, enterprise reply and regulator review", async ({
       await expect(
         op.getByRole("button", { name: "关闭任务详情", exact: true }),
       ).toBeDisabled();
-      await op.getByLabel("巡检检索编号", { exact: true }).press("Enter");
+      await expect(
+        op.getByLabel("巡检检索编号", { exact: true }),
+      ).not.toBeVisible();
       await expect(
         op.getByRole("heading", {
           name: `TASK-${task.id} · 浏览器隐患整改`,
@@ -542,8 +584,12 @@ test("inspection assignment, enterprise reply and regulator review", async ({
     await op.getByRole("button", { name: "提交整改回复" }).click();
     await expect(row).toContainText("待复核");
     await reg.getByRole("button", { name: "刷新任务", exact: true }).click();
-    const regRow = reg.getByRole("row").filter({
-      has: reg.getByRole("cell", { name: `TASK-${task.id}`, exact: true }),
+    const regRow = reg.getByRole("row", { includeHidden: true }).filter({
+      has: reg.getByRole("cell", {
+        name: `TASK-${task.id}`,
+        exact: true,
+        includeHidden: true,
+      }),
     });
     await regRow.getByRole("button", { name: "处理任务" }).click();
     await expect(
@@ -652,10 +698,11 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
     }
     const opened = await sample("40");
     expect(opened.outcome).toBe("opened");
-    const row = reg.getByRole("row").filter({
+    const row = reg.getByRole("row", { includeHidden: true }).filter({
       has: reg.getByRole("cell", {
         name: `ALERT-${opened.event_id}`,
         exact: true,
+        includeHidden: true,
       }),
     });
     await expect(row).toContainText("持续异常");
@@ -675,10 +722,11 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
     await reg.getByRole("button", { name: "确认已查看告警" }).click();
     await expect(row).toContainText("已人工确认");
     await op.getByRole("button", { name: "企业告警", exact: true }).click();
-    const owned = op.getByRole("row").filter({
+    const owned = op.getByRole("row", { includeHidden: true }).filter({
       has: op.getByRole("cell", {
         name: `ALERT-${opened.event_id}`,
         exact: true,
+        includeHidden: true,
       }),
     });
     await expect(owned).toContainText("已恢复");
@@ -749,20 +797,20 @@ test("published notice reaches the enterprise and scoped energy statistics expor
       .getByLabel("内容正文", { exact: true })
       .fill("请回复本期场站安全核查情况");
     await reg.getByRole("button", { name: "保存内容草稿" }).click();
-    const row = reg.getByRole("row").filter({
+    const row = reg.getByRole("row", { includeHidden: true }).filter({
       has: reg.getByRole("cell", { name: fixture.name, exact: true }),
     });
     await expect(row).toContainText("草稿");
     await op.getByRole("button", { name: "公告与通知", exact: true }).click();
     await expect(
-      op.getByRole("row").filter({
+      op.getByRole("row", { includeHidden: true }).filter({
         has: op.getByRole("cell", { name: fixture.name, exact: true }),
       }),
     ).toHaveCount(0);
     await reg.getByRole("button", { name: "发布内容", exact: true }).click();
     await expect(row).toContainText("已发布");
     await op.getByRole("button", { name: "查询内容", exact: true }).click();
-    const visible = op.getByRole("row").filter({
+    const visible = op.getByRole("row", { includeHidden: true }).filter({
       has: op.getByRole("cell", { name: fixture.name, exact: true }),
     });
     await visible.getByRole("button", { name: "查看内容" }).click();
@@ -864,7 +912,7 @@ test("published notice reaches the enterprise and scoped energy statistics expor
     await op.getByLabel("统计开始日期").fill("2026-11-01");
     await op.getByLabel("统计结束日期").fill("2026-11-02");
     await op.getByRole("button", { name: "查询统计", exact: true }).click();
-    const energy = op.getByRole("row").filter({
+    const energy = op.getByRole("row", { includeHidden: true }).filter({
       has: op.getByRole("cell", { name: fixture.name, exact: true }),
     });
     await expect(energy).toContainText("42.005000");

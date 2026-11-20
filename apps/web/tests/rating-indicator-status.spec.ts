@@ -45,6 +45,9 @@ test("indicator-level activation previews real denominators and new versions nev
     await login(ass, "association");
     await ass.getByRole("button", { name: "星级评价", exact: true }).click();
     await ass
+      .getByRole("button", { name: "评价标准管理", exact: true })
+      .click();
+    await ass
       .getByRole("button", { name: "配置新标准版本", exact: true })
       .click();
     let form = ass.locator("form.standard-builder");
@@ -107,6 +110,7 @@ test("indicator-level activation previews real denominators and new versions nev
     expect(first.effective_on).toBe(today);
     await login(op, "operator_a");
     await op.getByRole("button", { name: "星级申报", exact: true }).click();
+    await op.getByRole("button", { name: "新增星级申报", exact: true }).click();
     await op
       .getByLabel("评星标准", { exact: true })
       .selectOption(String(first.id));
@@ -282,6 +286,9 @@ test("legacy draft status stays unknown until explicitly chosen and weight previ
     const draft = await created.json();
     expect(draft.data.indicators[0].enabled).toBeNull();
     await page.getByRole("button", { name: "星级评价", exact: true }).click();
+    await page
+      .getByRole("button", { name: "评价标准管理", exact: true })
+      .click();
     await page
       .getByRole("button", { name: "配置新标准版本", exact: true })
       .click();

@@ -1,3 +1,4 @@
+import { returnToBusinessList } from "./business-workspace";
 import { test, expect, openWorkspaceNavigation, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -196,6 +197,7 @@ test("hazard completion keeps tracking until explicit regulator closure and isol
     await expect(
       detail.getByRole("button", { name: "提交完成反馈", exact: true }),
     ).toHaveCount(0);
+    await returnToBusinessList(reg, "督办");
     await reg
       .getByLabel("督办检索名称", { exact: true })
       .fill("unapplied-hazard-draft");

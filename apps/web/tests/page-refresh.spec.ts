@@ -1,3 +1,4 @@
+import { returnToBusinessList } from "./business-workspace";
 import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
@@ -59,6 +60,22 @@ test("global refresh keeps applied queries, pages, dirty forms and details while
       ],
     ] as const) {
       await page.getByRole("button", { name: menu, exact: true }).click();
+      if (label === "补贴") {
+        await page
+          .getByRole("button", { name: "政策与单站申报", exact: true })
+          .click();
+        await page
+          .getByLabel("补贴开始日期", { exact: true })
+          .fill("2026-10-15");
+      } else {
+        await page
+          .getByRole("button", { name: "新增星级申报", exact: true })
+          .click();
+        await page
+          .getByLabel("评星依据说明", { exact: true })
+          .fill("未保存的评星依据");
+      }
+      await returnToBusinessList(page, label);
       await page.getByLabel(`${label}检索名称`).fill(fixture.name);
       await page.getByLabel(`${label}筛选状态`).selectOption("withdrawn");
       await page
@@ -73,6 +90,7 @@ test("global refresh keeps applied queries, pages, dirty forms and details while
       await expect(
         page.getByText(`${label}第2页 · 共25条`, { exact: true }),
       ).toBeVisible();
+      await page.getByLabel(`${label}检索名称`).fill("not-applied-search");
       await page
         .getByRole("row")
         .filter({
@@ -88,15 +106,6 @@ test("global refresh keeps applied queries, pages, dirty forms and details while
           name: new RegExp(`^${prefix}-${ids[0]} ·`),
         }),
       ).toBeVisible();
-      await page.getByLabel(`${label}检索名称`).fill("not-applied-search");
-      if (label === "补贴")
-        await page
-          .getByLabel("补贴开始日期", { exact: true })
-          .fill("2026-10-15");
-      else
-        await page
-          .getByLabel("评星依据说明", { exact: true })
-          .fill("未保存的评星依据");
 
       let release = () => {},
         held = false;
@@ -175,13 +184,13 @@ test("global refresh keeps applied queries, pages, dirty forms and details while
       );
       await expect(
         page.getByText(`${label}第2页 · 共26条`, { exact: true }),
-      ).toBeVisible();
+      ).toHaveText(`${label}第2页 · 共26条`);
       release();
       await completed;
       await page.evaluate(() => new Promise(requestAnimationFrame));
       await expect(
         page.getByText(`${label}第2页 · 共26条`, { exact: true }),
-      ).toBeVisible();
+      ).toHaveText(`${label}第2页 · 共26条`);
       await page.unroute(pattern);
       await expect(page.getByLabel(`${label}检索名称`)).toHaveValue(
         "not-applied-search",
@@ -200,6 +209,7 @@ test("global refresh keeps applied queries, pages, dirty forms and details while
           page.getByLabel("评星依据说明", { exact: true }),
         ).toHaveValue("未保存的评星依据");
 
+      await returnToBusinessList(page, label);
       await page.route(pattern, (route) =>
         route.fulfill({
           status: 500,

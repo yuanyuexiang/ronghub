@@ -1,3 +1,4 @@
+import { returnToBusinessList } from "./business-workspace";
 import { test, expect, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -42,6 +43,9 @@ test("device claim freezes historical evidence through materials review and disb
       owner = await contexts[1].newPage();
     await login(reg, "regulator");
     await reg.getByRole("button", { name: "补贴管理", exact: true }).click();
+    await reg
+      .getByRole("button", { name: "补贴规则配置", exact: true })
+      .click();
     await reg
       .getByRole("button", { name: "新增政策版本", exact: true })
       .click();
@@ -126,6 +130,7 @@ test("device claim freezes historical evidence through materials review and disb
       .click();
     expect((await submitted).status()).toBe(200);
     await reg.getByRole("button", { name: "补贴管理", exact: true }).click();
+    await returnToBusinessList(reg, "补贴");
     await reg.getByLabel("补贴检索编号").fill(String(claim.id));
     await reg
       .getByRole("button", { name: "查询补贴记录", exact: true })
@@ -154,6 +159,8 @@ test("device claim freezes historical evidence through materials review and disb
     expect(final.snapshot.device_calculation).toEqual(
       original.snapshot.device_calculation,
     );
+    await returnToBusinessList(reg, "补贴");
+    await reg.getByRole("button", { name: "补贴统计", exact: true }).click();
     const statistics = reg.getByRole("region", {
       name: "补贴统计",
       exact: true,

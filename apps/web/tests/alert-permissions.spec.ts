@@ -118,6 +118,12 @@ test("alert confirmation staff cannot configure rules or inject observations", a
     await confirmer
       .getByRole("button", { name: "确认已查看告警", exact: true })
       .click();
+    await expect(
+      confirmer.getByLabel("告警确认依据", { exact: true }),
+    ).toHaveCount(0);
+    await confirmer
+      .getByRole("button", { name: "关闭告警详情", exact: true })
+      .click();
     await expect(row(confirmer)).toContainText("已人工确认");
     await expect(row(confirmer)).toContainText("持续异常");
     await expect(

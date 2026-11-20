@@ -45,6 +45,7 @@ def main():
         db.flush()
         payloads = records(station.operator_id)[:2]
         for payload in payloads:
+            payload["external_id"] = f"browser-period-{station.id}-{payload['external_id']}"
             payload["members"][0]["equipment_name"] = "演示历史设备"
         payloads[1]["members"][0]["unknown_seconds"] = "1"
         ingest(
