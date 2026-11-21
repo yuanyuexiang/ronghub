@@ -667,3 +667,62 @@ body.refined-workspace .prototype-workspace .footer {
     font-size: 24px;
   }
 }
+
+/* One crisp focus boundary per field, including login and public forms. */
+body.refined-workspace
+  :is(input, select, textarea):where(
+    :not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
+        [type="range"]
+      ):not([type="color"]):not([type="hidden"]):not([type="submit"]):not(
+        [type="button"]
+      ):not([type="reset"]):not([type="image"])
+  ):not(:disabled):focus-visible {
+  border-color: #315fd4;
+  outline: 2px solid #315fd4;
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
+body.refined-workspace
+  :is(input, select, textarea)[aria-invalid="true"]:focus-visible {
+  border-color: var(--civic-danger, #b42318);
+  outline-color: var(--civic-danger, #b42318);
+}
+
+/* The icon and input share the same boundary; never outline the inner input. */
+body.refined-workspace
+  .prototype-workspace
+  .workspace-sidebar
+  .navigation-search {
+  border-color: #ffffff20;
+}
+
+body.refined-workspace
+  .prototype-workspace
+  .workspace-sidebar
+  .navigation-search:focus-within {
+  border-color: #8aa7d3;
+  outline: 2px solid #8aa7d3;
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
+body.refined-workspace
+  .prototype-workspace
+  .workspace-sidebar
+  .navigation-search
+  input:focus-visible {
+  border-color: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
+@media (forced-colors: active) {
+  body.refined-workspace :is(input, select, textarea):focus-visible,
+  body.refined-workspace
+    .prototype-workspace
+    .workspace-sidebar
+    .navigation-search:focus-within {
+    outline-color: Highlight;
+  }
+}
