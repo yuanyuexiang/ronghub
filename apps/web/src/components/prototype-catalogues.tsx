@@ -81,10 +81,12 @@ export function RatingIndicatorCatalogue({
   standards,
   onConfigure,
   canManage,
+  configureDisabled = false,
 }: {
   standards: ApiSchemas["RatingStandardResponse"][];
   onConfigure: () => void;
   canManage: boolean;
+  configureDisabled?: boolean;
 }) {
   const [id, setId] = useState("");
   const standard = standards.find((s) => String(s.id) === id) ?? standards[0];
@@ -102,7 +104,11 @@ export function RatingIndicatorCatalogue({
           <p>设施设备、运维安全、服务体验、环境配套按所选标准分类展示</p>
         </div>
         {canManage && (
-          <button className="outline" onClick={onConfigure}>
+          <button
+            className="outline"
+            disabled={configureDisabled}
+            onClick={onConfigure}
+          >
             新增指标 / 配置新版本
           </button>
         )}

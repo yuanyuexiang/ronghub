@@ -83,6 +83,18 @@ test("association indicators and collaboration expose classified standards and a
   await expect(
     page.getByRole("region", { name: "分类评价指标", exact: true }),
   ).toBeVisible();
+  const createStandard = page.getByRole("button", {
+    name: "新增指标 / 配置新版本",
+    exact: true,
+  });
+  await createStandard.click();
+  await expect(
+    page.getByRole("heading", { name: "标准编辑与暂存", exact: true }),
+  ).toBeVisible();
+  await expect(createStandard).toBeDisabled();
+  await page
+    .getByRole("button", { name: "配置新标准版本", exact: true })
+    .click();
   await navigateWorkspace(page, "监管协同应用");
   const area = page.getByRole("region", { name: "监管协同应用", exact: true });
   await expect(

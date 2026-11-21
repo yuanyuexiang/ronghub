@@ -312,7 +312,11 @@ export function RatingPanel({
             <RatingIndicatorCatalogue
               standards={standards}
               canManage={canStandards && globalScope && role === "association"}
-              onConfigure={() => setShowBuilder(true)}
+              configureDisabled={showBuilder}
+              onConfigure={() => {
+                setBuilderSeed(undefined);
+                setShowBuilder(true);
+              }}
             />
           )}
           {showBuilder && globalScope && (
