@@ -973,7 +973,9 @@ export default function Home() {
                       <QualityPanel purpose="alarm" />
                       <details className="prototype-related">
                         <summary>源报故障事件明细</summary>
-                        <FaultsPanel />
+                        <div className="prototype-related-body">
+                          <FaultsPanel />
+                        </div>
                       </details>
                     </div>
                   ) : (

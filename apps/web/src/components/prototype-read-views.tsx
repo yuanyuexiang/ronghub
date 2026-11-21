@@ -326,7 +326,9 @@ export function MonitoringWorkspace() {
       </section>
       <details className="prototype-related">
         <summary>历史运行与质量观测</summary>
-        <RuntimePanel />
+        <div className="prototype-related-body">
+          <RuntimePanel />
+        </div>
       </details>
     </div>
   );
@@ -472,7 +474,9 @@ export function DailyEnergyWorkspace() {
       </section>
       <details className="prototype-related">
         <summary>设备日电量与核算证据</summary>
-        <SubsidyDeviceDays />
+        <div className="prototype-related-body">
+          <SubsidyDeviceDays />
+        </div>
       </details>
     </div>
   );
@@ -549,7 +553,9 @@ export function OperatorOverview({
       </div>
       <details className="prototype-related">
         <summary>经营观测与接入记录</summary>
-        <DashboardOperations />
+        <div className="prototype-related-body">
+          <DashboardOperations />
+        </div>
       </details>
     </div>
   );

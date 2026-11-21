@@ -531,3 +531,31 @@ body.refined-workspace .workspace .rating-intake-submit > button.primary {
     width: 100%;
   }
 }
+
+/* Related workspaces need their own inset; standalone dashboards deliberately have none. */
+body.refined-workspace .workspace .prototype-related > summary {
+  font-size: 14px;
+  font-weight: 550;
+}
+body.refined-workspace .workspace .prototype-related-body {
+  min-width: 0;
+  padding: 20px;
+}
+body.refined-workspace
+  .workspace
+  .prototype-related-body
+  > .operations-dashboard {
+  margin-bottom: 0;
+}
+body.refined-workspace
+  .workspace
+  .prototype-related-body
+  > .operations-dashboard
+  > .panel-title {
+  border: 0;
+}
+@media (max-width: 800px) {
+  body.refined-workspace .workspace .prototype-related-body {
+    padding: 16px;
+  }
+}

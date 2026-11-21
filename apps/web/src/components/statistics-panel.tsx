@@ -147,7 +147,9 @@ export function StatisticsPanel({ role }: { role: string }) {
             <QualityPanel purpose="utilization" />
             <details className="prototype-related">
               <summary>单对象历史运行</summary>
-              <RuntimePanel />
+              <div className="prototype-related-body">
+                <RuntimePanel />
+              </div>
             </details>
           </>
         )}
