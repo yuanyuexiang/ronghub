@@ -40,7 +40,9 @@ jobs:
           file: apps/${{ matrix.app }}/Dockerfile
           push: true
           tags: ${{ steps.image.outputs.name }}
-          build-args: API_ORIGIN=http://ronghub-edge:8080
+          build-args: |
+            API_ORIGIN=http://ronghub-edge:8080
+            NEXT_PUBLIC_TIANDITU_KEY=${{ matrix.app == 'web' && secrets.NEXT_PUBLIC_TIANDITU_KEY || '' }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
   deploy:

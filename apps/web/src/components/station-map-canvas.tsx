@@ -4,11 +4,7 @@ import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapPoint, StationPoint, Viewport } from "./station-map-types";
 
-import {
-  tileURL,
-  attribution,
-  hasBasemap as validTiles,
-} from "./station-map-config";
+import { basemapLayers, hasBasemap as validTiles } from "./station-map-config";
 export default function StationMapCanvas({
   items,
   selectedId,
@@ -24,7 +20,7 @@ export default function StationMapCanvas({
   onViewport: (view: Viewport) => void;
   focus: { longitude: number; latitude: number; nonce: number } | null;
   reset: number;
-  onTileError: () => void;
+  onTileError: (failed: boolean) => void;
 }) {
   const container = useRef<HTMLDivElement>(null),
     mapRef = useRef<L.Map | null>(null),
@@ -49,9 +45,25 @@ export default function StationMapCanvas({
       .addTo(map);
     L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
     if (validTiles) {
-      L.tileLayer(tileURL, { attribution, maxZoom: 19, noWrap: true })
-        .on("tileerror", () => callbacks.current.onTileError())
-        .addTo(map);
+      // Labels stay below station markers and never intercept pointer interactions.
+      const labels = map.createPane("basemapLabels");
+      labels.style.zIndex = "250";
+      labels.style.pointerEvents = "none";
+      const states = basemapLayers.map(() => ({ failed: false }));
+      const reportTiles = () =>
+        callbacks.current.onTileError(states.some((state) => state.failed));
+      basemapLayers.forEach(({ url, ...options }, index) => {
+        L.tileLayer(url, { maxZoom: 19, noWrap: true, ...options })
+          .on("loading", () => {
+            states[index].failed = false;
+          })
+          .on("tileerror", () => {
+            states[index].failed = true;
+            reportTiles();
+          })
+          .on("load", reportTiles)
+          .addTo(map);
+      });
     } else {
       class Grid extends L.GridLayer {
         createTile(coords: L.Coords) {

@@ -22,7 +22,7 @@ const MapCanvas = dynamic(() => import("./station-map-canvas"), {
   ssr: false,
   loading: () => <p className="empty">正在加载地图组件…</p>,
 });
-import { hasBasemap } from "./station-map-config";
+import { hasBasemap, basemapName } from "./station-map-config";
 const empty = {
   q: "",
   district: "",
@@ -101,7 +101,10 @@ export function StationMapPanel({
     );
     setPage(1);
   }, []);
-  const onTileError = useCallback(() => setTileError(true), []);
+  const onTileError = useCallback(
+    (failed: boolean) => setTileError(failed),
+    [],
+  );
   useEffect(() => {
     read(typedApi.GET("/api/v1/map/options", { cache: "no-store" }))
       .then((data) => setClassifications(data.classifications))
@@ -464,7 +467,7 @@ export function StationMapPanel({
                 ? "坐标视图，尚未配置客户底图；不含道路或行政边界"
                 : tileError
                   ? "底图暂不可用，点位及查询仍可使用"
-                  : "WGS84坐标视图"}{" "}
+                  : basemapName}{" "}
               · 拖动/缩放及每60秒重新查询快照
             </p>
           </div>
