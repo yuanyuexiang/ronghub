@@ -308,7 +308,7 @@ export function EnrollmentPortal() {
       </div>
       <div className="demo">
         {open
-          ? "演示环境 · 验证码、短信及工商核验尚未接入，请使用测试资料。"
+          ? "验证码、短信及工商核验尚未接入，请使用测试资料。"
           : "企业在线注册暂未开放，请联系平台管理员。"}
       </div>
       {error && (

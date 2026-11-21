@@ -696,12 +696,6 @@ export default function Home() {
               </div>
             </header>
             <main className="content">
-              {me.demo_mode && (
-                <div className="demo">
-                  <span className="demo-badge">演示环境</span>{" "}
-                  当前为模拟数据，客户接口尚未接入。
-                </div>
-              )}
               <div className="heading">
                 <div>
                   <p className="eyebrow">{currentGroup?.label ?? "更多功能"}</p>
@@ -1244,9 +1238,7 @@ export default function Home() {
                   onClose={() => setDetailId(null)}
                 />
               )}
-              <p className="footer">
-                RongHub · 业务开发预览｜客户接口与政策规则尚待确认
-              </p>
+              <p className="footer">福州市充电监管平台 · 场站服务与行业协同</p>
             </main>
           </div>
         </div>

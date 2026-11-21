@@ -15,6 +15,10 @@ test("regulator login, station search, durable sync view and logout", async ({
   await expect(
     page.getByRole("heading", { name: /^(运营总览|接入汇总|多维度数据筛选)$/ }),
   ).toBeVisible();
+  await expect(page.locator(".demo")).toHaveCount(0);
+  expect(
+    (await (await page.request.get("/api/v1/auth/me")).json()).demo_mode,
+  ).toBe(true);
   await expect(page.getByText("演示·鼓楼公共充电站")).toBeVisible();
   await page.getByLabel("搜索场站").fill("不存在的演示场站");
   await page.getByRole("button", { name: "查询", exact: true }).click();

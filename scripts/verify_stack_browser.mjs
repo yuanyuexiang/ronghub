@@ -305,7 +305,7 @@ try {
       if(username!=='association' && (response.headers()['cache-control']!=='no-store' || !response.headers()['content-type'].startsWith('text/csv'))) throw new Error('Energy CSV metadata failed');
     }
     await expect(page.getByLabel('搜索场站')).toBeVisible();
-    await expect(page.getByText('演示·鼓楼公共充电站',{exact:true}).first()).toBeVisible();
+    await expect(page.getByText(/^(演示·鼓楼公共充电站|鼓楼清和公共充电站)$/).first()).toBeVisible();
     const styled = await page.getByRole('button',{name:'退出登录'}).evaluate(el =>
       getComputedStyle(el).fontFamily.includes('sans'));
     if (!styled || errors.length) throw new Error('Production assets or hydration failed');

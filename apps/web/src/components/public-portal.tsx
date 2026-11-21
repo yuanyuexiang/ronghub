@@ -201,11 +201,6 @@ export function PublicPortal() {
           </nav>
         </div>
       </header>
-      {info?.demo_mode && (
-        <div className="portal-demo">
-          演示环境 · 正式资讯以主管部门发布的内容为准
-        </div>
-      )}
       {infoError && (
         <p role="alert" className="portal-container error">
           {infoError}
@@ -321,10 +316,7 @@ export function PublicPortal() {
                   </span>
                 </div>
                 <div>
-                  <span className="portal-category">
-                    {kinds[item.kind]}
-                    {item.is_demo ? " · 演示内容" : ""}
-                  </span>
+                  <span className="portal-category">{kinds[item.kind]}</span>
                   <h3>
                     <Link href={href(q, kind, page, item.id)}>
                       {item.title}
@@ -415,10 +407,7 @@ export function PublicPortal() {
           )}
           {detail && !detailLoading && (
             <article className="portal-article">
-              <span className="portal-category">
-                {kinds[detail.kind]}
-                {detail.is_demo ? " · 演示内容" : ""}
-              </span>
+              <span className="portal-category">{kinds[detail.kind]}</span>
               <h1>{detail.title}</h1>
               <p className="portal-article-meta">
                 发布时间：{clock(detail.published_at)}（北京时间）

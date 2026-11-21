@@ -168,10 +168,7 @@ export function NoticeRecords({
                       <tr key={row.id}>
                         <td>
                           #{row.id}
-                          <small>
-                            {row.title}
-                            {row.is_demo ? " · 演示" : ""}
-                          </small>
+                          <small>{row.title}</small>
                         </td>
                         <td>{row.operator_name}</td>
                         <td>

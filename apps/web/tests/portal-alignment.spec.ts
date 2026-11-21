@@ -15,6 +15,8 @@ test("portal puts the applied query in the bulletin masthead and keeps identity 
       new URL(r.url()).searchParams.get("page_size") === "10",
   );
   await page.goto("/portal?page=999999");
+  await expect(page.locator(".portal-demo")).toHaveCount(0);
+  await expect(page.getByText("演示环境", { exact: false })).toHaveCount(0);
   await expect(page).toHaveURL(/\/portal$/);
   expect((await first).status()).toBe(200);
   const hero = page.getByRole("region", { name: "资讯公告查询", exact: true });
