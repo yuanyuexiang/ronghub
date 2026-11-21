@@ -73,6 +73,31 @@ test("regulator process and both station result workspaces show actual events, p
         (s: { code: string; version: number }) =>
           s.code === "DEMO-RATING" && s.version === 1,
       );
+    await navigateWorkspace(reg, "评审结果查看");
+    await pickStation(reg, "评价结果场站", fixture);
+    await reg
+      .getByRole("button", { name: "查询场站结果", exact: true })
+      .click();
+    await expect(
+      reg.getByRole("article", { name: "场站概况与评价结果", exact: true }),
+    ).toContainText("演示运营商甲");
+    await expect(
+      reg.getByRole("article", { name: "场站概况与评价结果", exact: true }),
+    ).toContainText("暂无已提交评定结果");
+    await reg
+      .getByLabel("单站电量来源", { exact: true })
+      .fill("audit-no-such-source");
+    await reg
+      .getByRole("button", { name: "查询单站电量", exact: true })
+      .click();
+    await expect(
+      reg.getByRole("region", { name: "每日运营数据空表", exact: true }),
+    ).toBeVisible();
+    await expect(
+      reg
+        .getByRole("region", { name: "每日运营数据空表", exact: true })
+        .getByRole("columnheader"),
+    ).toHaveCount(6);
     const created = await op.request.post("/api/v1/ratings/applications", {
       headers: { "x-csrf-token": opMe.csrf_token },
       data: {

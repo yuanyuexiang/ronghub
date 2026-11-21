@@ -160,9 +160,43 @@ export function EnergyHistory({
             {data.end_date} · {data.requested_days}天（业务日期）
           </p>
           {!data.streams.length ? (
-            <p className="empty">
-              该窗口及来源没有留存独立日电量，不能据此判断电量为零。
-            </p>
+            <>
+              {ratingColumns && (
+                <div
+                  className="station-history-table"
+                  role="region"
+                  tabIndex={0}
+                  aria-label="每日运营数据空表"
+                >
+                  <table>
+                    <thead>
+                      <tr>
+                        {[
+                          "业务日",
+                          "充电量（度）",
+                          "充电时长（小时）",
+                          "充电次数",
+                          "离线次数",
+                          "故障次数",
+                        ].map((name) => (
+                          <th key={name}>{name}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colSpan={6}>
+                          当前区间暂无每日运营记录，不以零值补齐。
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="empty">
+                该窗口及来源没有留存独立日电量，不能据此判断电量为零。
+              </p>
+            </>
           ) : (
             <>
               <p className="device-scroll-hint muted">

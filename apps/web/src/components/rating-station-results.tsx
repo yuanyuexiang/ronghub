@@ -28,6 +28,7 @@ export function RatingStationResults({
   const [station, setStation] = useState<Station | null>(null),
     [result, setResult] = useState<Publication | null>(null),
     [score, setScore] = useState<string | null>(null);
+  const [operatorName, setOperatorName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false),
     [error, setError] = useState(""),
     [help, setHelp] = useState(false);
@@ -38,11 +39,12 @@ export function RatingStationResults({
     setLoading(true);
     setError("");
     setStation(null);
+    setOperatorName(null);
     setResult(null);
     setScore(null);
     setHelp(false);
     (async () => {
-      const [profile, publication] = await Promise.all([
+      const [profile, publication, operators] = await Promise.all([
         typedApi.GET("/api/v1/stations/{station_id}", {
           params: { path: { station_id: stationId } },
           signal: controller.signal,
@@ -53,10 +55,17 @@ export function RatingStationResults({
           signal: controller.signal,
           cache: "no-store",
         }),
+        typedApi.GET("/api/v1/operators", {
+          signal: controller.signal,
+          cache: "no-store",
+        }),
       ]);
-      if (!profile.data || !publication.data)
+      if (!profile.data || !publication.data || !operators.data)
         throw Error(
-          apiError(profile.error ?? publication.error, "场站结果读取失败"),
+          apiError(
+            profile.error ?? publication.error ?? operators.error,
+            "场站结果读取失败",
+          ),
         );
       const item = publication.data.items[0] ?? null;
       let total: string | null = null;
@@ -75,6 +84,11 @@ export function RatingStationResults({
       }
       if (!controller.signal.aborted) {
         setStation(profile.data);
+        setOperatorName(
+          operators.data.items.find(
+            (row) => row.id === profile.data.operator_id,
+          )?.name ?? null,
+        );
         setResult(item);
         setScore(total);
       }
@@ -145,8 +159,7 @@ export function RatingStationResults({
                     <div>
                       <dt>运营商</dt>
                       <dd>
-                        {result?.operator_name ??
-                          `企业 #${station.operator_id}`}
+                        {result?.operator_name ?? operatorName ?? "名称未提供"}
                       </dd>
                     </div>
                     <div>
