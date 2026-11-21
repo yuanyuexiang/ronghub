@@ -77,3 +77,33 @@ def test_review_process_pages_frozen_events_without_using_current_result(
     assert outsider.get(f"/api/v1/ratings/process?record_id={aid}").json()["total"] == 0
     assert client.get("/api/v1/ratings/process?action=invalid").status_code == 422
     assert client.get("/api/v1/ratings/process?page_size=101").status_code == 422
+
+
+def test_station_result_filter_remains_scoped(rating_fixture, accounts, report_staff):
+    from datetime import date
+
+    uid, sid, standard = rating_fixture
+    names, password, station_ids = accounts
+    with SessionLocal.begin() as db:
+        record = rating.create(db, db.get(User, uid), sid, standard, {"service": "90"}, "")
+        record.status = "published"
+        record.valid_until = date(2027, 12, 31)
+        record.calculation = {"total": "90.00", "stars": 4}
+    client = login(report_staff[0][1], password)
+    result = client.get("/api/v1/ratings/publications", params={"station_id": sid})
+    assert result.status_code == 200, result.text
+    assert result.json()["total"] == 1
+    assert result.json()["items"][0]["station_id"] == sid
+    assert (
+        login(names[1], password)
+        .get("/api/v1/ratings/publications", params={"station_id": sid})
+        .json()["total"]
+        == 0
+    )
+    assert (
+        client.get("/api/v1/ratings/publications", params={"station_id": station_ids[1]}).json()[
+            "total"
+        ]
+        == 0
+    )
+    assert client.get("/api/v1/ratings/publications?station_id=0").status_code == 422

@@ -27,6 +27,7 @@ def publications(
     response: Response,
     q: str = Query(default="", max_length=100),
     result_state: str = "",
+    station_id: int | None = Query(default=None, ge=1, le=9223372036854775807),
     stars: int | None = Query(default=None, ge=0, le=5),
     page: int = Query(default=1, ge=1, le=2147483647),
     page_size: int = Query(default=12, ge=1, le=100),
@@ -87,6 +88,8 @@ def publications(
         .join(Operator, Operator.id == a.operator_id)
         .where(ranked.c.position == 1)
     )
+    if station_id is not None:
+        stmt = stmt.where(Station.id == station_id)
     if q.strip():
         literal = q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         stmt = stmt.where(

@@ -1,4 +1,5 @@
 "use client";
+import { SubsidyLedger } from "./subsidy-ledger";
 import { useBusinessView } from "./business-view-context";
 import {
   WorkspaceViews,
@@ -429,7 +430,15 @@ export function SubsidyPanel({
           <SubsidyDeviceDays />
         </div>
       </div>
-      <section className="panel" hidden={!detail && view !== "claims"}>
+      {recordsOnly && (
+        <div hidden={!!detail}>
+          <SubsidyLedger onOpen={open} busy={busy} />
+        </div>
+      )}
+      <section
+        className="panel"
+        hidden={!detail && (view !== "claims" || recordsOnly)}
+      >
         <div className="record-pane" hidden={!!detail}>
           <div className="panel-title">
             <div>

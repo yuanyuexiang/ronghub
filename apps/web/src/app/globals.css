@@ -6043,3 +6043,74 @@ select {
 .rating-process-panel th, .rating-process-panel td { white-space: nowrap; }
 .rating-process-panel td:first-child { white-space: normal; min-width: 180px; max-width: 240px; }
 .rating-process-panel .table-wrap { margin-bottom: 0; }
+
+/* Page alignment batch: station results, material intake, finalized subsidy ledger. */
+.result-station-query button { width:auto; margin:0; }
+.rating-station-card { margin:0 24px 24px; padding:24px; border:1px solid #e1e9f3; border-radius:10px; display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:24px; background:linear-gradient(120deg,#f6f9fe,#fff); }
+.rating-station-profile h3 { font-size:20px; margin:0 0 8px; }
+.rating-station-profile dl { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.rating-station-profile dt { font-size:12px; color:#75849a; }
+.rating-station-profile dd { margin:4px 0 0; }
+.rating-live-states { display:flex; flex-wrap:wrap; gap:8px; font-size:12px; color:#66768e; }
+.rating-live-states span { border:1px solid #dce6f1; padding:5px 8px; border-radius:5px; background:white; }
+.rating-station-grade { display:flex; flex-direction:column; align-items:center; justify-content:center; border-left:1px solid #e1e9f3; padding:12px; gap:6px; }
+.rating-station-grade strong { font-size:48px; line-height:1.2; color:#234f84; }
+.rating-station-grade b { color:#b9811f; font-size:22px; }
+.rating-station-grade .action-row { flex-wrap:wrap; justify-content:center; }
+.rating-result-history { padding:0 24px 24px; }
+.rating-result-directory { margin:0 24px 24px; }
+.rating-result-directory > summary { cursor:pointer; padding:12px 0; color:#315887; }
+.rating-intake-heading,.rating-intake-materials,.rating-self-assessment,.rating-intake-submit { padding:20px 24px; }
+.rating-intake-heading h3,.rating-intake-materials h3 { margin:0 0 8px; }
+.rating-material-cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:20px 0; }
+.rating-material-card { min-width:0; border:1px solid #dce6f1; border-radius:8px; padding:16px; background:#f8faff; }
+.rating-material-card > div { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+.rating-material-card h4 { margin:0 0 10px; }
+.rating-material-card label { display:grid; gap:8px; font-size:13px; }
+.rating-material-card input { max-width:100%; min-width:0; width:100%; background:white; }
+.rating-material-card p { overflow-wrap:anywhere; font-size:12px; }
+.rating-self-assessment { border-top:1px solid #e7edf6; }
+.rating-self-assessment summary { cursor:pointer; color:#345984; }
+.rating-intake-submit { border-top:1px solid #e7edf6; }
+.ledger-filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; padding:20px 24px; align-items:end; }
+.ledger-filters label { display:grid; gap:8px; font-size:13px; }
+.ledger-filters input,.ledger-filters select { min-width:0; width:100%; padding:10px; border:1px solid #dce3ed; border-radius:7px; background:white; }
+.ledger-filters .action-row { grid-column:1/-1; flex-wrap:wrap; }
+.ledger-filters button { width:auto; margin:0; }
+.ledger-notice { margin:0 24px 18px; color:#6b7f9b; font-size:12px; }
+.ledger-notice summary { cursor:pointer; }
+.subsidy-ledger td { white-space:nowrap; }
+.subsidy-ledger td small { display:block; margin-top:5px; color:#7a8aa0; }
+.subsidy-ledger .publication-pagination { padding-top:20px; }
+@media(max-width:800px) {
+ .rating-station-card { grid-template-columns:1fr; margin:0 16px 20px; padding:16px; }
+ .rating-station-grade { border-left:0; border-top:1px solid #e1e9f3; }
+ .rating-material-cards { grid-template-columns:1fr; }
+ .ledger-filters { grid-template-columns:1fr 1fr; padding:16px; }
+ .rating-intake-heading,.rating-intake-materials,.rating-self-assessment,.rating-intake-submit { padding:16px; }
+}
+@media(min-width:1100px) {
+ .result-station-query .station-picker { display:grid; grid-template-columns:minmax(220px,1.2fr) minmax(220px,1fr) 150px; gap:12px; align-items:end; width:min(850px,85%); }
+ .result-station-query .station-picker .picker-search { margin:0; }
+ .result-station-query .station-picker .picker-pages { height:42px; margin:0; }
+ .result-station-query { padding-top:12px; padding-bottom:18px; }
+ .rating-station-card { padding:18px 22px; }
+}
+.subsidy-ledger table { table-layout:fixed; min-width:1080px; }
+.subsidy-ledger th,.subsidy-ledger td { white-space:normal; overflow-wrap:anywhere; font-size:12px; padding:12px 9px; }
+.subsidy-ledger th:nth-child(1) { width:130px; }
+.subsidy-ledger th:nth-child(2) { width:85px; }
+.subsidy-ledger th:nth-child(3) { width:115px; }
+.subsidy-ledger th:nth-child(4) { width:160px; }
+.subsidy-ledger th:nth-child(5),.subsidy-ledger th:nth-child(6) { width:85px; }
+.subsidy-ledger th:nth-child(7) { width:95px; }
+.subsidy-ledger th:nth-child(8) { width:115px; }
+.subsidy-ledger th:nth-child(9) { width:90px; }
+.subsidy-ledger th:nth-child(10) { width:95px; }
+.subsidy-ledger td small { white-space:normal; }
+.subsidy-ledger td button { white-space:nowrap; }
+@media(min-width:1100px) {
+ .result-station-query .station-picker { max-width:none; flex-shrink:0; }
+}
+.rating-intake-fields { border:0; padding:0; margin:0; min-width:0; }
+.rating-intake-receipt { margin:12px 24px; padding:12px 16px; border:1px solid #b9d5ee; border-radius:7px; background:#f2f8fe; }

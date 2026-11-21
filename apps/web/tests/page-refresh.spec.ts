@@ -67,6 +67,7 @@ test("global refresh keeps applied queries, pages, dirty forms and details while
           .fill("2026-10-15");
       } else {
         await navigateWorkspace(page, "新增星级申报");
+        await page.locator(".rating-self-assessment > summary").click();
         await page
           .getByLabel("评星依据说明", { exact: true })
           .fill("未保存的评星依据");

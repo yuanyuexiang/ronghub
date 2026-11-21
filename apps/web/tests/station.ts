@@ -20,4 +20,10 @@ export async function pickStation(
   await page
     .getByLabel(label, { exact: true })
     .selectOption(String(fixture.station_id));
+  const assessment = page.locator(".rating-self-assessment");
+  if (
+    (await assessment.isVisible()) &&
+    (await assessment.getAttribute("open")) === null
+  )
+    await assessment.locator(":scope > summary").click();
 }

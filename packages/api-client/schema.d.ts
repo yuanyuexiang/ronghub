@@ -3318,6 +3318,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subsidy/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ledger */
+        get: operations["ledger_api_v1_subsidy_ledger_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subsidy/ledger/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export */
+        get: operations["export_api_v1_subsidy_ledger_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subsidy/policies": {
         parameters: {
             query?: never;
@@ -6140,6 +6174,44 @@ export interface components {
             purpose: "login" | "recovery";
         };
         JsonValue: unknown;
+        /** LedgerItem */
+        LedgerItem: {
+            /** Adjusted Amount */
+            adjusted_amount: string;
+            /** Approved At */
+            approved_at: string | null;
+            /** Base Amount */
+            base_amount: string;
+            /** End Date */
+            end_date: string;
+            /** Generated At */
+            generated_at?: null;
+            /** Id */
+            id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Recorded Disbursement At */
+            recorded_disbursement_at: string | null;
+            /** Start Date */
+            start_date: string;
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /** Status */
+            status: string;
+        };
+        /** LedgerPage */
+        LedgerPage: {
+            /** Items */
+            items: components["schemas"]["LedgerItem"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
         /** LegacyAlertRule */
         LegacyAlertRule: {
             /** Code */
@@ -23533,6 +23605,7 @@ export interface operations {
             query?: {
                 q?: string;
                 result_state?: string;
+                station_id?: number | null;
                 stars?: number | null;
                 page?: number;
                 page_size?: number;
@@ -28841,6 +28914,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubsidyEnergyList"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    ledger_api_v1_subsidy_ledger_get: {
+        parameters: {
+            query?: {
+                paid_from?: string | null;
+                paid_to?: string | null;
+                q?: string;
+                status?: "" | "approved" | "disbursed";
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_api_v1_subsidy_ledger_export_get: {
+        parameters: {
+            query?: {
+                paid_from?: string | null;
+                paid_to?: string | null;
+                q?: string;
+                status?: "" | "approved" | "disbursed";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
             /** @description Login required or invalid credentials */

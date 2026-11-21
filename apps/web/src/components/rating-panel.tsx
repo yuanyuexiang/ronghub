@@ -16,13 +16,15 @@ import {
   QueuePagination,
 } from "./business-queue";
 import { ratingApi } from "../lib/business-api";
-import type { ApiSchemas } from "../lib/typed-api";
+import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { useCapability, useGlobalScope } from "./permissions";
 import { StationPicker } from "./station-picker";
 import { useEffect, useState } from "react";
 import { RatingPublications, resultStates } from "./rating-publications";
+import { RatingStationResults } from "./rating-station-results";
 import { RatingProcess } from "./rating-process";
 import { RatingDataSupport } from "./rating-data-support";
+import { RatingIntakeMaterials } from "./rating-intake-materials";
 import { RatingMaterials } from "./rating-materials";
 import { RatingStandardWorkbench } from "./rating-standard-workbench";
 import { RatingStandardAvailability } from "./rating-standard-availability";
@@ -99,6 +101,8 @@ export function RatingPanel({
     canPublish = useCapability("ratings.publish"),
     canDelist = useCapability("ratings.delist"),
     canStandards = useCapability("ratings.standards");
+  const [intakeFiles, setIntakeFiles] = useState<Record<string, File>>({});
+  const [intakeReceipt, setIntakeReceipt] = useState<number | null>(null);
   const [standards, setStandards] = useState<Standard[]>([]),
     [sid, setSid] = useState(""),
     [standardId, setStandardId] = useState(""),
@@ -225,6 +229,7 @@ export function RatingPanel({
   const canLeave = useWorkspaceLeave(
     Boolean(
       dirty ||
+      Object.keys(intakeFiles).length > 0 ||
       reviewDirty ||
       comment.trim() ||
       continuationNote.trim() ||
@@ -424,99 +429,165 @@ export function RatingPanel({
                 onSubmit={(e) => {
                   e.preventDefault();
                   run(async () => {
-                    const a = await api.create({
-                      station_id: Number(sid),
-                      kind: "initial",
-                      standard_id: Number(standardId),
-                      scores,
-                      evidence_note: note,
-                    });
-                    await load();
-                    queue.reset();
+                    const a =
+                      intakeReceipt !== null
+                        ? await api.detail(intakeReceipt)
+                        : await api.create({
+                            station_id: Number(sid),
+                            kind: "initial",
+                            standard_id: Number(standardId),
+                            scores,
+                            evidence_note: note,
+                          });
+                    setIntakeReceipt(a.id);
                     showDetail(await api.detail(a.id));
+                    try {
+                      for (const [category, file] of Object.entries(
+                        intakeFiles,
+                      )) {
+                        const form = new FormData();
+                        form.set("file", file);
+                        form.set("category", category);
+                        const response = await typedApi.POST(
+                          "/api/v1/ratings/applications/{application_id}/attachments",
+                          {
+                            params: { path: { application_id: a.id } },
+                            headers: { "x-csrf-token": csrf },
+                            body: { file: file.name, category },
+                            bodySerializer: () => form,
+                          },
+                        );
+                        if (!response.data)
+                          throw Error(
+                            apiError(
+                              response.error,
+                              `草稿 RATE-${a.id} 已保存，材料上传未完成，请在该草稿继续补充。`,
+                            ),
+                          );
+                      }
+                    } finally {
+                      setIntakeFiles({});
+                      setIntakeReceipt(null);
+                      await load();
+                      queue.reset();
+                      showDetail(await api.detail(a.id));
+                    }
                   });
                 }}
               >
-                <div className="business-form">
-                  <StationPicker
-                    label="评星场站"
-                    value={sid}
-                    onChange={setSid}
-                    status="access_approved,accepted,operating"
-                  />
-                  <label>
-                    评价标准
-                    <select
-                      aria-label="评星标准"
-                      value={standardId}
-                      onChange={(e) => {
-                        setStandardId(e.target.value);
-                        setScores({});
-                      }}
-                    >
-                      {standards.map((s) => (
-                        <option
-                          key={s.id}
-                          value={s.id}
-                          disabled={
-                            !s.enabled ||
-                            s.activation_state === "scheduled" ||
-                            s.activation_state === "scheduled" ||
-                            !s.rules.indicators?.length ||
-                            !s.rules.thresholds?.length
-                          }
-                        >
-                          {s.name} V{s.version}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {selected?.rules.configuration_version === 2 && (
-                    <p className="inline-note">
-                      填写人工字段原值（0–100），系统按档位换算指标得分；平台字段使用创建时冻结台账观测。
+                {intakeReceipt !== null && (
+                  <p className="rating-intake-receipt" role="status">
+                    已保存材料草稿 RATE-{intakeReceipt}
+                    。继续载入该草稿，不会另建申报。
+                  </p>
+                )}
+                <fieldset
+                  className="rating-intake-fields"
+                  disabled={intakeReceipt !== null}
+                >
+                  <div className="rating-intake-heading">
+                    <h3>申报场站</h3>
+                    <p>
+                      步骤 1 选择场站 → 步骤 2 整理材料 → 步骤 3 保存草稿，核对后提交审核
                     </p>
-                  )}
-                  {selected?.rules.indicators
-                    ?.filter((i) => participates(selected.rules, i))
-                    .map((i) => (
-                      <label key={i.code}>
-                        {i.name}（满分{i.max_score}）
-                        {i.source === "runtime" ? (
-                          <span className="muted">
-                            {selected?.rules.configuration_version === 2
-                              ? "使用创建时冻结台账观测，不允许自填"
-                              : "运行指标待接口，不允许自填"}
-                          </span>
-                        ) : (
-                          <input
-                            aria-label={`自评-${i.code}`}
-                            required
-                            type="number"
-                            min={0}
-                            max={
-                              selected?.rules.configuration_version === 2
-                                ? 100
-                                : i.max_score
-                            }
-                            step="0.01"
-                            value={scores[i.code] || ""}
-                            onChange={(e) =>
-                              setScores({ ...scores, [i.code]: e.target.value })
-                            }
-                          />
-                        )}
-                      </label>
-                    ))}
-                  <label>
-                    申报依据说明
-                    <input
-                      aria-label="评星依据说明"
-                      required
-                      value={note}
-                      maxLength={2000}
-                      onChange={(e) => setNote(e.target.value)}
+                  </div>
+                  <div className="business-form">
+                    <StationPicker
+                      label="评星场站"
+                      value={sid}
+                      onChange={setSid}
+                      status="access_approved,accepted,operating"
                     />
-                  </label>
+                    <label>
+                      评价标准
+                      <select
+                        aria-label="评星标准"
+                        value={standardId}
+                        onChange={(e) => {
+                          setStandardId(e.target.value);
+                          setScores({});
+                        }}
+                      >
+                        {standards.map((s) => (
+                          <option
+                            key={s.id}
+                            value={s.id}
+                            disabled={
+                              !s.enabled ||
+                              s.activation_state === "scheduled" ||
+                              s.activation_state === "scheduled" ||
+                              !s.rules.indicators?.length ||
+                              !s.rules.thresholds?.length
+                            }
+                          >
+                            {s.name} V{s.version}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  {canMaterials && (
+                    <RatingIntakeMaterials
+                      files={intakeFiles}
+                      onChange={setIntakeFiles}
+                      disabled={busy || materialBusy}
+                      onError={setError}
+                    />
+                  )}
+                  <details className="rating-self-assessment">
+                    <summary>自评与补充说明（可在草稿中继续完善）</summary>
+                    <div className="business-form">
+                      {selected?.rules.configuration_version === 2 && (
+                        <p className="inline-note">
+                          填写人工字段原值（0–100），系统按档位换算指标得分；平台字段使用创建时冻结台账观测。
+                        </p>
+                      )}
+                      {selected?.rules.indicators
+                        ?.filter((i) => participates(selected.rules, i))
+                        .map((i) => (
+                          <label key={i.code}>
+                            {i.name}（满分{i.max_score}）
+                            {i.source === "runtime" ? (
+                              <span className="muted">
+                                {selected?.rules.configuration_version === 2
+                                  ? "使用创建时冻结台账观测，不允许自填"
+                                  : "运行指标待接口，不允许自填"}
+                              </span>
+                            ) : (
+                              <input
+                                aria-label={`自评-${i.code}`}
+                                type="number"
+                                min={0}
+                                max={
+                                  selected?.rules.configuration_version === 2
+                                    ? 100
+                                    : i.max_score
+                                }
+                                step="0.01"
+                                value={scores[i.code] || ""}
+                                onChange={(e) =>
+                                  setScores({
+                                    ...scores,
+                                    [i.code]: e.target.value,
+                                  })
+                                }
+                              />
+                            )}
+                          </label>
+                        ))}
+                      <label>
+                        申报依据说明
+                        <input
+                          aria-label="评星依据说明"
+                          value={note}
+                          maxLength={2000}
+                          onChange={(e) => setNote(e.target.value)}
+                        />
+                      </label>
+                    </div>
+                  </details>
+                </fieldset>
+                <div className="rating-intake-submit">
                   <button
                     className="outline"
                     disabled={
@@ -528,7 +599,7 @@ export function RatingPanel({
                       selected.activation_state === "scheduled"
                     }
                   >
-                    保存评星草稿
+                    {intakeReceipt !== null ? "继续已保存草稿" : "保存评星草稿"}
                   </button>
                 </div>
               </form>
@@ -542,17 +613,15 @@ export function RatingPanel({
             busy={busy || materialBusy}
           />
         </div>
-        {view === "results" && role === "association" && (
-          <RatingPublications
-            title="评价结果管理"
-            layout="table"
-            testIdPrefix="rating-result"
+        {view === "results" && role !== "operator" && (
+          <RatingStationResults
+            role={role}
             revision={publicationRevision}
             onOpen={open}
             busy={busy || materialBusy}
           />
         )}
-        {view === "process" && role === "association" && (
+        {view === "process" && role !== "operator" && (
           <RatingProcess onOpen={open} busy={busy || materialBusy} />
         )}
         {view === "collaboration" && role === "association" && (
@@ -583,7 +652,7 @@ export function RatingPanel({
         hidden={
           (!detail && !["applications", "process", "results"].includes(view)) ||
           (!detail &&
-            role === "association" &&
+            role !== "operator" &&
             ["process", "results"].includes(view))
         }
       >

@@ -160,6 +160,7 @@ test("association process shows real frozen actions and results manage station p
       path: "../../.backups/secondary-association-process.png",
     });
     await navigateWorkspace(assoc, "评价结果管理");
+    await assoc.locator(".rating-result-directory > summary").click();
     await assoc
       .getByLabel("公示场站企业", { exact: true })
       .last()

@@ -57,7 +57,13 @@ function initialDates() {
     source: "",
   };
 }
-export function EnergyHistory({ stationId }: { stationId: number }) {
+export function EnergyHistory({
+  stationId,
+  ratingColumns = false,
+}: {
+  stationId: number;
+  ratingColumns?: boolean;
+}) {
   const [draft, setDraft] = useState(initialDates),
     [query, setQuery] = useState(initialDates),
     [data, setData] = useState<ApiSchemas["StationEnergyHistory"] | null>(null),
@@ -220,9 +226,21 @@ export function EnergyHistory({ stationId }: { stationId: number }) {
                     <thead>
                       <tr>
                         <th>业务日</th>
-                        <th>电量 kWh</th>
-                        <th>参与记录</th>
-                        <th>未参与记录</th>
+                        <th>{ratingColumns ? "充电量（度）" : "电量 kWh"}</th>
+                        {ratingColumns && (
+                          <>
+                            <th>充电时长（小时）</th>
+                            <th>充电次数</th>
+                            <th>离线次数</th>
+                            <th>故障次数</th>
+                          </>
+                        )}
+                        {!ratingColumns && (
+                          <>
+                            <th>参与记录</th>
+                            <th>未参与记录</th>
+                          </>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -230,8 +248,20 @@ export function EnergyHistory({ stationId }: { stationId: number }) {
                         <tr key={d.day}>
                           <td>{d.day}</td>
                           <td>{number(d.kwh)}</td>
-                          <td>{d.records}</td>
-                          <td>{d.excluded_records}</td>
+                          {ratingColumns && (
+                            <>
+                              <td>来源未提供</td>
+                              <td>来源未提供</td>
+                              <td>来源未提供</td>
+                              <td>来源未提供</td>
+                            </>
+                          )}
+                          {!ratingColumns && (
+                            <>
+                              <td>{d.records}</td>
+                              <td>{d.excluded_records}</td>
+                            </>
+                          )}
                         </tr>
                       ))}
                     </tbody>
