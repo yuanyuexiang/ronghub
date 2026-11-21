@@ -512,7 +512,11 @@ export function OperatorOverview({
           ].map(([k, v]) => (
             <article key={String(k)}>
               <span>{k}</span>
-              <strong>{String(v)}</strong>
+              <strong>
+                {typeof v === "string" && /^-?\d+\.\d+$/.test(v)
+                  ? v.replace(/0+$/, "").replace(/\.$/, "")
+                  : String(v)}
+              </strong>
             </article>
           ))}
         </div>
