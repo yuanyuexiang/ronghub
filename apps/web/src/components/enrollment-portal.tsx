@@ -1,4 +1,5 @@
 "use client";
+import { FilePicker } from "./ui/file-picker";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { enrollmentApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -472,7 +473,7 @@ export function EnrollmentPortal() {
               {editable && (
                 <label>
                   上传资质材料
-                  <input
+                  <FilePicker
                     aria-label="上传注册资质"
                     type="file"
                     accept="application/pdf,image/png,image/jpeg"

@@ -1,4 +1,5 @@
 "use client";
+import { FilePicker } from "./ui/file-picker";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { usePrivateMaterials } from "./use-private-materials";
@@ -255,7 +256,7 @@ export function SubsidyEvidence({
       {canMaterials && (
         <label>
           上传ZIP申报材料
-          <input
+          <FilePicker
             type="file"
             aria-label="上传补贴ZIP材料"
             accept=".zip,application/zip"

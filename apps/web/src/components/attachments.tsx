@@ -1,4 +1,5 @@
 "use client";
+import { FilePicker } from "./ui/file-picker";
 import { typedApi, apiError } from "../lib/typed-api";
 import { useCallback, useRef, useState } from "react";
 import { usePrivateMaterials } from "./use-private-materials";
@@ -184,7 +185,7 @@ export function Attachments({
       {editable && (
         <label className="upload-label">
           {busy ? "正在处理材料…" : "上传申请材料"}
-          <input
+          <FilePicker
             type="file"
             aria-label="上传申请材料"
             accept="application/pdf,image/png,image/jpeg"

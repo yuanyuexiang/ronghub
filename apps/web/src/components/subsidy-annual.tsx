@@ -1,4 +1,5 @@
 "use client";
+import { FilePicker } from "./ui/file-picker";
 
 import { useEffect, useRef, useState } from "react";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -387,7 +388,8 @@ export function SubsidyAnnual({
         {canMaterials && (
           <label>
             ZIP申报材料
-            <input
+            <FilePicker
+              selection={files}
               ref={fileInput}
               aria-label="年度ZIP材料"
               type="file"

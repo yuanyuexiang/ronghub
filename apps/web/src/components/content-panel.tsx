@@ -1,4 +1,5 @@
 "use client";
+import { FilePicker } from "./ui/file-picker";
 import { useBusinessView } from "./business-view-context";
 import { useRecordFocus } from "./use-record-focus";
 import {
@@ -684,7 +685,7 @@ export function ContentPanel({
                   <p className="muted">
                     支持PDF、PNG/JPG、DOCX、XLSX，单份10MiB；每篇最多10份、合计50MiB。发布后正文及附件冻结。
                   </p>
-                  <input
+                  <FilePicker
                     type="file"
                     aria-label="上传内容附件"
                     disabled={busy}
@@ -1281,7 +1282,7 @@ export function ContentPanel({
                         </label>
                         <label>
                           回复图片（可选）
-                          <input
+                          <FilePicker
                             aria-label="通知回复图片"
                             type="file"
                             accept="image/png,image/jpeg"

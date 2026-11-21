@@ -1,4 +1,5 @@
 "use client";
+import { FilePicker } from "./ui/file-picker";
 import { typedApi, apiError } from "../lib/typed-api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrivateMaterials } from "./use-private-materials";
@@ -144,7 +145,7 @@ export function InspectionMaterials({
       {editable && (
         <label>
           上传整改材料
-          <input
+          <FilePicker
             aria-label="上传整改材料"
             type="file"
             accept="image/png,image/jpeg,application/pdf"

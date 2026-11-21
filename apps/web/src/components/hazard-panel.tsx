@@ -1,4 +1,5 @@
 "use client";
+import { FilePicker } from "./ui/file-picker";
 import {
   useWorkspaceLeave,
   type LeaveGuardRegistrar,
@@ -982,7 +983,7 @@ export function HazardPanel({
               detail.status === "tracking" && (
                 <label>
                   上传督办证明材料
-                  <input
+                  <FilePicker
                     type="file"
                     aria-label="上传督办证明材料"
                     accept=".png,.jpg,.jpeg,.pdf"

@@ -507,7 +507,7 @@ export function RatingPanel({
                       保存草稿，核对后提交审核
                     </p>
                   </div>
-                  <div className="business-form">
+                  <div className="business-form rating-station-selection">
                     <StationPicker
                       label="评星场站"
                       value={sid}
@@ -605,7 +605,8 @@ export function RatingPanel({
                 </fieldset>
                 <div className="rating-intake-submit">
                   <button
-                    className="outline"
+                    type="submit"
+                    className="primary"
                     disabled={
                       busy ||
                       !sid ||

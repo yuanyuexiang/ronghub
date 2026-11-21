@@ -1,0 +1,533 @@
+/* Shared controls: visual rules never replace business handlers or form semantics. */
+body.refined-workspace {
+  --control-border: #cdd7e5;
+  --control-hover: #91a9cc;
+  --control-muted: #607086;
+  --control-radius: 7px;
+}
+body.refined-workspace select:not([multiple]):where(:not([size]), [size="1"]),
+body.refined-workspace
+  .prototype-workspace
+  .workspace
+  select:not([multiple]):where(:not([size]), [size="1"]) {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23718199' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px 18px;
+  padding-right: 40px;
+  text-overflow: ellipsis;
+  border-radius: var(--control-radius);
+  cursor: pointer;
+}
+body.refined-workspace select[multiple] {
+  background-image: none;
+  padding: 8px 12px;
+}
+body.refined-workspace :is(input, select, textarea):disabled {
+  cursor: not-allowed;
+  color: #77859a;
+  -webkit-text-fill-color: currentColor;
+}
+body.refined-workspace
+  .prototype-workspace
+  .workspace
+  :is(input, select, textarea):where(
+    :not([type="checkbox"]):not([type="radio"]):not([type="file"])
+  ):disabled {
+  background-color: #f2f5f9;
+  border-color: #e0e6ee;
+}
+body.refined-workspace
+  .prototype-workspace
+  .workspace
+  :is(input, textarea)[readonly] {
+  background-color: #f7f9fc;
+  color: #607086;
+}
+body.refined-workspace textarea {
+  resize: vertical;
+  line-height: 1.7;
+}
+body.refined-workspace :is(input, textarea)::placeholder {
+  color: #8896aa;
+}
+body.refined-workspace
+  .prototype-workspace
+  .workspace
+  :is(input[type="checkbox"], input[type="radio"]) {
+  appearance: auto;
+  accent-color: #315fd4;
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  padding: 0;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+body.refined-workspace input::-webkit-calendar-picker-indicator {
+  opacity: 0.65;
+  cursor: pointer;
+}
+
+/* A real, focusable input covers the complete file-selection surface. */
+body.refined-workspace .rong-file-picker {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px dashed #bdcce2;
+  border-radius: 8px;
+  background: #fbfcff;
+  cursor: pointer;
+}
+body.refined-workspace .rong-file-picker:hover:not(:has(input:disabled)) {
+  border-color: #8da9db;
+  background: #f5f8ff;
+}
+body.refined-workspace .rong-file-picker:focus-within {
+  outline: 2px solid #315fd4;
+  outline-offset: 2px;
+  border-color: #315fd4;
+}
+body.refined-workspace .rong-file-picker > input[type="file"],
+body.refined-workspace
+  .prototype-workspace
+  .workspace
+  .rong-file-picker
+  > input[type="file"] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  border: 0;
+  border-radius: inherit;
+  cursor: pointer;
+  outline: none;
+  box-shadow: none;
+}
+body.refined-workspace .rong-file-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid #d9e4fb;
+  border-radius: 6px;
+  background: #edf3ff;
+  color: #315bb7;
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 20px;
+}
+body.refined-workspace .rong-file-name {
+  min-width: 0;
+  color: #6b7a90;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+body.refined-workspace .rong-file-picker:has(input:disabled) {
+  background: #f3f5f8;
+  border-color: #dce3ed;
+  cursor: not-allowed;
+}
+body.refined-workspace
+  .rong-file-picker:has(input:disabled)
+  .rong-file-trigger {
+  background: #edf0f5;
+  border-color: #dce3ed;
+  color: #8793a6;
+}
+body.refined-workspace .rong-file-picker > input[type="file"]:disabled {
+  cursor: not-allowed;
+}
+
+/* Content actions have a common baseline. Sidebar/map links retain their own styling. */
+body.refined-workspace .workspace main.content button,
+body.refined-workspace .station-detail-body button {
+  min-height: 36px;
+  padding: 7px 12px;
+  justify-content: center;
+  border: 1px solid #d8e1ee;
+  border-radius: var(--control-radius);
+  background-color: #fff;
+  color: #40516b;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  box-shadow: none;
+}
+body.refined-workspace .workspace main.content button:not(:disabled):hover,
+body.refined-workspace .station-detail-body button:not(:disabled):hover {
+  background-color: #f2f6ff;
+  border-color: #94acda;
+  color: #2854b8;
+}
+body.refined-workspace
+  .workspace
+  main.content
+  :is(
+    button.primary,
+    .application-filters button[type="submit"],
+    .directory-filter-actions button[type="submit"],
+    .protocol-search button[type="submit"],
+    .hazard-panel button[type="submit"],
+    .rating-intake-submit button[type="submit"]
+  ) {
+  background-color: #315fd4;
+  border-color: #315fd4;
+  color: #fff;
+}
+body.refined-workspace
+  .workspace
+  main.content
+  :is(
+    button.primary,
+    .application-filters button[type="submit"],
+    .directory-filter-actions button[type="submit"],
+    .protocol-search button[type="submit"],
+    .hazard-panel button[type="submit"],
+    .rating-intake-submit button[type="submit"]
+  ):not(:disabled):hover {
+  background-color: #254fb9;
+  border-color: #254fb9;
+  color: #fff;
+}
+body.refined-workspace .workspace main.content button.danger {
+  background-color: #fff5f4;
+  color: #b42318;
+  border-color: #ebc4bf;
+}
+body.refined-workspace
+  .workspace
+  main.content
+  button.danger:not(:disabled):hover {
+  background-color: #ffebe8;
+  border-color: #d89a91;
+  color: #91251c;
+}
+body.refined-workspace .workspace main.content button:disabled,
+body.refined-workspace .station-detail-body button:disabled {
+  background-color: #f5f7fa;
+  border-color: #e4e9f0;
+  color: #8794a7;
+  opacity: 1;
+  cursor: not-allowed;
+}
+body.refined-workspace
+  .workspace
+  main.content
+  :is(.record-tabs, .business-view-navigation)
+  button {
+  border-color: transparent;
+  background-color: transparent;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  padding: 10px 16px;
+}
+body.refined-workspace
+  .workspace
+  main.content
+  :is(.record-tabs, .business-view-navigation)
+  button[aria-pressed="true"],
+body.refined-workspace
+  .station-detail-body
+  .record-tabs
+  button[aria-pressed="true"] {
+  color: #315fd4;
+  background: #f2f6ff;
+  border-bottom-color: #315fd4;
+}
+body.refined-workspace .station-detail-body .record-tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  padding: 10px 16px;
+}
+body.refined-workspace
+  .workspace
+  main.content
+  .editor-toolbar
+  button[aria-pressed="true"] {
+  color: #315fd4;
+  background: #edf3ff;
+  border-color: #cbdaf6;
+}
+body.refined-workspace
+  .workspace
+  main.content
+  :is(
+    .pagination,
+    .application-pagination,
+    .picker-pages,
+    .publication-pagination,
+    .device-pagination,
+    .protocol-pagination,
+    .alert-config-pagination
+  ) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  color: #607086;
+  font-size: 13px;
+}
+body.refined-workspace
+  .workspace
+  main.content
+  :is(
+    .pagination,
+    .application-pagination,
+    .picker-pages,
+    .publication-pagination,
+    .device-pagination,
+    .protocol-pagination,
+    .alert-config-pagination
+  )
+  button {
+  min-height: 34px;
+  padding: 6px 11px;
+}
+body.refined-workspace .workspace main.content table th {
+  font-size: 13px;
+}
+body.refined-workspace
+  .workspace
+  main.content
+  table
+  td
+  :is(button, button.outline) {
+  min-height: 32px;
+  padding: 5px 10px;
+  background: #edf3ff;
+  color: #315bb7;
+  border-color: transparent;
+  border-radius: 6px;
+}
+body.refined-workspace .workspace main.content table td button.danger {
+  background: #fff2ef;
+  color: #b42318;
+}
+body.refined-workspace .workspace main.content table td button:disabled {
+  background: #f2f4f8;
+  color: #8794a7;
+}
+body.refined-workspace
+  .workspace
+  main.content
+  :is(.badge, .tag, .green, .yellow, .red) {
+  font-size: 12px;
+  line-height: 1.7;
+  border-radius: 5px;
+}
+body.refined-workspace .workspace main.content p.empty {
+  padding: 28px 20px;
+  border: 1px dashed #dce4ef;
+  border-radius: 8px;
+  background: #fafcff;
+  color: #65768e;
+  font-size: 14px;
+  line-height: 1.8;
+}
+body.refined-workspace .error[role="alert"] {
+  border: 1px solid #f0d2cd;
+  border-left: 3px solid #c5584b;
+  border-radius: 8px;
+  background: #fff6f4;
+  padding: 12px 15px;
+  color: #a23429;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+body.refined-workspace .workspace main.content summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  min-height: 42px;
+  color: #526987;
+}
+body.refined-workspace .workspace main.content summary::-webkit-details-marker {
+  display: none;
+}
+body.refined-workspace .workspace main.content summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: 4px;
+  border: solid #8394ab;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+body.refined-workspace .workspace main.content details[open] > summary::after {
+  transform: rotate(225deg);
+}
+
+body.refined-workspace .workspace .business-form.rating-station-selection {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+body.refined-workspace .workspace .rating-station-selection .station-picker {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+body.refined-workspace .workspace .rating-material-card {
+  background: #fff;
+  border-color: #dfe6f0;
+  border-radius: 10px;
+  padding: 18px;
+}
+body.refined-workspace .workspace .rating-material-card h4 {
+  margin-bottom: 0;
+  font-size: 14px;
+}
+body.refined-workspace .workspace .rating-material-card > div:first-child {
+  margin-bottom: 14px;
+}
+body.refined-workspace
+  .workspace
+  .rating-material-card
+  > div:first-child
+  > span {
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 12px;
+  white-space: nowrap;
+  background: #f2f5f9;
+}
+body.refined-workspace .workspace .rating-material-card label {
+  color: #607086;
+}
+body.refined-workspace .workspace .rating-material-card p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+@media (max-width: 767px) {
+  body.refined-workspace .workspace .business-form.rating-station-selection {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  body.refined-workspace
+    .workspace
+    main.content
+    :is(input, select, textarea):where(
+      :not([type="checkbox"]):not([type="radio"]):not([type="file"])
+    ) {
+    font-size: 16px;
+    min-height: 44px;
+    max-width: 100%;
+  }
+  body.refined-workspace .workspace main.content button {
+    min-height: 42px;
+  }
+  body.refined-workspace .rong-file-picker {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+  body.refined-workspace .rong-file-name {
+    flex-basis: 100%;
+  }
+  body.refined-workspace .rong-file-trigger {
+    min-height: 40px;
+  }
+}
+@media (forced-colors: active) {
+  body.refined-workspace select:not([multiple]),
+  body.refined-workspace
+    .prototype-workspace
+    .workspace
+    select:not([multiple]) {
+    appearance: auto;
+    background-image: none;
+  }
+  body.refined-workspace .rong-file-picker:focus-within {
+    outline-color: Highlight;
+  }
+  body.refined-workspace .rong-file-trigger {
+    border-color: ButtonText;
+    color: ButtonText;
+  }
+}
+
+body.refined-workspace .workspace main.content button[aria-pressed="true"] {
+  color: #315fd4;
+  background-color: #edf3ff;
+  border-color: #cbdaf6;
+}
+body.refined-workspace
+  .workspace
+  main.content
+  :is(.application-filters, .directory-filters, .business-form)
+  label {
+  font-size: 13px;
+}
+body.refined-workspace .workspace .rating-intake-heading {
+  padding-bottom: 6px;
+}
+body.refined-workspace .workspace .business-form.rating-station-selection {
+  padding-top: 12px;
+  padding-bottom: 16px;
+}
+body.refined-workspace .rong-file-picker[data-selected="true"] {
+  border-style: solid;
+  border-color: #cbdaf2;
+}
+body.refined-workspace .rong-file-picker[data-selected="true"] .rong-file-name {
+  color: #334b70;
+}
+
+@media (max-width: 767px) {
+  body.refined-workspace .prototype-workspace .metrics article {
+    min-width: 0;
+  }
+  body.refined-workspace .prototype-workspace .metrics strong {
+    overflow-wrap: anywhere;
+  }
+  body.refined-workspace
+    .workspace
+    main.content
+    :is(input, select, textarea):where(
+      :not([type="checkbox"]):not([type="radio"]):not([type="file"])
+    ) {
+    min-width: 0;
+  }
+}
+@media (max-width: 600px) {
+  body.refined-workspace .prototype-workspace .statistics-workspace .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+body.refined-workspace .workspace .rating-intake-submit > button.primary {
+  width: auto;
+  min-width: 144px;
+  margin-top: 0;
+}
+@media (max-width: 600px) {
+  body.refined-workspace .workspace .rating-intake-submit > button.primary {
+    width: 100%;
+  }
+}

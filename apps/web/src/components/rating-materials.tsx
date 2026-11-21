@@ -1,4 +1,5 @@
 "use client";
+import { FilePicker } from "./ui/file-picker";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { useEffect, useRef, useState } from "react";
 import { usePageRefresh } from "./page-refresh";
@@ -203,7 +204,7 @@ export function RatingMaterials({
       {editable && (
         <label>
           上传评星材料
-          <input
+          <FilePicker
             aria-label="上传评星材料"
             type="file"
             accept="image/png,image/jpeg,application/pdf,.zip,.rar"

@@ -1,4 +1,5 @@
 "use client";
+import { FilePicker } from "./ui/file-picker";
 export const ratingMaterialCategories = {
   inspection_report: "第三方检测报告",
   site_plan: "站点平面图",
@@ -34,7 +35,8 @@ export function RatingIntakeMaterials({
             </div>
             <label>
               选择{label}
-              <input
+              <FilePicker
+                selection={files[category] ? [files[category]] : []}
                 aria-label={`填报-${category}`}
                 disabled={disabled}
                 type="file"
@@ -62,7 +64,6 @@ export function RatingIntakeMaterials({
             </label>
             {files[category] && (
               <p>
-                {files[category].name} ·{" "}
                 {Math.ceil(files[category].size / 1024)}KB{" "}
                 <button
                   type="button"
