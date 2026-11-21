@@ -6,6 +6,21 @@ import {
   FolderOpen,
   FileText,
   Search,
+  LayoutDashboard,
+  Building2,
+  ShieldCheck,
+  WalletCards,
+  BellRing,
+  Award,
+  ChartNoAxesCombined,
+  UsersRound,
+  Newspaper,
+  ScrollText,
+  Cable,
+  ListTodo,
+  ClipboardList,
+  ReceiptText,
+  BadgeCheck,
 } from "lucide-react";
 export type AlertWorkspaceView =
   "events" | "rules" | "sources" | "notifications";
@@ -35,14 +50,32 @@ const item = (
   ...(view ? { view } : {}),
   ...(children?.length ? { children } : {}),
 });
+const domainIcons: Record<string, typeof Folder> = {
+  全域监管: LayoutDashboard,
+  场站信息管理: Building2,
+  智慧安全监管: ShieldCheck,
+  补贴管理: WalletCards,
+  预警中心: BellRing,
+  星级评价管理: Award,
+  统计分析: ChartNoAxesCombined,
+  权限管理: UsersRound,
+  信息发布: Newspaper,
+  操作日志: ScrollText,
+  监管协议开发: Cable,
+  接入汇总: LayoutDashboard,
+  待办事项: ListTodo,
+  接入申请: ClipboardList,
+  补贴申报: ReceiptText,
+  星级站申报: BadgeCheck,
+};
 const group = (label: string, items: NavigationItem[]): NavigationGroup => ({
   label,
-  icon: Folder,
+  icon: domainIcons[label] ?? Folder,
   items,
 });
 const standalone = (entry: NavigationItem): NavigationGroup => ({
   label: entry.label,
-  icon: FileText,
+  icon: domainIcons[entry.label] ?? FileText,
   items: [],
   entry,
 });
@@ -296,13 +329,14 @@ export function WorkspaceNavigation({
   }, [opened]);
   const toggle = (key: string, button: HTMLButtonElement, count: number) => {
     const rect = button.getBoundingClientRect();
+    const container = button.closest(".navigation-flyout") ?? root.current;
     triggers.current[key] = button;
     setAnchors((current) => ({
       ...current,
       [key]: {
         left: Math.max(
           rect.right + 6,
-          (root.current?.getBoundingClientRect().right ?? 0) + 6,
+          (container?.getBoundingClientRect().right ?? 0) + 6,
         ),
         top: Math.max(
           76,
@@ -390,6 +424,7 @@ export function WorkspaceNavigation({
       >
         {matches.map((g) => {
           const expanded = !!search || opened.includes(g.label);
+          const Icon = g.icon === Folder && expanded ? FolderOpen : g.icon;
           const active = flattenNavigation([g]).some((i) =>
             navigationMatches(i, tab, alertView, view),
           );
@@ -404,7 +439,7 @@ export function WorkspaceNavigation({
                   aria-current={active ? "page" : undefined}
                   onClick={() => navigate(g.entry!)}
                 >
-                  <FileText size={17} />
+                  <Icon size={17} aria-hidden="true" />
                   <span>{g.label}</span>
                 </button>
               </section>
@@ -422,7 +457,7 @@ export function WorkspaceNavigation({
                   toggle(g.label, e.currentTarget, g.items.length)
                 }
               >
-                {expanded ? <FolderOpen size={17} /> : <Folder size={17} />}
+                <Icon size={17} aria-hidden="true" />
                 <span>{g.label}</span>
                 <ChevronRight size={14} />
               </button>
