@@ -334,7 +334,7 @@ export function DashboardOperations({
           )}
           {data.energy_trend !== null && (
             <section
-              className="operations-observations"
+              className="operations-observations operations-energy-trends"
               aria-label="最近12个月日电量趋势"
             >
               <h3>最近12个月日电量观测</h3>
