@@ -657,3 +657,56 @@ body.refined-workspace
     padding-inline: 4px;
   }
 }
+
+/* Align the text edges of titled cards while keeping the table background full width. */
+body.refined-workspace
+  .prototype-workspace
+  :where(
+    .panel:has(> .panel-title):not(.station-ranking)
+      > :is(.table-wrap, .table-scroll),
+    .panel > details.statistics-detail > .table-wrap,
+    .prototype-indicator-catalogue > section > .table-wrap
+  )
+  > table
+  > :is(thead, tbody)
+  > tr
+  > :is(th, td):first-child {
+  padding-inline-start: var(--panel-content-inset);
+}
+body.refined-workspace
+  .prototype-workspace
+  :where(
+    .panel:has(> .panel-title):not(.station-ranking)
+      > :is(.table-wrap, .table-scroll),
+    .panel > details.statistics-detail > .table-wrap,
+    .prototype-indicator-catalogue > section > .table-wrap
+  )
+  > table
+  > :is(thead, tbody)
+  > tr
+  > :is(th, td):last-child {
+  padding-inline-end: var(--panel-content-inset);
+}
+body.refined-workspace .prototype-workspace .panel > .table-note {
+  margin: 0;
+  padding: 16px var(--panel-content-inset) 18px;
+}
+body.refined-workspace
+  .prototype-workspace
+  details.statistics-detail:has(> .table-wrap) {
+  padding-inline: 0;
+}
+body.refined-workspace
+  .prototype-workspace
+  details.statistics-detail:has(> .table-wrap)
+  > summary {
+  margin-inline: var(--panel-content-inset);
+}
+
+body.refined-workspace
+  .prototype-workspace
+  .prototype-collaboration
+  td:first-child
+  > input[type="checkbox"] {
+  margin-inline-start: 0;
+}

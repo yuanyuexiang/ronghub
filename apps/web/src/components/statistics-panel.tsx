@@ -324,7 +324,7 @@ export function StatisticsPanel({ role }: { role: string }) {
               </div>
             </div>
             <div className="table-wrap">
-              <table>
+              <table className="aligned-records">
                 <thead>
                   <tr>
                     {[
@@ -336,8 +336,17 @@ export function StatisticsPanel({ role }: { role: string }) {
                       "区间观测电量 kWh",
                       "建站数量同比 / 环比",
                       "额定功率同比 / 环比",
-                    ].map((name) => (
-                      <th key={name}>{name}</th>
+                    ].map((name, column) => (
+                      <th
+                        key={name}
+                        className={
+                          column >= 2 && column <= 5
+                            ? "numeric-cell"
+                            : undefined
+                        }
+                      >
+                        {name}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -346,10 +355,10 @@ export function StatisticsPanel({ role }: { role: string }) {
                     <tr key={row.key}>
                       <td>{index + 1}</td>
                       <td>{row.name}</td>
-                      <td>{row.station_count}</td>
-                      <td>{row.connectors}</td>
-                      <td>{row.power_kw}</td>
-                      <td>{row.kwh ?? "暂无观测"}</td>
+                      <td className="numeric-cell">{row.station_count}</td>
+                      <td className="numeric-cell">{row.connectors}</td>
+                      <td className="numeric-cell">{row.power_kw}</td>
+                      <td className="numeric-cell">{row.kwh ?? "暂无观测"}</td>
                       <td>待历史建站快照</td>
                       <td>待历史功率快照</td>
                     </tr>
@@ -360,7 +369,7 @@ export function StatisticsPanel({ role }: { role: string }) {
                 <p className="empty">当前授权范围暂无场站</p>
               )}
             </div>
-            <p className="muted">
+            <p className="muted table-note">
               历史建站增量、同比环比与实际用电功率须有对应历史及计量来源后计算，当前不以零代替缺失数据。
             </p>
           </section>
@@ -488,13 +497,13 @@ export function StatisticsPanel({ role }: { role: string }) {
               <details className="statistics-detail">
                 <summary>查看周期观测与比较明细</summary>
                 <div className="table-wrap">
-                  <table>
+                  <table className="aligned-records">
                     <thead>
                       <tr>
                         <th>周期 / 实际日期</th>
-                        <th>电量kWh</th>
-                        <th>记录数</th>
-                        <th>有记录 / 应有场站日</th>
+                        <th className="numeric-cell">电量kWh</th>
+                        <th className="numeric-cell">记录数</th>
+                        <th className="numeric-cell">有记录 / 应有场站日</th>
                         <th>同比观测变化</th>
                         <th>环比观测变化</th>
                       </tr>
@@ -509,9 +518,11 @@ export function StatisticsPanel({ role }: { role: string }) {
                               · {d.start_date} 至 {d.end_date}
                             </small>
                           </td>
-                          <td>{d.kwh ?? "暂无数据"}</td>
-                          <td>{d.records}</td>
-                          <td>
+                          <td className="numeric-cell">
+                            {d.kwh ?? "暂无数据"}
+                          </td>
+                          <td className="numeric-cell">{d.records}</td>
+                          <td className="numeric-cell">
                             {d.station_days} / {d.expected_station_days}
                           </td>
                           <td>
@@ -542,7 +553,7 @@ export function StatisticsPanel({ role }: { role: string }) {
                 </div>
               </div>
               <div className="table-wrap">
-                <table>
+                <table className="aligned-records">
                   <thead>
                     <tr>
                       {[
@@ -551,8 +562,13 @@ export function StatisticsPanel({ role }: { role: string }) {
                         "接口数",
                         "总功率kW",
                         "观测电量kWh",
-                      ].map((h) => (
-                        <th key={h}>{h}</th>
+                      ].map((heading, column) => (
+                        <th
+                          key={heading}
+                          className={column > 0 ? "numeric-cell" : undefined}
+                        >
+                          {heading}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -560,10 +576,10 @@ export function StatisticsPanel({ role }: { role: string }) {
                     {data.dimension_ranking.map((s) => (
                       <tr key={s.key}>
                         <td>{s.name}</td>
-                        <td>{s.station_count}</td>
-                        <td>{s.connectors}</td>
-                        <td>{s.power_kw}</td>
-                        <td>{s.kwh ?? "暂无数据"}</td>
+                        <td className="numeric-cell">{s.station_count}</td>
+                        <td className="numeric-cell">{s.connectors}</td>
+                        <td className="numeric-cell">{s.power_kw}</td>
+                        <td className="numeric-cell">{s.kwh ?? "暂无数据"}</td>
                       </tr>
                     ))}
                   </tbody>

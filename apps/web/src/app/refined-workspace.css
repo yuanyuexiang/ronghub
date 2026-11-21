@@ -7,6 +7,7 @@ body.refined-workspace {
   --civic-border: #e5eaf1;
   --civic-canvas: #f5f7fb;
   --civic-radius: 12px;
+  --panel-content-inset: 24px;
 }
 body.refined-workspace .prototype-workspace .workspace-sidebar {
   background: #14243a;
@@ -208,7 +209,7 @@ body.refined-workspace .prototype-workspace .panel {
   box-shadow: 0 4px 16px #233e6505;
 }
 body.refined-workspace .prototype-workspace .panel-title {
-  padding: 23px 24px 18px;
+  padding: 23px var(--panel-content-inset) 18px;
 }
 body.refined-workspace .prototype-workspace .panel h2 {
   font-size: 16px;
