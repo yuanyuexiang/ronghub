@@ -152,14 +152,14 @@ export function NoticeRecords({
           {data && (
             <>
               <div className="table-wrap">
-                <table>
+                <table className="aligned-records">
                   <thead>
                     <tr>
                       <th>记录 / 通知</th>
                       <th>收件企业快照</th>
                       <th>计划生效时间（北京时间）</th>
                       <th>站内状态</th>
-                      <th>企业回复</th>
+                      <th className="numeric-cell">企业回复</th>
                       <th>操作</th>
                     </tr>
                   </thead>
@@ -177,7 +177,7 @@ export function NoticeRecords({
                           })}
                         </td>
                         <td>{states[row.state]}</td>
-                        <td>{row.reply_count}条</td>
+                        <td className="numeric-cell">{row.reply_count}条</td>
                         <td>
                           <button
                             type="button"

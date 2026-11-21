@@ -437,7 +437,7 @@ export function AlertPanel({
               </p>
             )}
             <div className="table-wrap">
-              <table>
+              <table className="aligned-records">
                 <thead>
                   <tr>
                     {[
@@ -450,7 +450,16 @@ export function AlertPanel({
                       "最近观测",
                       "操作",
                     ].map((h) => (
-                      <th key={h}>{h}</th>
+                      <th
+                        key={h}
+                        className={
+                          h === "累计异常样本" || h === "最后值"
+                            ? "numeric-cell"
+                            : undefined
+                        }
+                      >
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -474,8 +483,8 @@ export function AlertPanel({
                         </em>
                         {e.acknowledged_at && <span>已人工确认</span>}
                       </td>
-                      <td>{e.occurrences}</td>
-                      <td>
+                      <td className="numeric-cell">{e.occurrences}</td>
+                      <td className="numeric-cell">
                         {e.last_value} {e.rule_snapshot.unit}
                       </td>
                       <td>
@@ -664,7 +673,7 @@ export function AlertPanel({
             )}
           </div>
           <div className="table-wrap">
-            <table>
+            <table className="aligned-records">
               <thead>
                 <tr>
                   {[
@@ -674,7 +683,16 @@ export function AlertPanel({
                     "恢复阈值 ≤",
                     "站内通知",
                   ].map((h) => (
-                    <th key={h}>{h}</th>
+                    <th
+                      key={h}
+                      className={
+                        h === "触发阈值 ≥" || h === "恢复阈值 ≤"
+                          ? "numeric-cell"
+                          : undefined
+                      }
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -690,8 +708,8 @@ export function AlertPanel({
                     <td>
                       {r.metric} / {r.unit}
                     </td>
-                    <td>{r.trigger_value}</td>
-                    <td>{r.recover_value}</td>
+                    <td className="numeric-cell">{r.trigger_value}</td>
+                    <td className="numeric-cell">{r.recover_value}</td>
                     <td>{r.notifications_enabled ? "开启" : "关闭"}</td>
                   </tr>
                 ))}

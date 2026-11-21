@@ -195,7 +195,7 @@ export function SubsidyLedger({
         </p>
       )}
       <div className="table-wrap">
-        <table>
+        <table className="aligned-records">
           <thead>
             <tr>
               {[
@@ -210,7 +210,16 @@ export function SubsidyLedger({
                 "状态",
                 "操作",
               ].map((s) => (
-                <th key={s}>{s}</th>
+                <th
+                  key={s}
+                  className={
+                    s === "汇算补贴（元）" || s === "核定补贴（元）"
+                      ? "numeric-cell"
+                      : undefined
+                  }
+                >
+                  {s}
+                </th>
               ))}
             </tr>
           </thead>
@@ -229,8 +238,8 @@ export function SubsidyLedger({
                   {row.operator_name}
                   <small>{row.station_name}</small>
                 </td>
-                <td>{row.base_amount}</td>
-                <td>{row.adjusted_amount}</td>
+                <td className="numeric-cell">{row.base_amount}</td>
+                <td className="numeric-cell">{row.adjusted_amount}</td>
                 <td>未留存</td>
                 <td>{time(row.recorded_disbursement_at)}</td>
                 <td>

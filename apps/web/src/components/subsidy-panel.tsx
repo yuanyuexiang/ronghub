@@ -513,7 +513,7 @@ export function SubsidyPanel({
             </>
           )}
           <div className="table-wrap">
-            <table className="subsidy-claims-table">
+            <table className="aligned-records subsidy-claims-table">
               <colgroup>
                 {canBatch && <col style={{ width: "5%" }} />}
                 <col style={{ width: "9%" }} />
@@ -540,7 +540,18 @@ export function SubsidyPanel({
                     "状态",
                     "操作",
                   ].map((h) => (
-                    <th key={h}>{h}</th>
+                    <th
+                      key={h}
+                      className={
+                        h === "有效电量" ||
+                        h === "核算金额" ||
+                        h === "调整后金额"
+                          ? "numeric-cell"
+                          : undefined
+                      }
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -582,9 +593,9 @@ export function SubsidyPanel({
                       </span>
                     </td>
                     <td>{submissionTime(c.last_submitted_at)}</td>
-                    <td>{c.total_kwh}</td>
-                    <td>¥ {c.base_amount}</td>
-                    <td>¥ {c.adjusted_amount}</td>
+                    <td className="numeric-cell">{c.total_kwh}</td>
+                    <td className="numeric-cell">¥ {c.base_amount}</td>
+                    <td className="numeric-cell">¥ {c.adjusted_amount}</td>
                     <td>
                       <em
                         className={

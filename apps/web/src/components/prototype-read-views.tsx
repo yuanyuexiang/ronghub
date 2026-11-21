@@ -584,7 +584,7 @@ function StationRanking({
       onPage(Math.max(1, Math.ceil(data.total / 5)));
   }, [data, page, onPage]);
   return (
-    <section className="panel" aria-label="昨日电量排名">
+    <section className="panel station-ranking" aria-label="昨日电量排名">
       <div className="panel-title">
         <div>
           <h2>充电站排名</h2>
@@ -593,13 +593,17 @@ function StationRanking({
       </div>
       <Feedback error={error} loading={loading} />
       <div className="table-wrap">
-        <table>
+        <table className="aligned-records">
           <thead>
             <tr>
               <th>排名</th>
               <th>场站名称</th>
-              <th>今日电量（度）</th>
-              <th>昨日电量（度）</th>
+              <th className="numeric-cell">
+                今日电量<span className="station-ranking-unit">（度）</span>
+              </th>
+              <th className="numeric-cell">
+                昨日电量<span className="station-ranking-unit">（度）</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -608,16 +612,21 @@ function StationRanking({
                 <td>{(page - 1) * 5 + i + 1}</td>
                 <td>
                   {r.station_name}
-                  <small className="station-address">{r.source}</small>
+                  <small
+                    className="station-address station-ranking-source"
+                    title={r.source}
+                  >
+                    {r.source}
+                  </small>
                 </td>
-                <td>
+                <td className="numeric-cell">
                   {r.today_kwh == null
                     ? "未观测"
                     : r.today_kwh
                         .replace(/(\.\d*?)0+$/, "$1")
                         .replace(/\.$/, "")}
                 </td>
-                <td>
+                <td className="numeric-cell">
                   {r.yesterday_kwh == null
                     ? "未观测"
                     : r.yesterday_kwh

@@ -705,7 +705,7 @@ export function RatingPanel({
             busy={queue.loading || busy}
           />
           <div className="table-wrap">
-            <table>
+            <table className="aligned-records">
               <thead>
                 <tr>
                   {[
@@ -718,7 +718,12 @@ export function RatingPanel({
                     "状态 / 有效期",
                     "操作",
                   ].map((h) => (
-                    <th key={h}>{h}</th>
+                    <th
+                      key={h}
+                      className={h === "评审分数" ? "numeric-cell" : undefined}
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -735,7 +740,9 @@ export function RatingPanel({
                       </small>
                     </td>
                     <td>{submissionTime(a.last_submitted_at)}</td>
-                    <td>{a.calculation.total ?? "数据未齐"}</td>
+                    <td className="numeric-cell">
+                      {a.calculation.total ?? "数据未齐"}
+                    </td>
                     <td>
                       {a.status === "superseded"
                         ? `原评定${a.calculation.stars ?? "待核实"}星 · 已替代`

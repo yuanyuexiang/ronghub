@@ -241,7 +241,7 @@ export function RatingCollaboration({
         </p>
       )}
       <div className="table-wrap">
-        <table>
+        <table className="aligned-records">
           <thead>
             <tr>
               {[
@@ -254,7 +254,12 @@ export function RatingCollaboration({
                 "有效期至",
                 "操作",
               ].map((s) => (
-                <th key={s}>{s}</th>
+                <th
+                  key={s}
+                  className={s === "当前星级" ? "numeric-cell" : undefined}
+                >
+                  {s}
+                </th>
               ))}
             </tr>
           </thead>
@@ -300,7 +305,9 @@ export function RatingCollaboration({
                     appealed: "申诉中",
                   }[row.status] ?? row.status}
                 </td>
-                <td>{row.effective_stars ?? "未确认"}</td>
+                <td className="numeric-cell">
+                  {row.effective_stars ?? "未确认"}
+                </td>
                 <td>{row.valid_until ?? "未确认"}</td>
                 <td>
                   <button

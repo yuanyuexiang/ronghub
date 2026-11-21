@@ -559,3 +559,101 @@ body.refined-workspace
     padding: 16px;
   }
 }
+
+/* Keep record fields on the same first line when a neighboring field wraps. */
+body.refined-workspace
+  .prototype-workspace
+  table.aligned-records
+  > tbody
+  > tr
+  > td {
+  vertical-align: top;
+}
+body.refined-workspace
+  .prototype-workspace
+  table.aligned-records
+  .numeric-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+body.refined-workspace .prototype-workspace .station-ranking {
+  --ranking-gutter: 24px;
+}
+body.refined-workspace .prototype-workspace .station-ranking > .panel-title {
+  padding-inline: var(--ranking-gutter);
+}
+@media (max-width: 359px) {
+  body.refined-workspace .prototype-workspace .station-ranking {
+    --ranking-gutter: 12px;
+  }
+}
+body.refined-workspace .prototype-workspace .station-ranking table {
+  table-layout: auto;
+}
+body.refined-workspace .prototype-workspace .station-ranking table :is(th, td) {
+  padding-block: 10px;
+  vertical-align: top;
+}
+body.refined-workspace
+  .prototype-workspace
+  .station-ranking
+  table
+  :is(th, td):first-child {
+  width: 1%;
+  padding-inline-start: var(--ranking-gutter);
+  white-space: nowrap;
+}
+body.refined-workspace
+  .prototype-workspace
+  .station-ranking
+  table
+  th:nth-child(2) {
+  width: auto;
+  min-width: 105px;
+}
+body.refined-workspace .prototype-workspace .station-ranking .numeric-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+body.refined-workspace
+  .prototype-workspace
+  .station-ranking
+  table
+  :is(th, td):last-child {
+  padding-inline-end: var(--ranking-gutter);
+}
+body.refined-workspace .prototype-workspace .station-ranking-unit {
+  display: block;
+  color: var(--control-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+body.refined-workspace .prototype-workspace .station-ranking-source {
+  contain: inline-size;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.refined-workspace
+  .prototype-workspace
+  .station-ranking
+  .publication-pagination {
+  padding-inline: var(--ranking-gutter);
+}
+body.refined-workspace
+  .prototype-workspace
+  .notice-records
+  table.aligned-records {
+  min-width: 680px;
+}
+
+@media (max-width: 359px) {
+  body.refined-workspace
+    .prototype-workspace
+    .station-ranking
+    table
+    :is(th, td) {
+    padding-inline: 4px;
+  }
+}

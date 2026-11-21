@@ -1137,7 +1137,7 @@ export default function Home() {
                       </form>
                     </div>
                     <div className="table-wrap">
-                      <table>
+                      <table className="aligned-records">
                         <thead>
                           <tr>
                             {[
@@ -1149,7 +1149,16 @@ export default function Home() {
                               "数据来源",
                               "操作",
                             ].map((x) => (
-                              <th key={x}>{x}</th>
+                              <th
+                                key={x}
+                                className={
+                                  x === "充电接口" || x === "装机功率"
+                                    ? "numeric-cell"
+                                    : undefined
+                                }
+                              >
+                                {x}
+                              </th>
                             ))}
                           </tr>
                         </thead>
@@ -1173,8 +1182,8 @@ export default function Home() {
                                   {states[s.status] || s.status}
                                 </em>
                               </td>
-                              <td>{s.connectors}</td>
-                              <td>{s.power_kw} kW</td>
+                              <td className="numeric-cell">{s.connectors}</td>
+                              <td className="numeric-cell">{s.power_kw} kW</td>
                               <td>模拟适配器</td>
                               <td>
                                 <button
