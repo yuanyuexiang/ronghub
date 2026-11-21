@@ -374,7 +374,7 @@ try {
     if(!legacyStandard || legacyStandard.activation_state!=='legacy_unknown' || legacyStandard.effective_on!==null || legacyStandard.rules.indicator_status_version!=null || legacyStandard.rules.indicators.some(indicator=>indicator.enabled!=null)) throw new Error('Legacy indicator dates were invented');
     await navigateWorkspace(page, username==='association'?'评价标准管理':'评价标准查看');
     await page.getByText(`查看指标配置 ${legacyStandard.name} V1`,{exact:true}).click();
-    await expect(page.getByText(/整版生效：历史日期未留存/).first()).toBeVisible();
+    await expect(page.getByText(/整版生效：历史日期未留存/).filter({visible:true}).first()).toBeVisible();
     const standardDrafts=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/ratings/standard-drafts');
     const archivedStandards=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/ratings/standards?include_archived=TRUE');
     if(standardDrafts.status()!==(username==='association'?200:403) || archivedStandards.status()!==(username==='association'?200:403)) throw new Error('Standard draft manager role ceiling failed');
