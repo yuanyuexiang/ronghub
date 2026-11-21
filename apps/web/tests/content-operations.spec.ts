@@ -114,9 +114,14 @@ test("content batch keeps cross-page versions, preserves deleted history and exp
     expect(exported.status()).toBe(200);
     expect((await exported.text()).trim().split(/\r?\n/)).toHaveLength(27);
     expect(await exported.text()).not.toContain("通知批量流程核查正文");
-    await page
-      .getByRole("button", { name: "展开通知记录", exact: true })
-      .click();
+    if (
+      await page
+        .getByRole("button", { name: "展开通知记录", exact: true })
+        .isVisible()
+    )
+      await page
+        .getByRole("button", { name: "展开通知记录", exact: true })
+        .click();
     await page.getByLabel("通知记录关键词", { exact: true }).fill(fixture.name);
     await page
       .getByRole("button", { name: "查询通知记录", exact: true })

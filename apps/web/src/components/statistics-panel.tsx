@@ -1,6 +1,7 @@
 "use client";
 import { useBusinessView } from "./business-view-context";
 import { WorkspaceViews } from "./business-workspace";
+import { QualityPanel } from "./quality-panel";
 import { RuntimePanel } from "./runtime-panel";
 import { ChargingSubsidyReport } from "./charging-subsidy-report";
 import { usePageRefresh } from "./page-refresh";
@@ -141,7 +142,15 @@ export function StatisticsPanel({ role }: { role: string }) {
         ]}
       />
       <div hidden={view !== "utilization"}>
-        {role !== "association" && <RuntimePanel />}
+        {role !== "association" && (
+          <>
+            <QualityPanel purpose="utilization" />
+            <details className="prototype-related">
+              <summary>单对象历史运行</summary>
+              <RuntimePanel />
+            </details>
+          </>
+        )}
       </div>
       <div style={{ display: combined ? "block" : "none" }}>
         <ChargingSubsidyReport />
@@ -296,7 +305,7 @@ export function StatisticsPanel({ role }: { role: string }) {
             </p>
           )}
         </section>
-        {data && view !== "energy" && (
+        {data && !["energy", "power"].includes(view) && (
           <section className="panel">
             <div className="panel-title">
               <div>
@@ -317,24 +326,30 @@ export function StatisticsPanel({ role }: { role: string }) {
                 <thead>
                   <tr>
                     {[
+                      "序号",
                       dimensions[data.dimension],
                       "当前场站数",
                       "当前接口数",
                       "台账额定功率 kW",
                       "区间观测电量 kWh",
+                      "建站数量同比 / 环比",
+                      "额定功率同比 / 环比",
                     ].map((name) => (
                       <th key={name}>{name}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {data.dimension_ranking.map((row) => (
+                  {data.dimension_ranking.map((row, index) => (
                     <tr key={row.key}>
+                      <td>{index + 1}</td>
                       <td>{row.name}</td>
                       <td>{row.station_count}</td>
                       <td>{row.connectors}</td>
                       <td>{row.power_kw}</td>
                       <td>{row.kwh ?? "暂无观测"}</td>
+                      <td>待历史建站快照</td>
+                      <td>待历史功率快照</td>
                     </tr>
                   ))}
                 </tbody>
@@ -349,7 +364,10 @@ export function StatisticsPanel({ role }: { role: string }) {
           </section>
         )}
         {data && (
-          <div className="business-stack" hidden={view !== "energy"}>
+          <div
+            className="business-stack"
+            hidden={!["energy", "power"].includes(view)}
+          >
             <section className="metrics">
               {[
                 ["授权场站", data.station_count, "个"],

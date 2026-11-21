@@ -41,6 +41,7 @@ test("workbench shows scoped stock and independent periods while refresh keeps a
       contexts.map((context) => context.newPage()),
     );
     await login(own, "operator_a");
+    await own.getByText("经营观测与接入记录", { exact: true }).click();
     const panel = own.getByLabel("运营周期总览", { exact: true });
     await own.getByLabel("总览观测周期", { exact: true }).selectOption("month");
     await own.getByLabel("总览周期日期", { exact: true }).fill("2026-11-15");

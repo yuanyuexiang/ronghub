@@ -49,7 +49,10 @@ async function read<T>(
   if (!result.data) throw new Error(apiError(result.error, "地图数据读取失败"));
   return result.data;
 }
-export function StationMapPanel() {
+export function StationMapPanel({
+  compact = false,
+}: { compact?: boolean } = {}) {
+  const FilterContainer = compact ? "details" : "section";
   const [classifications, setClassifications] = useState<
     Partial<ApiSchemas["MapClassifications"]>
   >({});
@@ -244,7 +247,8 @@ export function StationMapPanel() {
   }
   return (
     <div className="business-stack map-page">
-      <section className="panel map-filter-panel">
+      <FilterContainer className="panel map-filter-panel">
+        {compact && <summary>筛选地图与场站</summary>}
         <div className="panel-title">
           <div>
             <h2>地图概览</h2>
@@ -431,28 +435,30 @@ export function StationMapPanel() {
             {error}
           </p>
         )}
-      </section>
-      <section className="map-overview-cards" aria-label="地图查询概况">
-        {[
-          ["筛选场站", data?.matching, "按已查询条件统计"],
-          ["可定位场站", data?.mappable, "坐标已满足地图展示条件"],
-          ["当前视窗", data?.in_view, "随拖动与缩放更新"],
-          ["待定位 / 待适配", data?.unplottable, "保留原始数据，等待完善"],
-        ].map(([label, value, caption]) => (
-          <article key={String(label)}>
-            <span>{label}</span>
-            <strong>
-              {value ?? "—"}
-              <small>个</small>
-            </strong>
-            <p>{caption}</p>
-          </article>
-        ))}
-      </section>
+      </FilterContainer>
+      {!compact && (
+        <section className="map-overview-cards" aria-label="地图查询概况">
+          {[
+            ["筛选场站", data?.matching, "按已查询条件统计"],
+            ["可定位场站", data?.mappable, "坐标已满足地图展示条件"],
+            ["当前视窗", data?.in_view, "随拖动与缩放更新"],
+            ["待定位 / 待适配", data?.unplottable, "保留原始数据，等待完善"],
+          ].map(([label, value, caption]) => (
+            <article key={String(label)}>
+              <span>{label}</span>
+              <strong>
+                {value ?? "—"}
+                <small>个</small>
+              </strong>
+              <p>{caption}</p>
+            </article>
+          ))}
+        </section>
+      )}
       <section className="panel map-canvas-panel" ref={mapSectionRef}>
         <div className="panel-title">
           <div>
-            <h2>可视化一张图</h2>
+            <h2>{compact ? "场站分布地图" : "可视化一张图"}</h2>
             <p>
               {!hasBasemap
                 ? "坐标视图，尚未配置客户底图；不含道路或行政边界"

@@ -1,4 +1,6 @@
 "use client";
+import { SubsidyRuleOverview } from "./prototype-catalogues";
+import { DailyEnergyWorkspace } from "./prototype-read-views";
 import { SubsidyLedger } from "./subsidy-ledger";
 import { useBusinessView } from "./business-view-context";
 import {
@@ -286,6 +288,7 @@ export function SubsidyPanel({
               </button>
             )}
           </div>
+          <SubsidyRuleOverview policies={policies} />
           {showPolicy && globalScope && (
             <SubsidyPolicyForm
               busy={busy}
@@ -427,7 +430,7 @@ export function SubsidyPanel({
           <SubsidyStatistics />
         </div>
         <div className="record-pane" hidden={view !== "energy"}>
-          <SubsidyDeviceDays />
+          <DailyEnergyWorkspace />
         </div>
       </div>
       {recordsOnly && (

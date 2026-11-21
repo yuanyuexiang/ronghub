@@ -1,4 +1,6 @@
 "use client";
+import { StationDirectory } from "./station-directory";
+import { StationDetail } from "./station-detail";
 import { useBusinessView } from "./business-view-context";
 import { WorkspaceViews } from "./business-workspace";
 import { useRecordFocus } from "./use-record-focus";
@@ -19,6 +21,7 @@ type Query = {
   status: string;
   kind: string;
   application_id: string;
+  station_id: string;
   page: number;
 };
 const initialQuery: Query = {
@@ -26,6 +29,7 @@ const initialQuery: Query = {
   status: "",
   kind: "",
   application_id: "",
+  station_id: "",
   page: 1,
 };
 const text = (value: unknown, fallback: string) =>
@@ -62,6 +66,8 @@ export function ApplicationPanel({
   csrf: string;
   registerLeaveGuard?: (guard: (() => boolean) | null) => void;
 }) {
+  const [profileStation, setProfileStation] = useState<number | null>(null);
+  const [focusedStationName, setFocusedStationName] = useState("");
   const [applicationView, setApplicationView] = useBusinessView("all");
   const progressOnly = role === "operator" && applicationView === "progress";
   const canCreate = useCapability("applications.create"),
@@ -141,6 +147,9 @@ export function ApplicationPanel({
         params: {
           query: {
             q: target.q,
+            station_id: target.station_id
+              ? Number(target.station_id)
+              : undefined,
             status: target.status,
             kind: target.kind,
             application_id: target.application_id
@@ -277,6 +286,45 @@ export function ApplicationPanel({
   return (
     <section ref={workspaceRef} className="panel application-workspace">
       <div className="record-pane" hidden={!!detail}>
+        {role === "regulator" && canSource && (
+          <div
+            className="station-business-workspace"
+            aria-label="场站业务办理台账"
+          >
+            <StationDirectory
+              onOpen={setProfileStation}
+              actionMode={
+                ["commission", "decommission"].includes(applicationView)
+                  ? "operation"
+                  : "access"
+              }
+              onApplication={(station_id, name, kind) => {
+                const next = {
+                  ...initialQuery,
+                  station_id: String(station_id),
+                  kind,
+                };
+                setFocusedStationName(name);
+                setApplicationView(kind);
+                setDraft(next);
+                setQuery(next);
+              }}
+            />
+            {profileStation !== null && (
+              <StationDetail
+                stationId={profileStation}
+                onClose={() => setProfileStation(null)}
+              />
+            )}
+          </div>
+        )}
+        {focusedStationName && query.station_id && (
+          <p className="progress-readonly-note">
+            当前办理场站：{focusedStationName}
+            。以下按申请记录追溯与审核，投运/核销仍按现有申请审批办理。
+          </p>
+        )}
+
         <div hidden={progressOnly}>
           <WorkspaceViews
             keepVisible

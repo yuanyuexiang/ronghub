@@ -180,6 +180,7 @@ class EnergyStatistics(BaseModel):
 
 
 class RatingPublication(BaseModel):
+    station_type: str
     id: int
     station_id: int
     station_name: str

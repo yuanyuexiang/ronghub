@@ -112,6 +112,7 @@ test("operator only sees own enterprise stations", async ({ page }) => {
   await page.getByLabel("账号", { exact: true }).fill("operator_b");
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录平台" }).click();
+  await navigateWorkspace(page, "信息推送");
   await expect(page.getByText("演示·晋安便民充电站")).toBeVisible();
   await expect(page.getByText("演示·鼓楼公共充电站")).toHaveCount(0);
   await expect(

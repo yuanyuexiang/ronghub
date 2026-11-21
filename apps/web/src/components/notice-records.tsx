@@ -13,13 +13,15 @@ export function NoticeRecords({
   manage,
   onOpen,
   refreshKey = 0,
+  defaultExpanded = false,
 }: {
   manage: boolean;
   refreshKey?: number;
+  defaultExpanded?: boolean;
   onOpen: (id: number) => void;
 }) {
   const canExport = useCapability("content.export");
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [draft, setDraft] = useState({ q: "", state: "", replied: "" });
   const [query, setQuery] = useState({ ...draft, page: 1 });
   const [data, setData] = useState<ApiSchemas["NoticeRecordPage"] | null>(null);

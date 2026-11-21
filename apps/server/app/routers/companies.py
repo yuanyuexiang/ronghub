@@ -12,10 +12,10 @@ from sqlalchemy.exc import IntegrityError
 from app.company_contracts import CompanyDetail, CompanyList, CompanyProfile, CompanySummary
 from app.config import settings
 from app.dependencies import DB, Actor, SnapshotActor
-from app.models import Audit, Operator, User
+from app.models import Audit, Equipment, Operator, Station, User
 from app.reporting import SnapshotDB
 from app.routers.statistics import csv_cell
-from app.scopes import company_scope
+from app.scopes import company_scope, station_scope
 from app.sessions import revoke_users
 
 EXPORT_LIMIT = 10000
@@ -128,9 +128,30 @@ def listing(
     page: int = Query(1, ge=1),
 ):
     stmt = filtered(user, q, credit_code)
+    stock = station_scope(
+        select(Station.id, Station.operator_id).where(
+            Station.status.in_(["access_approved", "accepted", "operating"])
+        ),
+        user,
+    ).subquery()
+    counts = {
+        oid: (sites, devices)
+        for oid, sites, devices in db.execute(
+            select(
+                stock.c.operator_id, func.count(func.distinct(stock.c.id)), func.count(Equipment.id)
+            )
+            .select_from(stock)
+            .outerjoin(Equipment, Equipment.station_id == stock.c.id)
+            .group_by(stock.c.operator_id)
+        )
+    }
     return {
         "items": [
-            output(op)
+            {
+                **output(op),
+                "station_count": counts.get(op.id, (0, 0))[0],
+                "equipment_count": counts.get(op.id, (0, 0))[1],
+            }
             for op in db.scalars(stmt.order_by(Operator.id).offset((page - 1) * 20).limit(20))
         ],
         "total": db.scalar(select(func.count()).select_from(stmt.subquery())),

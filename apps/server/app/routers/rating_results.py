@@ -27,6 +27,7 @@ def publications(
     response: Response,
     q: str = Query(default="", max_length=100),
     result_state: str = "",
+    station_type: str = "",
     station_id: int | None = Query(default=None, ge=1, le=9223372036854775807),
     stars: int | None = Query(default=None, ge=0, le=5),
     page: int = Query(default=1, ge=1, le=2147483647),
@@ -42,6 +43,8 @@ def publications(
         "evaluating",
     }:
         raise HTTPException(422, "不支持的结果状态")
+    if station_type not in {"", "charging", "swapping", "mixed", "unknown"}:
+        raise HTTPException(422, "不支持的场站种类")
     response.headers["Cache-Control"] = "no-store"
     today = rating_results.local_day()
     ranked = (
@@ -88,6 +91,8 @@ def publications(
         .join(Operator, Operator.id == a.operator_id)
         .where(ranked.c.position == 1)
     )
+    if station_type:
+        stmt = stmt.where(Station.station_type == station_type)
     if station_id is not None:
         stmt = stmt.where(Station.id == station_id)
     if q.strip():
@@ -111,6 +116,7 @@ def publications(
             {
                 "id": app.id,
                 "station_id": station.id,
+                "station_type": station.station_type,
                 "station_name": station.name,
                 "operator_name": operator.name,
                 "district": station.district,

@@ -21,6 +21,10 @@ import { useCapability, useGlobalScope } from "./permissions";
 import { StationPicker } from "./station-picker";
 import { useEffect, useState } from "react";
 import { RatingPublications, resultStates } from "./rating-publications";
+import {
+  RatingIndicatorCatalogue,
+  RatingCollaboration,
+} from "./prototype-catalogues";
 import { RatingStationResults } from "./rating-station-results";
 import { RatingProcess } from "./rating-process";
 import { RatingDataSupport } from "./rating-data-support";
@@ -304,6 +308,13 @@ export function RatingPanel({
               </button>
             )}
           </div>
+          {view === "standards" && (
+            <RatingIndicatorCatalogue
+              standards={standards}
+              canManage={canStandards && globalScope && role === "association"}
+              onConfigure={() => setShowBuilder(true)}
+            />
+          )}
           {showBuilder && globalScope && (
             <RatingStandardWorkbench
               key={builderSeed?.id ?? "new"}
@@ -488,7 +499,8 @@ export function RatingPanel({
                   <div className="rating-intake-heading">
                     <h3>申报场站</h3>
                     <p>
-                      步骤 1 选择场站 → 步骤 2 整理材料 → 步骤 3 保存草稿，核对后提交审核
+                      步骤 1 选择场站 → 步骤 2 整理材料 → 步骤 3
+                      保存草稿，核对后提交审核
                     </p>
                   </div>
                   <div className="business-form">
@@ -625,23 +637,7 @@ export function RatingPanel({
           <RatingProcess onOpen={open} busy={busy || materialBusy} />
         )}
         {view === "collaboration" && role === "association" && (
-          <section className="panel" aria-label="监管协同应用">
-            <h2>监管协同应用</h2>
-            <p>
-              已公示结果可在现有授权范围直接查看。外部监管系统尚未接通，暂不能执行同步。
-            </p>
-            <div className="action-row">
-              <button disabled>同步当前结果</button>
-              <button disabled>全部同步</button>
-            </div>
-            <RatingPublications
-              title="可供协同的场站公示结果"
-              testIdPrefix="collaboration"
-              revision={publicationRevision}
-              onOpen={open}
-              busy={busy || materialBusy}
-            />
-          </section>
+          <RatingCollaboration onOpen={open} busy={busy || materialBusy} />
         )}
       </div>
       <div className="record-pane" hidden={!!detail || view !== "data"}>

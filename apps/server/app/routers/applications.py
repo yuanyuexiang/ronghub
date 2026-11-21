@@ -65,6 +65,7 @@ def applications(
     status: str = Query("", max_length=30),
     kind: str = Query("", max_length=30),
     application_id: int | None = Query(None, ge=1, le=9223372036854775807),
+    station_id: int | None = Query(None, ge=1, le=9223372036854775807),
     page: int = Query(1, ge=1, le=2147483647),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -96,6 +97,8 @@ def applications(
         stmt = stmt.where(StationApplication.status == status)
     if kind:
         stmt = stmt.where(StationApplication.kind == kind)
+    if station_id is not None:
+        stmt = stmt.where(StationApplication.station_id == station_id)
     if application_id is not None:
         stmt = stmt.where(StationApplication.id == application_id)
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))

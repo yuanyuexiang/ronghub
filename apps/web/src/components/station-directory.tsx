@@ -44,7 +44,15 @@ const clock = (value: string | null) =>
       })
     : "来源未提供";
 
-export function StationDirectory({ onOpen }: { onOpen: (id: number) => void }) {
+export function StationDirectory({
+  onOpen,
+  actionMode,
+  onApplication,
+}: {
+  onOpen: (id: number) => void;
+  actionMode?: "access" | "operation" | "operator";
+  onApplication?: (id: number, name: string, kind: string) => void;
+}) {
   const [draft, setDraft] = useState(initial),
     [applied, setApplied] = useState(initial),
     [page, setPage] = useState(1);
@@ -279,6 +287,7 @@ export function StationDirectory({ onOpen }: { onOpen: (id: number) => void }) {
                 "运营商",
                 "所属区域",
                 "场站种类",
+                "当前星级",
                 "接入与流转状态",
                 "站点运营状态",
                 "场站同步状态",
@@ -300,6 +309,11 @@ export function StationDirectory({ onOpen }: { onOpen: (id: number) => void }) {
                 <td>{row.district || "未提供"}</td>
                 <td>{stationTypes[row.station_type] || "未提供"}</td>
                 <td>
+                  {row.effective_stars == null
+                    ? "未评定"
+                    : `${row.effective_stars}星`}
+                </td>
+                <td>
                   <em
                     className={row.status === "operating" ? "green" : "amber"}
                   >
@@ -310,6 +324,25 @@ export function StationDirectory({ onOpen }: { onOpen: (id: number) => void }) {
                 <td>{syncStates[row.source_sync_state] || "未提供"}</td>
                 <td>{clock(row.source_first_connected_at)}</td>
                 <td>
+                  {onApplication &&
+                    (actionMode === "operation"
+                      ? [
+                          ["commission", "投运事项"],
+                          ["decommission", "核销事项"],
+                        ]
+                      : [
+                          ["access", "接入审核"],
+                          ["acceptance", "竣工验收"],
+                        ]
+                    ).map(([kind, label]) => (
+                      <button
+                        key={kind}
+                        className="outline"
+                        onClick={() => onApplication(row.id, row.name, kind)}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   <button
                     className="outline"
                     aria-label={`查看详情 ${row.name}`}

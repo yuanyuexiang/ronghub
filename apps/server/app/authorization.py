@@ -267,6 +267,16 @@ def request_capability(request):
         return "stations.read"
     if head == "attachments":
         return "applications.read" if read else "applications.materials"
+    if head == "page-views" and read:
+        rules = {
+            ("monitoring",): "stations.read", ("monitoring", "export"): "stations.export",
+            ("station-ranking",): "statistics.read", ("daily-energy",): "subsidy.read",
+            ("daily-energy", "export"): "subsidy.export",
+        }
+        capability = rules.get(tuple(parts[1:]))
+        if capability:
+            return capability
+        raise HTTPException(403, "页面视图接口未配置授权规则")
     if head == "applications":
         if read:
             return "applications.read"

@@ -166,11 +166,17 @@ export function CompanyPanel({
             <table>
               <thead>
                 <tr>
-                  {["企业名称", "信用代码", "账号状态", "资料版本", "操作"].map(
-                    (h) => (
-                      <th key={h}>{h}</th>
-                    ),
-                  )}
+                  {[
+                    "企业名称",
+                    "信用代码",
+                    "接入场站数量",
+                    "接入设备数量",
+                    "账号状态",
+                    "资料版本",
+                    "操作",
+                  ].map((h) => (
+                    <th key={h}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -178,6 +184,8 @@ export function CompanyPanel({
                   <tr key={c.id}>
                     <td>{c.name}</td>
                     <td>{c.credit_code || "尚未补充"}</td>
+                    <td>{c.station_count ?? "未统计"}</td>
+                    <td>{c.equipment_count ?? "未统计"}</td>
                     <td>
                       <em className={c.enabled ? "green" : "amber"}>
                         {c.enabled ? "正常" : "企业已停用"}

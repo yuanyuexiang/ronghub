@@ -460,6 +460,7 @@ export function ContentPanel({
         role === "operator") && (
         <div hidden={!!detail || showForm}>
           <NoticeRecords
+            defaultExpanded={contentView === "notice"}
             refreshKey={recordsVersion}
             manage={manage && role === "regulator"}
             onOpen={(id) => run(() => open(id))}

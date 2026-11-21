@@ -12,6 +12,8 @@ class CompanyContact(BaseModel):
 
 
 class CompanySummary(BaseModel):
+    station_count: int | None = None
+    equipment_count: int | None = None
     id: StrictInt
     name: StrictStr
     credit_code: StrictStr | None

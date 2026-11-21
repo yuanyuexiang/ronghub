@@ -14,6 +14,11 @@ import { BusinessViewProvider } from "../components/business-view-context";
 import { DashboardOperations } from "../components/dashboard-operations";
 import { LoginCaptcha } from "../components/login-captcha";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
+import {
+  MonitoringWorkspace,
+  OperatorOverview,
+} from "../components/prototype-read-views";
+import { QualityPanel } from "../components/quality-panel";
 import { RuntimePanel } from "../components/runtime-panel";
 import { FaultsPanel } from "../components/faults-panel";
 import { OrderTimeSlotsPanel } from "../components/order-time-slots-panel";
@@ -779,121 +784,130 @@ export default function Home() {
                   {error}
                 </p>
               )}
-              {summary && tab === "工作台" && (
-                <section className="metrics">
-                  {(me.role === "association"
-                    ? [
-                        ["待评审", summary.rating_pending, "项", ShieldCheck],
-                        ["待公示", summary.rating_reviewed, "项", Activity],
-                        ["已公示", summary.rating_published, "项", Zap],
-                        ["场站总数", summary.stations, "个", Building2],
-                      ]
-                    : me.role === "operator"
+              {summary &&
+                tab === "工作台" &&
+                !["operator"].includes(me.role) && (
+                  <section className="metrics">
+                    {(me.role === "association"
                       ? [
-                          ["所属场站", summary.stations, "个", Building2],
-                          [
-                            "接口有效电量",
-                            summary.energy_total === null
-                              ? "暂无数据"
-                              : summary.energy_total,
-                            "kWh",
-                            Zap,
-                          ],
-                          ["已审定补贴", summary.subsidy_total, "元", Activity],
-                          [
-                            "场站申请待审",
-                            summary.applications_pending,
-                            "项",
-                            ShieldCheck,
-                          ],
-                        ]
-                      : [
+                          ["待评审", summary.rating_pending, "项", ShieldCheck],
+                          ["待公示", summary.rating_reviewed, "项", Activity],
+                          ["已公示", summary.rating_published, "项", Zap],
                           ["场站总数", summary.stations, "个", Building2],
-                          ["装机功率", summary.power_kw, "kW", Activity],
-                          [
-                            "场站申请待审",
-                            summary.applications_pending,
-                            "项",
-                            ShieldCheck,
-                          ],
-                          [
-                            "补贴申请待审",
-                            summary.subsidies_pending,
-                            "项",
-                            Zap,
-                          ],
-                          [
-                            "人员账号待审",
-                            summary.staff_applications_pending,
-                            "项",
-                            ShieldCheck,
-                          ],
                         ]
-                  )
-                    .filter(([, n]) => n !== undefined && n !== null)
-                    .map(([label, n, unit, Icon]) => {
-                      const I = Icon as typeof Zap;
-                      return (
-                        <article key={String(label)}>
-                          <div>
-                            {String(label)}
-                            <I size={19} />
-                          </div>
-                          <strong>
-                            {String(n)}
-                            {String(n) !== "暂无数据" && (
-                              <small>{String(unit)}</small>
-                            )}
-                          </strong>
-                          <p>当前授权范围 · 演示台账</p>
-                        </article>
-                      );
-                    })}
-                </section>
-              )}
-              {tab === "工作台" && summary && (
-                <section className="panel workspace-tasks">
-                  <h2>
-                    {me.role === "association"
-                      ? "协会评审工作台"
                       : me.role === "operator"
-                        ? "企业申报工作台"
-                        : "待处理事项与常用入口"}
-                  </h2>
-                  <p className="muted">
-                    {me.role === "association"
-                      ? "核实申报依据、完成复核并发布评价结果"
-                      : me.role === "operator"
-                        ? "维护企业场站，跟进申报进度及退回事项"
-                        : "集中处理场站审批、补贴核定与数据接入事项"}
-                  </p>
-                  <div className="action-row">
-                    {menu
-                      .filter((item) =>
-                        (me.role === "regulator"
-                          ? ["场站申请", "补贴管理", "星级查看", "隐患督办"]
-                          : me.role === "operator"
-                            ? ["场站申请", "补贴申报", "星级申报", "整改任务"]
-                            : ["星级评价", "场站台账"]
-                        ).includes(item),
-                      )
-                      .map((item) => (
-                        <button
-                          key={item}
-                          className="outline"
-                          onClick={() => setTab(item)}
-                        >
-                          进入{item}
-                          <ChevronRight size={14} />
-                        </button>
-                      ))}
-                  </div>
-                  <p className="muted">
-                    以上汇总来自当前授权范围；示例电量及金额不作为正式结算依据。
-                  </p>
-                </section>
-              )}
-              {tab === "工作台" && summary && me.role !== "association" && (
+                        ? [
+                            ["所属场站", summary.stations, "个", Building2],
+                            [
+                              "接口有效电量",
+                              summary.energy_total === null
+                                ? "暂无数据"
+                                : summary.energy_total,
+                              "kWh",
+                              Zap,
+                            ],
+                            [
+                              "已审定补贴",
+                              summary.subsidy_total,
+                              "元",
+                              Activity,
+                            ],
+                            [
+                              "场站申请待审",
+                              summary.applications_pending,
+                              "项",
+                              ShieldCheck,
+                            ],
+                          ]
+                        : [
+                            ["场站总数", summary.stations, "个", Building2],
+                            ["装机功率", summary.power_kw, "kW", Activity],
+                            [
+                              "场站申请待审",
+                              summary.applications_pending,
+                              "项",
+                              ShieldCheck,
+                            ],
+                            [
+                              "补贴申请待审",
+                              summary.subsidies_pending,
+                              "项",
+                              Zap,
+                            ],
+                            [
+                              "人员账号待审",
+                              summary.staff_applications_pending,
+                              "项",
+                              ShieldCheck,
+                            ],
+                          ]
+                    )
+                      .filter(([, n]) => n !== undefined && n !== null)
+                      .map(([label, n, unit, Icon]) => {
+                        const I = Icon as typeof Zap;
+                        return (
+                          <article key={String(label)}>
+                            <div>
+                              {String(label)}
+                              <I size={19} />
+                            </div>
+                            <strong>
+                              {String(n)}
+                              {String(n) !== "暂无数据" && (
+                                <small>{String(unit)}</small>
+                              )}
+                            </strong>
+                            <p>当前授权范围 · 演示台账</p>
+                          </article>
+                        );
+                      })}
+                  </section>
+                )}
+              {tab === "工作台" &&
+                summary &&
+                !["operator"].includes(me.role) && (
+                  <section className="panel workspace-tasks">
+                    <h2>
+                      {me.role === "association"
+                        ? "协会评审工作台"
+                        : me.role === "operator"
+                          ? "企业申报工作台"
+                          : "待处理事项与常用入口"}
+                    </h2>
+                    <p className="muted">
+                      {me.role === "association"
+                        ? "核实申报依据、完成复核并发布评价结果"
+                        : me.role === "operator"
+                          ? "维护企业场站，跟进申报进度及退回事项"
+                          : "集中处理场站审批、补贴核定与数据接入事项"}
+                    </p>
+                    <div className="action-row">
+                      {menu
+                        .filter((item) =>
+                          (me.role === "regulator"
+                            ? ["场站申请", "补贴管理", "星级查看", "隐患督办"]
+                            : me.role === "operator"
+                              ? ["场站申请", "补贴申报", "星级申报", "整改任务"]
+                              : ["星级评价", "场站台账"]
+                          ).includes(item),
+                        )
+                        .map((item) => (
+                          <button
+                            key={item}
+                            className="outline"
+                            onClick={() => setTab(item)}
+                          >
+                            进入{item}
+                            <ChevronRight size={14} />
+                          </button>
+                        ))}
+                    </div>
+                    <p className="muted">
+                      以上汇总来自当前授权范围；示例电量及金额不作为正式结算依据。
+                    </p>
+                  </section>
+                )}
+              {tab === "工作台" && summary && me.role === "regulator" && (
                 <DashboardOperations />
               )}
               {["企业台账", "场站台账"].includes(tab) && (
@@ -914,6 +928,9 @@ export default function Home() {
                       </button>
                     ))}
                 </div>
+              )}
+              {tab === "工作台" && summary && me.role === "operator" && (
+                <OperatorOverview summary={summary} onNavigate={setTab} />
               )}
               <BusinessViewProvider
                 key={pageRevision}
@@ -949,9 +966,23 @@ export default function Home() {
                 ) : ["全域地图", "场站地图"].includes(tab) ? (
                   <StationMapPanel />
                 ) : tab === "运行状态" ? (
-                  <RuntimePanel />
+                  me.role === "regulator" ? (
+                    <MonitoringWorkspace />
+                  ) : (
+                    <RuntimePanel />
+                  )
                 ) : tab === "故障分析" ? (
-                  <FaultsPanel />
+                  me.role === "regulator" ? (
+                    <div className="business-stack">
+                      <QualityPanel purpose="alarm" />
+                      <details className="prototype-related">
+                        <summary>源报故障事件明细</summary>
+                        <FaultsPanel />
+                      </details>
+                    </div>
+                  ) : (
+                    <FaultsPanel />
+                  )
                 ) : tab === "充电时段" ? (
                   <OrderTimeSlotsPanel />
                 ) : tab === "订单汇总" ? (
@@ -1061,7 +1092,7 @@ export default function Home() {
                   <DashboardOperations variant="stations" />
                 ) : tab === "场站台账" ? (
                   <StationDirectory onOpen={setDetailId} />
-                ) : (
+                ) : tab === "工作台" && me.role === "operator" ? null : (
                   <section className="panel">
                     <div className="panel-title">
                       <div>

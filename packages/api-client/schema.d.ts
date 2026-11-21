@@ -2014,6 +2014,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/page-views/daily-energy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daily Energy */
+        get: operations["daily_energy_api_v1_page_views_daily_energy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/page-views/daily-energy/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daily Export */
+        get: operations["daily_export_api_v1_page_views_daily_energy_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/page-views/monitoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monitoring */
+        get: operations["monitoring_api_v1_page_views_monitoring_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/page-views/monitoring/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monitor Export */
+        get: operations["monitor_export_api_v1_page_views_monitoring_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/page-views/station-ranking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ranking */
+        get: operations["ranking_api_v1_page_views_station_ranking_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/protocols": {
         parameters: {
             query?: never;
@@ -4127,6 +4212,8 @@ export interface components {
             credit_code: string | null;
             /** Enabled */
             enabled: boolean;
+            /** Equipment Count */
+            equipment_count?: number | null;
             /** History */
             history: components["schemas"]["CompanyHistory"][];
             /** Id */
@@ -4139,6 +4226,8 @@ export interface components {
             registration_address: string;
             /** Service Phone */
             service_phone: string;
+            /** Station Count */
+            station_count?: number | null;
             /** Version */
             version: number;
         };
@@ -4168,6 +4257,8 @@ export interface components {
             credit_code: string | null;
             /** Enabled */
             enabled: boolean;
+            /** Equipment Count */
+            equipment_count?: number | null;
             /** Id */
             id: number;
             /** Legal Representative */
@@ -4178,6 +4269,8 @@ export interface components {
             registration_address: string;
             /** Service Phone */
             service_phone: string;
+            /** Station Count */
+            station_count?: number | null;
             /** Version */
             version: number;
         };
@@ -4187,10 +4280,14 @@ export interface components {
             credit_code: string | null;
             /** Enabled */
             enabled: boolean;
+            /** Equipment Count */
+            equipment_count?: number | null;
             /** Id */
             id: number;
             /** Name */
             name: string;
+            /** Station Count */
+            station_count?: number | null;
             /** Version */
             version: number;
         };
@@ -4529,6 +4626,28 @@ export interface components {
             role_profile_id: number | null;
             /** Username */
             username: string;
+        };
+        /** DailyEnergyPage */
+        DailyEnergyPage: {
+            /** Items */
+            items: components["schemas"]["DailyEnergyRow"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** DailyEnergyRow */
+        DailyEnergyRow: {
+            /** Day */
+            day: string;
+            /** Kwh */
+            kwh: string;
+            /** Source */
+            source: string;
+            /** Subsidy Amount */
+            subsidy_amount?: null;
         };
         /** DashboardSummary */
         DashboardSummary: {
@@ -6542,6 +6661,58 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** MonitorPage */
+        MonitorPage: {
+            /** Electrical Count */
+            electrical_count?: null;
+            /** Environmental Count */
+            environmental_count?: null;
+            /** Equipment Count */
+            equipment_count: number;
+            /** Items */
+            items: components["schemas"]["MonitorRow"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** States */
+            states: {
+                [key: string]: number;
+            };
+            /** Station Count */
+            station_count: number;
+            /** Station Types */
+            station_types: {
+                [key: string]: number;
+            };
+            /** Total */
+            total: number;
+        };
+        /** MonitorRow */
+        MonitorRow: {
+            /** Connector Code */
+            connector_code: string | null;
+            /** District */
+            district: string;
+            /** Equipment Code */
+            equipment_code: string;
+            /** Equipment Name */
+            equipment_name: string;
+            /** Id */
+            id: number;
+            /** Operator Name */
+            operator_name: string;
+            /** Source */
+            source: string;
+            /** State */
+            state: string;
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /** Synced At */
+            synced_at: string;
+        };
         /** MonthObservation */
         MonthObservation: {
             /** Kwh */
@@ -7536,6 +7707,34 @@ export interface components {
             /** Stations With Runtime */
             stations_with_runtime: number;
         };
+        /** RankingPage */
+        RankingPage: {
+            /** Items */
+            items: components["schemas"]["RankingRow"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Today */
+            today: string;
+            /** Total */
+            total: number;
+            /** Yesterday */
+            yesterday: string;
+        };
+        /** RankingRow */
+        RankingRow: {
+            /** Source */
+            source: string;
+            /** Station Id */
+            station_id: number;
+            /** Station Name */
+            station_name: string;
+            /** Today Kwh */
+            today_kwh: string | null;
+            /** Yesterday Kwh */
+            yesterday_kwh: string | null;
+        };
         /** RatingApplicationDetail */
         RatingApplicationDetail: {
             before_result: components["schemas"]["RatingReferenceResponse"] | null;
@@ -8037,6 +8236,8 @@ export interface components {
             station_id: number;
             /** Station Name */
             station_name: string;
+            /** Station Type */
+            station_type: string;
             /** Valid Until */
             valid_until: string | null;
         };
@@ -13057,6 +13258,7 @@ export interface operations {
                 status?: string;
                 kind?: string;
                 application_id?: number | null;
+                station_id?: number | null;
                 page?: number;
                 page_size?: number;
             };
@@ -21829,6 +22031,409 @@ export interface operations {
             };
         };
     };
+    daily_energy_api_v1_page_views_daily_energy_get: {
+        parameters: {
+            query: {
+                start_date: string;
+                end_date: string;
+                source?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DailyEnergyPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    daily_export_api_v1_page_views_daily_energy_export_get: {
+        parameters: {
+            query: {
+                start_date: string;
+                end_date: string;
+                source?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    monitoring_api_v1_page_views_monitoring_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                district?: string;
+                element?: "operating" | "electrical" | "environmental";
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    monitor_export_api_v1_page_views_monitoring_export_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                district?: string;
+                element?: "operating" | "electrical" | "environmental";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    ranking_api_v1_page_views_station_ranking_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RankingPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     listing_api_v1_protocols_get: {
         parameters: {
             query?: {
@@ -23605,6 +24210,7 @@ export interface operations {
             query?: {
                 q?: string;
                 result_state?: string;
+                station_type?: string;
                 station_id?: number | null;
                 stars?: number | null;
                 page?: number;

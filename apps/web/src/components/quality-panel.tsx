@@ -100,7 +100,9 @@ function AxisBrief({
     </>
   );
 }
-export function QualityPanel() {
+export function QualityPanel({
+  purpose,
+}: { purpose?: "alarm" | "utilization" } = {}) {
   const canExport = useCapability("statistics.export");
   const [period, setPeriod] = useState<Period>("custom");
   const [periodValue, setPeriodValue] = useState(() =>
@@ -224,7 +226,13 @@ export function QualityPanel() {
       <div className="panel-title">
         <div>
           <span className="quality-section-label">告警分析</span>
-          <h2>区域与企业质量观测</h2>
+          <h2>
+            {purpose === "alarm"
+              ? "告警分析汇总"
+              : purpose === "utilization"
+                ? "设备平均利用率统计"
+                : "区域与企业质量观测"}
+          </h2>
           <p>结合当前台账、历史状态区间与源报故障，分别核对数据覆盖</p>
         </div>
         <div className="action-row">
@@ -394,6 +402,32 @@ export function QualityPanel() {
       <p className="muted application-list-note">
         当前台账中没有观测的场站仍保留。源对象数不等于设备总数；故障事件包含所有层级。完整性未核实，当前不计算正式在线率、故障率或利用率。
       </p>
+      {purpose && !data && !busy && (
+        <div className="table-wrap prototype-quality-empty">
+          <table>
+            <thead>
+              <tr>
+                <th>区域／运营商／场站</th>
+                <th>设备数</th>
+                <th>{purpose === "alarm" ? "在线率" : "设备平均利用率"}</th>
+                {purpose === "alarm" && (
+                  <>
+                    <th>故障率</th>
+                    <th>平均修复时间</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colSpan={purpose === "alarm" ? 5 : 3}>
+                  请选择来源、统计周期及分组后查询
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
       {error && (
         <p className="error application-list-note" role="alert">
           {error}
@@ -425,6 +459,122 @@ export function QualityPanel() {
               {data.district ? ` · 区域：${data.district}` : ""}
             </p>
           </div>
+          {purpose && (
+            <section
+              className="panel prototype-quality-table"
+              aria-label={
+                purpose === "alarm" ? "告警分析主表" : "平均利用率主表"
+              }
+            >
+              <div className="panel-title">
+                <div>
+                  <h3>
+                    {purpose === "alarm"
+                      ? "场站与企业告警汇总"
+                      : "区域／运营商／场站利用率"}
+                  </h3>
+                  <p>
+                    正式比率和维修工时待完整来源；观测占比及恢复经过时长单独列示，不代替正式指标。
+                  </p>
+                </div>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>分组名称</th>
+                      <th>设备数（当前）</th>
+                      <th>数据类别</th>
+                      {purpose === "alarm" ? (
+                        <>
+                          <th>在线率</th>
+                          <th>故障率</th>
+                          <th>平均修复时间</th>
+                          <th>已恢复样本平均经过时长</th>
+                        </>
+                      ) : (
+                        <>
+                          <th>设备平均利用率</th>
+                          <th>观测充电占比（%）</th>
+                        </>
+                      )}
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.items.flatMap((group) =>
+                      group.streams.length
+                        ? group.streams.map((stream) => (
+                            <tr key={group.key + String(stream.is_demo)}>
+                              <td>{group.label}</td>
+                              <td>{group.inventory_equipment_count}</td>
+                              <td>{stream.is_demo ? "演示" : "源报"}</td>
+                              {purpose === "alarm" ? (
+                                <>
+                                  <td>待覆盖确认</td>
+                                  <td>待覆盖确认</td>
+                                  <td>待维修工单</td>
+                                  <td>
+                                    {stream.faults
+                                      .average_recovery_elapsed_seconds == null
+                                      ? "暂无样本"
+                                      : `${stream.faults.average_recovery_elapsed_seconds} 秒`}
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  <td>待可用时长分母</td>
+                                  <td>
+                                    {stream.axes
+                                      .find((a) => a.dimension === "operation")
+                                      ?.states.find(
+                                        (s) => s.state === "charging",
+                                      )?.share_of_reported_pct ?? "暂无样本"}
+                                  </td>
+                                </>
+                              )}
+                              <td>
+                                <button
+                                  className="outline"
+                                  onClick={() =>
+                                    setFocus({
+                                      key: group.key,
+                                      demo: stream.is_demo,
+                                    })
+                                  }
+                                >
+                                  查看观测明细
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        : [
+                            <tr key={group.key}>
+                              <td>{group.label}</td>
+                              <td>{group.inventory_equipment_count}</td>
+                              <td>无观测</td>
+                              {purpose === "alarm" ? (
+                                <>
+                                  <td>待覆盖确认</td>
+                                  <td>待覆盖确认</td>
+                                  <td>待维修工单</td>
+                                  <td>暂无样本</td>
+                                </>
+                              ) : (
+                                <>
+                                  <td>待可用时长分母</td>
+                                  <td>暂无样本</td>
+                                </>
+                              )}
+                              <td>暂无观测明细</td>
+                            </tr>,
+                          ],
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
           <QualitySummary summary={data.summary} />
           <details className="quality-method">
             <summary>统计口径与数据覆盖说明</summary>

@@ -39,6 +39,7 @@ test("district assignment narrows the same enterprise and scopes exports", async
     const [reg, op] = await Promise.all(contexts.map((c) => c.newPage()));
     await login(reg, "regulator");
     await login(op, fixture.username);
+    await navigateWorkspace(op, "信息推送");
     const me = await (await reg.request.get("/api/v1/auth/me")).json();
     const response = await reg.request.post("/api/v1/roles", {
       headers: { "x-csrf-token": me.csrf_token },
@@ -73,6 +74,7 @@ test("district assignment narrows the same enterprise and scopes exports", async
     await op.reload();
     await expect(op.getByRole("heading", { name: "登录工作台" })).toBeVisible();
     await login(op, fixture.username);
+    await navigateWorkspace(op, "信息推送");
     await expect(
       op.getByText(fixture.stations[0].name, { exact: true }),
     ).toBeVisible();
@@ -94,9 +96,13 @@ test("district assignment narrows the same enterprise and scopes exports", async
     const text = await csv.text();
     expect(text).toContain(fixture.stations[0].name);
     expect(text).not.toContain(fixture.stations[1].name);
+    await navigateWorkspace(op, "接入汇总");
     await expect(
-      op.locator(".metrics article").filter({ hasText: "接口有效电量" }),
-    ).toContainText("暂无数据");
+      op
+        .getByLabel("运营商接入总览", { exact: true })
+        .locator("article")
+        .filter({ hasText: "已留存电量" }),
+    ).toContainText("未提供");
     await op.screenshot({
       path: "test-results/district-scoped-workspace.png",
       fullPage: true,

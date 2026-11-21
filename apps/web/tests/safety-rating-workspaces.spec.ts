@@ -213,7 +213,7 @@ test("subsidy workspaces separate policy and statistics while protecting the sta
     ).not.toBeVisible();
     await navigateWorkspace(page, /^(设备电量数据|电量数据)$/);
     await expect(
-      page.getByRole("region", { name: "设备日观测", exact: true }),
+      page.getByRole("region", { name: "电量与补贴日汇总", exact: true }),
     ).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
     await expect

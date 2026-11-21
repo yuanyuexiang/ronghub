@@ -148,7 +148,7 @@ try {
       const noticePage = await noticeRecords.json();
       if(noticePage.page_size!==20 || !Array.isArray(noticePage.items)) throw new Error('Notice record contract failed');
       await navigateWorkspace(page, username==='regulator'?'自定义通知发布':'公告与通知');
-      await page.getByRole('button',{name:'展开通知记录',exact:true}).click();
+      if(await page.getByRole('button',{name:'展开通知记录',exact:true}).isVisible()) await page.getByRole('button',{name:'展开通知记录',exact:true}).click();
       await expect(page.getByRole('button',{name:'查询通知记录',exact:true})).toBeEnabled();
     }
     const noticeOptions = await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/content/operator-options');
@@ -190,6 +190,7 @@ try {
       const qualitySources=await qualitySourcesResponse.json(); const quality=await qualityResponse.json();
       if(qualitySourcesResponse.status()!==200 || qualitySources.page_size!==1 || qualityResponse.status()!==200 || quality.page_size!==1 || quality.source_completeness_verified!==false || quality.faults_scope!=='all_station_events_started_in_window' || !Array.isArray(quality.items) || !Number.isInteger(quality.summary?.station_count) || !Number.isInteger(quality.summary?.inventory_equipment_count) || !Array.isArray(quality.summary?.streams)) throw new Error('Quality production contract failed');
       await navigateWorkspace(page, username==='regulator'?'动态监控':'运行状态');
+      if(username==='regulator' && await page.getByText('历史运行与质量观测',{exact:true}).locator('..').getAttribute('open')===null) await page.getByText('历史运行与质量观测',{exact:true}).click();
       await page.getByRole('button',{name:'区域与企业质量',exact:true}).click();
       await expect(page.getByRole('heading',{name:'区域与企业质量观测',exact:true})).toBeVisible();
       await expect(page.getByRole('button',{name:'查询质量观测',exact:true})).toBeEnabled();
@@ -212,6 +213,7 @@ try {
       const runtimeObjects=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/statistics/runtime/objects?station_id='+runtimeStation.id+'&source=demo&page_size=1');
       if(runtimeObjects.status()!==200 || (await runtimeObjects.json()).page_size!==1) throw new Error('Runtime object pagination failed');
       await navigateWorkspace(page, username==='regulator'?'动态监控':'运行状态');
+      if(username==='regulator' && await page.getByText('历史运行与质量观测',{exact:true}).locator('..').getAttribute('open')===null) await page.getByText('历史运行与质量观测',{exact:true}).click();
       await page.getByRole('button',{name:'单对象区间',exact:true}).click();
       await expect(page.getByRole('heading',{name:'历史运行状态与观测覆盖',exact:true})).toBeVisible();
     }
@@ -224,6 +226,7 @@ try {
       const faults=await faultResponse.json(); const faultSummary=await faultSummaryResponse.json();
       if(faultResponse.status()!==200 || faults.page_size!==1 || faults.source_completeness_verified!==false || faultSummaryResponse.status()!==200 || !Array.isArray(faultSummary.streams)) throw new Error('Source fault production contract failed');
       await navigateWorkspace(page, username==='regulator'?'告警分析':'故障分析');
+      if(username==='regulator') await page.getByText('源报故障事件明细',{exact:true}).click();
       await expect(page.getByRole('heading',{name:'源报故障事件',exact:true})).toBeVisible();
       await expect(page.getByRole('button',{name:'查询故障',exact:true})).toBeEnabled();
       await page.getByLabel('故障检索名称',{exact:true}).fill('production-fault-no-matching-fixture');
@@ -408,6 +411,7 @@ try {
       const statisticsCsv=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/subsidy/statistics/export?'+statisticsQuery);
       if(statisticsCsv.status()!==200 || statisticsCsv.headers()['cache-control']!=='no-store') throw new Error('Subsidy aggregate CSV failed');
       await navigateWorkspace(page, username==='regulator'?'电量数据':'设备电量数据');
+      await page.getByText('设备日电量与核算证据',{exact:true}).click();
       const observationRegion=page.getByRole('region',{name:'设备日观测',exact:true});
       await expect(observationRegion).toBeVisible();
       await expect(observationRegion.getByText('选择条件后查询；未上报的设备或日期不按零值补齐。',{exact:true})).toBeVisible();

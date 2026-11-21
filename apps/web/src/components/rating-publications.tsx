@@ -36,6 +36,7 @@ export function RatingPublications({
     q: "",
     result_state: "",
     stars: "",
+    station_type: "",
   });
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<Publication[]>([]);
@@ -90,12 +91,37 @@ export function RatingPublications({
         </div>
         <span className="pill">{total} 个场站</span>
       </div>
+      <div
+        className="prototype-shortcuts"
+        role="tablist"
+        aria-label="公示场站种类"
+      >
+        {[
+          ["", "全部"],
+          ["charging", "充电站"],
+          ["swapping", "换电站"],
+        ].map(([value, label]) => (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filters.station_type === value}
+            key={value}
+            className="outline"
+            onClick={() => {
+              setPage(1);
+              setFilters({ ...filters, station_type: value });
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <form
         className="business-form"
         onSubmit={(e) => {
           e.preventDefault();
           setPage(1);
-          setFilters({ q: query, result_state: state, stars });
+          setFilters({ ...filters, q: query, result_state: state, stars });
         }}
       >
         <label>
@@ -232,7 +258,16 @@ export function RatingPublications({
                   {a.show_association_mark && (
                     <small>演示评定 {a.effective_stars} 星</small>
                   )}
-                  <p>{a.operator_name}</p>
+                  <p>
+                    {a.operator_name} ·{" "}
+                    {a.station_type === "charging"
+                      ? "充电站"
+                      : a.station_type === "swapping"
+                        ? "换电站"
+                        : a.station_type === "mixed"
+                          ? "充换电站"
+                          : "种类未提供"}
+                  </p>
                   <p className="muted">{a.address}</p>
                   <p>有效期至：{a.valid_until ?? "未确认"}</p>
                   <button
