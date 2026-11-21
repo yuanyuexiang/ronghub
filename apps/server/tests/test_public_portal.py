@@ -270,3 +270,45 @@ def test_public_visibility_count_and_rows_use_one_snapshot(case, anonymous):
     assert changed and response.status_code == 200
     assert response.json()["total"] == len(response.json()["items"]) == 1
     assert anonymous.get("/api/v1/public/articles", params={"q": c["prefix"]}).json()["total"] == 0
+
+
+def test_public_page_sizes_keep_private_and_future_articles_out_of_every_page(case, anonymous):
+    c = case
+    first = publication.publish(c, publication.create(c, kind="news", portal_public=True))
+    with SessionLocal.begin() as db:
+        original = db.get(Article, first["id"])
+        for index in range(21):
+            row = Article(
+                kind="news",
+                title=f"{c['prefix']} {index}",
+                body="Public page-size fixture",
+                portal_public=True,
+                audience="all",
+                status="published",
+                published_at=original.published_at if index < 20 else now() + timedelta(days=1),
+                created_by=original.created_by,
+            )
+            db.add(row)
+            db.flush()
+            c["article_ids"].append(row.id)
+    publication.publish(c, publication.create(c, kind="news"))
+    responses = [
+        anonymous.get(
+            "/api/v1/public/articles", params={"q": c["prefix"], "page_size": 10, "page": n}
+        )
+        for n in [1, 2, 3]
+    ]
+    for response in responses:
+        assert response.status_code == 200, response.text
+    pages = [response.json() for response in responses]
+    assert [len(p["items"]) for p in pages] == [10, 10, 1]
+    assert all(p["total"] == 21 and p["page_size"] == 10 for p in pages)
+    ids = [row["id"] for p in pages for row in p["items"]]
+    assert len(set(ids)) == 21 and ids == sorted(ids, reverse=True)
+    for size, count in [(20, 20), (50, 21)]:
+        r = anonymous.get("/api/v1/public/articles", params={"q": c["prefix"], "page_size": size})
+        assert r.status_code == 200 and len(r.json()["items"]) == count
+    for size in [0, 11, 100]:
+        assert (
+            anonymous.get("/api/v1/public/articles", params={"page_size": size}).status_code == 422
+        )

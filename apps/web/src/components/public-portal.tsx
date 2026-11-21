@@ -4,13 +4,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
-  Building2,
   ChevronRight,
   Download,
   FileText,
   Search,
-  ShieldCheck,
-  Users,
   Zap,
 } from "lucide-react";
 import { publicApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -23,12 +20,19 @@ const kinds = {
 function clock(value: string) {
   return new Date(value).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" });
 }
-function href(q: string, kind: string, page = 1, article?: number) {
+function routeHref(
+  q: string,
+  kind: string,
+  page = 1,
+  article?: number,
+  pageSize = 10,
+) {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (kind) params.set("kind", kind);
   if (page > 1) params.set("page", String(page));
   if (article) params.set("article", String(article));
+  if (pageSize !== 10) params.set("page_size", String(pageSize));
   return "/portal" + (params.size ? "?" + params : "");
 }
 export function PublicPortal() {
@@ -44,9 +48,14 @@ export function PublicPortal() {
       : rawKind === "announcement"
         ? "announcement"
         : "";
+  const rawSize = params.get("page_size") ?? "10";
+  const pageSize = rawSize === "20" ? 20 : rawSize === "50" ? 50 : 10;
+  const href = (q: string, kind: string, page = 1, article?: number) =>
+    routeHref(q, kind, page, article, pageSize);
   const page = Number(rawPage),
     id = rawId === null ? null : Number(rawId);
   const invalid =
+    !["10", "20", "50"].includes(rawSize) ||
     !Number.isInteger(page) ||
     page < 1 ||
     page > 2147483647 ||
@@ -116,13 +125,18 @@ export function PublicPortal() {
     setList(null);
     publicApi
       .GET("/api/v1/public/articles", {
-        params: { query: { q, kind, page } },
+        params: { query: { q, kind, page, page_size: pageSize } },
         signal: controller.signal,
         cache: "no-store",
       })
       .then(({ data, error }) => {
         if (controller.signal.aborted) return;
         if (!data) throw new Error(apiError(error, "资讯读取失败，请重试"));
+        const lastPage = Math.max(1, Math.ceil(data.total / pageSize));
+        if (page > lastPage) {
+          router.replace(href(q, kind, lastPage));
+          return;
+        }
         setList(data);
       })
       .catch((error) => {
@@ -133,7 +147,7 @@ export function PublicPortal() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [q, kind, page, id, invalid, revision]);
+  }, [q, kind, page, pageSize, id, invalid, revision]);
   useEffect(() => {
     if (invalid || id === null) return;
     const controller = new AbortController();
@@ -163,7 +177,7 @@ export function PublicPortal() {
     return () => controller.abort();
   }, [id, invalid, revision]);
   return (
-    <main className="public-portal">
+    <main className="public-portal corrected-public-portal">
       <header className="portal-header">
         <div className="portal-container">
           <Link className="portal-brand" href="/portal">
@@ -171,15 +185,17 @@ export function PublicPortal() {
               <Zap size={25} />
             </span>
             <div>
-              <strong>RONGHUB</strong>
-              <small>{info?.site_name ?? "福州市充电监管平台"}</small>
+              <strong>{info?.site_name ?? "福州市充电监管平台"}</strong>
+              <small>新能源汽车充电基础设施公共服务</small>
             </div>
           </Link>
           <nav aria-label="公共门户导航">
             <Link href="/portal">资讯公告</Link>
-            <Link href="/">站点公示 · 登录查看</Link>
+            <Link href="/portal/login?service=publications">
+              站点公示 · 登录查看
+            </Link>
             <Link className="portal-login-link" href="/portal/login">
-              平台登录
+              管理员登录
               <ArrowRight size={15} />
             </Link>
           </nav>
@@ -187,7 +203,7 @@ export function PublicPortal() {
       </header>
       {info?.demo_mode && (
         <div className="portal-demo">
-          本地演示预览 · 正式资讯以主管部门发布的内容为准
+          演示环境 · 正式资讯以主管部门发布的内容为准
         </div>
       )}
       {infoError && (
@@ -204,59 +220,36 @@ export function PublicPortal() {
         </section>
       ) : id === null ? (
         <>
-          <section className="portal-hero">
+          <section className="portal-hero" aria-label="资讯公告查询">
             <div className="portal-container">
               <div className="portal-hero-copy">
-                <span className="portal-kicker">
-                  PUBLIC INFORMATION & SERVICES
-                </span>
+                <span className="portal-kicker">福州市 · 公共信息服务</span>
                 <h1>充电资讯与公告</h1>
-                <p>
-                  监管公告、行业资讯与工作动态。
-                  <br />
-                  了解已公开的信息，进入对应工作台办理业务。
-                </p>
-                <div className="portal-hero-tags">
-                  <span>
-                    <ShieldCheck size={15} />
-                    授权公开
-                  </span>
-                  <span>
-                    <FileText size={15} />
-                    原文查阅
-                  </span>
-                  <span>
-                    <Users size={15} />
-                    三端协同
-                  </span>
-                </div>
-              </div>
-              <div className="portal-entries" aria-label="三端工作台入口">
-                <Link href="/">
-                  <ShieldCheck size={22} />
-                  <div>
-                    <strong>监管端</strong>
-                    <small>接入审核 · 安全监管</small>
-                  </div>
-                  <ChevronRight size={16} />
-                </Link>
-                <Link href="/">
-                  <Users size={22} />
-                  <div>
-                    <strong>协会端</strong>
-                    <small>标准评审 · 星级评价</small>
-                  </div>
-                  <ChevronRight size={16} />
-                </Link>
-                <Link href="/">
-                  <Building2 size={22} />
-                  <div>
-                    <strong>运营商端</strong>
-                    <small>场站申报 · 业务办理</small>
-                  </div>
-                  <ChevronRight size={16} />
-                </Link>
-                <p>统一账号认证后，按实际授权进入工作台。</p>
+                <p>监管通知 · 政策法规 · 工作动态</p>
+                <form
+                  className="portal-search"
+                  role="search"
+                  aria-label="公开资讯查询"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    router.push(href(draft.trim(), kind));
+                    setRevision((r) => r + 1);
+                  }}
+                >
+                  <label>
+                    <Search size={16} />
+                    <input
+                      aria-label="公开资讯关键词"
+                      value={draft}
+                      onChange={(event) => setDraft(event.target.value)}
+                      maxLength={150}
+                      placeholder="搜索资讯标题"
+                    />
+                  </label>
+                  <button type="submit" disabled={loading}>
+                    查询资讯
+                  </button>
+                </form>
               </div>
             </div>
           </section>
@@ -266,30 +259,9 @@ export function PublicPortal() {
           >
             <div className="portal-news-heading">
               <div>
-                <span className="portal-kicker">LATEST UPDATES</span>
+                <span className="portal-kicker">公开信息</span>
                 <h2>资讯公告</h2>
               </div>
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  router.push(href(draft.trim(), kind));
-                  setRevision((r) => r + 1);
-                }}
-              >
-                <label>
-                  <Search size={16} />
-                  <input
-                    aria-label="公开资讯关键词"
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    maxLength={150}
-                    placeholder="搜索资讯标题"
-                  />
-                </label>
-                <button type="submit" disabled={loading}>
-                  查询资讯
-                </button>
-              </form>
             </div>
             <nav className="portal-tabs" aria-label="资讯分类">
               <Link
@@ -328,17 +300,24 @@ export function PublicPortal() {
               <article className="portal-news-card" key={item.id}>
                 <div className="portal-news-date">
                   <strong>
-                    {new Date(item.published_at).toLocaleDateString("zh-CN", {
-                      timeZone: "Asia/Shanghai",
-                      day: "2-digit",
-                    })}
+                    {new Date(item.published_at)
+                      .toLocaleDateString("zh-CN", {
+                        timeZone: "Asia/Shanghai",
+                        day: "2-digit",
+                      })
+                      .replace("日", "")}
                   </strong>
                   <span>
-                    {new Date(item.published_at).toLocaleDateString("zh-CN", {
+                    {new Intl.DateTimeFormat("en-GB", {
                       timeZone: "Asia/Shanghai",
                       year: "numeric",
                       month: "2-digit",
-                    })}
+                    })
+                      .formatToParts(new Date(item.published_at))
+                      .filter((p) => p.type === "year" || p.type === "month")
+                      .reverse()
+                      .map((p) => p.value)
+                      .join(".")}
                   </span>
                 </div>
                 <div>
@@ -352,6 +331,12 @@ export function PublicPortal() {
                     </Link>
                   </h3>
                   <p>{item.excerpt}</p>
+                  <time
+                    className="portal-published-at"
+                    dateTime={item.published_at}
+                  >
+                    发布时间：{clock(item.published_at)}（北京时间）
+                  </time>
                   <Link
                     className="portal-read"
                     href={href(q, kind, page, item.id)}
@@ -375,6 +360,28 @@ export function PublicPortal() {
                 <span>
                   公开资讯第{page}页 · 共{list.total}条
                 </span>
+                <label className="portal-page-size">
+                  每页条数
+                  <select
+                    aria-label="公开资讯每页条数"
+                    value={pageSize}
+                    onChange={(event) =>
+                      router.push(
+                        routeHref(
+                          q,
+                          kind,
+                          1,
+                          undefined,
+                          Number(event.target.value),
+                        ),
+                      )
+                    }
+                  >
+                    <option value="10">10条 / 页</option>
+                    <option value="20">20条 / 页</option>
+                    <option value="50">50条 / 页</option>
+                  </select>
+                </label>
                 {page > 1 ? (
                   <Link href={href(q, kind, page - 1)}>上一页</Link>
                 ) : (
@@ -469,8 +476,8 @@ export function PublicPortal() {
       <footer className="portal-footer">
         <div className="portal-container">
           <div>
-            <strong>RONGHUB</strong>
-            <p>福州市充电监管平台</p>
+            <strong>{info?.site_name ?? "福州市充电监管平台"}</strong>
+            <p>新能源汽车充电基础设施公共服务</p>
             <small>公开资讯与业务协同</small>
           </div>
           <div>
@@ -479,17 +486,16 @@ export function PublicPortal() {
             <Link href="/register">企业注册与进度查询</Link>
             <Link href="/staff-register">工作人员账号申请</Link>
           </div>
-          {(contacts.length > 0 || contactError) && (
-            <div>
-              <h3>公开联系方式</h3>
-              {contactError && <p role="alert">{contactError}</p>}
-              {contacts.map((item) => (
-                <Link key={item.id} href={href("", "", 1, item.id)}>
-                  {item.title}
-                </Link>
-              ))}
-            </div>
-          )}
+          <div className="portal-contact-information">
+            <h3>公开联系方式</h3>
+            {contactError && <p role="alert">{contactError}</p>}
+            {!contactError && contacts.length === 0 && <p>暂未发布联系方式</p>}
+            {contacts.map((item) => (
+              <Link key={item.id} href={href("", "", 1, item.id)}>
+                {item.title}
+              </Link>
+            ))}
+          </div>
           <p className="portal-footer-note">
             本页面仅展示获授权公开的内容。业务资料与站点公示请登录对应工作台查看。
           </p>

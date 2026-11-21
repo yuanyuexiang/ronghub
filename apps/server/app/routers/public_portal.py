@@ -94,7 +94,10 @@ def listing(
     q: str = Query("", max_length=150),
     kind: Literal["", "announcement", "news", "contact"] = "",
     page: int = Query(1, ge=1, le=2147483647),
+    page_size: int = Query(20, ge=1, le=50),
 ):
+    if page_size not in {10, 20, 50}:
+        raise HTTPException(422, "每页条数须为10、20或50")
     stmt = visible(select(Article), now()).where(
         Article.kind == kind if kind else Article.kind.in_(["announcement", "news"])
     )
@@ -103,10 +106,15 @@ def listing(
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     rows = db.scalars(
         stmt.order_by(Article.published_at.desc(), Article.id.desc())
-        .offset((page - 1) * 20)
-        .limit(20)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
     )
-    return {"items": [summary(row) for row in rows], "total": total, "page": page, "page_size": 20}
+    return {
+        "items": [summary(row) for row in rows],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.get("/articles/{article_id}", response_model=PublicArticleDetail)

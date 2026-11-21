@@ -182,7 +182,7 @@ test("anonymous portal requires explicit public consent, serves frozen images an
       fullPage: true,
     });
     await anonymous
-      .getByRole("link", { name: "平台登录", exact: true })
+      .getByRole("link", { name: "管理员登录", exact: true })
       .click();
     await expect(
       anonymous.getByRole("heading", { name: "选择您的业务入口", exact: true }),

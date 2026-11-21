@@ -603,7 +603,7 @@ try {
     if(publicResponse.status()!==200 || publicResponse.headers()['cache-control']!=='no-store' || (await publicResponse.json()).total!==0) throw new Error('Anonymous public projection failed');
     if((await portal.request.get(env.PUBLIC_ORIGIN+'/api/v1/auth/me')).status()!==401) throw new Error('Anonymous portal unexpectedly acquired private identity');
     if(!await portal.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)) throw new Error('Public portal narrow layout overflow');
-    await portal.getByRole('link',{name:'平台登录',exact:true}).click();
+    await portal.getByRole('link',{name:'管理员登录',exact:true}).click();
     await expect(portal.getByRole('heading',{name:'选择您的业务入口',exact:true})).toBeVisible();
     await portal.getByRole('link',{name:/进入协会端登录/}).click();
     await expect(portal.getByRole('heading',{name:'登录工作台',exact:true})).toBeVisible();

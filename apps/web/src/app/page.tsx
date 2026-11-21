@@ -303,18 +303,22 @@ export default function Home() {
           </div>
           <p className="eyebrow">FUZHOU · CHARGING SUPERVISION</p>
           <h1>
-            连接城市能源
+            充电设施全生命周期
             <br />
-            让监管更清晰
+            数字化监管
           </h1>
           <p>
             福州市充电监管平台
             <br />
             场站信息 · 运行监测 · 行业协同
           </p>
-          <div className="intro-foot">业务开发预览 · 本期三个 Web 端</div>
+          <div className="intro-foot">场站接入 · 安全监管 · 行业协同</div>
         </section>
         <section className="login-form">
+          <nav className="login-return-links" aria-label="登录返回导航">
+            <Link href="/portal">返回门户</Link>
+            <Link href="/portal/login">切换登录入口</Link>
+          </nav>
           <form onSubmit={login}>
             <span className="login-icon">
               <ShieldCheck />
@@ -364,9 +368,7 @@ export default function Home() {
               {busy ? "正在登录…" : "登录平台"}
               <ChevronRight size={17} />
             </button>
-            <p className="muted">
-              演示账号由开发者初始化；请勿输入真实客户凭据。
-            </p>
+            <p className="muted">请使用已审核开通的账号登录。</p>
             {authNotice && <p role="status">{authNotice}</p>}
             <p className="muted">
               未绑定手机或无法接收验证码，可联系获授权管理员核验身份后协助重置。

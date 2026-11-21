@@ -22597,6 +22597,7 @@ export interface operations {
                 q?: string;
                 kind?: "" | "announcement" | "news" | "contact";
                 page?: number;
+                page_size?: number;
             };
             header?: never;
             path?: never;
