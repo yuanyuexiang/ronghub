@@ -46,6 +46,28 @@ test("remaining regulator primary views follow prototype business objects", asyn
       page.getByRole("heading", { name: "场站列表", exact: true }),
     ).toBeVisible();
   }
+  await navigateWorkspace(page, "接入管理");
+  await page.getByLabel("搜索场站", { exact: true }).fill("尚未查询的场站条件");
+  const queueRequest = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === "/api/v1/applications" &&
+      url.searchParams.get("kind") === "access" &&
+      url.searchParams.has("station_id")
+    );
+  });
+  await page
+    .getByRole("button", { name: "接入审核", exact: true })
+    .first()
+    .click();
+  expect((await queueRequest).status()).toBe(200);
+  await expect(
+    page.getByRole("heading", { name: "场站列表", exact: true }),
+  ).toBeHidden();
+  await page.getByRole("button", { name: "返回场站列表", exact: true }).click();
+  await expect(page.getByLabel("搜索场站", { exact: true })).toHaveValue(
+    "尚未查询的场站条件",
+  );
   await navigateWorkspace(page, "补贴规则配置");
   await expect(
     page.getByRole("region", { name: "充换电补贴规则" }),
@@ -84,17 +106,17 @@ test("association indicators and collaboration expose classified standards and a
     page.getByRole("region", { name: "分类评价指标", exact: true }),
   ).toBeVisible();
   const createStandard = page.getByRole("button", {
-    name: "新增指标 / 配置新版本",
+    name: "配置新标准版本",
     exact: true,
   });
   await createStandard.click();
   await expect(
     page.getByRole("heading", { name: "标准编辑与暂存", exact: true }),
   ).toBeVisible();
-  await expect(createStandard).toBeDisabled();
-  await page
-    .getByRole("button", { name: "配置新标准版本", exact: true })
-    .click();
+  await expect(createStandard).toBeHidden();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "返回评价标准", exact: true }).click();
+  await expect(createStandard).toBeVisible();
   await navigateWorkspace(page, "监管协同应用");
   const area = page.getByRole("region", { name: "监管协同应用", exact: true });
   await expect(

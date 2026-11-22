@@ -43,7 +43,7 @@ export function WorkspaceViews({
   onChange,
   disabled = false,
   keepVisible = false,
-  compact = false,
+  secondaryLabel,
 }: {
   label: string;
   value: string;
@@ -51,7 +51,7 @@ export function WorkspaceViews({
   onChange: (value: string) => void;
   disabled?: boolean;
   keepVisible?: boolean;
-  compact?: boolean;
+  secondaryLabel?: string;
 }) {
   const sidebar = useSidebarViews();
   if (sidebar && !keepVisible) return null;
@@ -70,9 +70,9 @@ export function WorkspaceViews({
       ))}
     </nav>
   );
-  return compact ? (
+  return secondaryLabel ? (
     <details className="workspace-related-actions">
-      <summary>相关操作</summary>
+      <summary>{secondaryLabel}</summary>
       {navigation}
     </details>
   ) : (

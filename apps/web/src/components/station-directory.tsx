@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { useCapability } from "./permissions";
 import { usePageRefresh } from "./page-refresh";
@@ -48,10 +54,12 @@ export function StationDirectory({
   onOpen,
   actionMode,
   onApplication,
+  actions,
 }: {
   onOpen: (id: number) => void;
   actionMode?: "access" | "operation" | "operator";
   onApplication?: (id: number, name: string, kind: string) => void;
+  actions?: ReactNode;
 }) {
   const [draft, setDraft] = useState(initial),
     [applied, setApplied] = useState(initial),
@@ -157,10 +165,8 @@ export function StationDirectory({
   return (
     <section className="panel station-directory" aria-label="场站信息查询">
       <div className="panel-title">
-        <div>
-          <h2>场站列表</h2>
-          <p>查看授权范围内的场站；接入状态、站点运营和来源同步分别列示。</p>
-        </div>
+        <h2>场站列表</h2>
+        {actions}
       </div>
       <form
         className="directory-filters"
@@ -251,7 +257,7 @@ export function StationDirectory({
       </form>
       <div className="directory-toolbar">
         <span>
-          共 <b>{total}</b> 个场站 · 按已查询条件展示
+          共 <b>{total}</b> 个场站
         </span>
         {canExport && (
           <button
@@ -279,7 +285,7 @@ export function StationDirectory({
         </p>
       )}
       <div className="table-wrap" aria-busy={loading}>
-        <table>
+        <table className={onApplication ? "station-action-table" : undefined}>
           <thead>
             <tr>
               {[

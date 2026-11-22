@@ -138,7 +138,7 @@ export function workspaceNavigation(
         item("场站台账", "场站数据同步与场站信息查询"),
         {
           ...item("场站申请", "接入管理", "all"),
-          matchViews: ["access", "acceptance", "change"],
+          matchViews: ["access", "acceptance", "change", "queue"],
         },
         {
           ...item("场站申请", "投运与核销管理", "commission"),
@@ -146,7 +146,10 @@ export function workspaceNavigation(
         },
       ]),
       group("智慧安全监管", [
-        item("巡检督办", "巡检任务管理", "tasks"),
+        {
+          ...item("巡检督办", "巡检任务管理", "tasks"),
+          matchViews: has("inspections.assign") ? ["plans", "quick"] : [],
+        },
         item("隐患督办", "隐患督办管理"),
       ]),
       group("补贴管理", [
@@ -218,14 +221,23 @@ export function workspaceNavigation(
     ];
   else
     groups = [
-      standalone(item("工作台", "接入汇总")),
+      standalone({ ...item("工作台", "接入汇总"), view: "" }),
       group("待办事项", [
         item("公告与通知", "通知", "notice"),
         item("整改任务", "巡检任务", "tasks"),
         item("隐患督办", "隐患督办"),
       ]),
       group("接入申请", [
-        item("场站申请", "接入场站管理", "all"),
+        {
+          ...item("场站申请", "接入场站管理", "all"),
+          matchViews: [
+            "access",
+            "acceptance",
+            "commission",
+            "decommission",
+            "change",
+          ],
+        },
         item("场站申请", "场站接入进展查看", "progress"),
         item("场站台账", "信息推送"),
       ]),
@@ -278,6 +290,8 @@ export function auxiliaryNavigation(
     .filter((tab) => !primary.has(tab))
     .map((tab) => item(tab, names[tab] ?? tab));
   if (role === "operator") {
+    if (menu.includes("工作台"))
+      entries.push(item("工作台", "经营观测与接入记录", "operations"));
     if (menu.includes("公告与通知"))
       entries.push(item("公告与通知", "公告与通知", "all"));
     if (menu.includes("统计分析"))

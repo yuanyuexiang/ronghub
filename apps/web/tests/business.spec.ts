@@ -671,6 +671,7 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
       .getByRole("navigation", { name: "告警工作区" })
       .getByRole("button", { name: "规则配置", exact: true })
       .click();
+    await reg.getByText("历史阈值规则与样本验证", { exact: true }).click();
     await reg
       .getByRole("button", { name: "演示样本验证", exact: true })
       .click();
@@ -736,6 +737,7 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
       .getByRole("navigation", { name: "告警工作区" })
       .getByRole("button", { name: "规则配置", exact: true })
       .click();
+    await op.getByText("历史阈值规则与样本验证", { exact: true }).click();
     await expect(op.getByRole("button", { name: "演示样本验证" })).toHaveCount(
       0,
     );

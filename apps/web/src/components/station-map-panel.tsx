@@ -248,244 +248,223 @@ export function StationMapPanel({
       if (id === selectedSequence.current) setDetailLoading(false);
     }
   }
-  return (
-    <div className="business-stack map-page">
-      <FilterContainer className="panel map-filter-panel">
-        {compact && <summary>筛选地图与场站</summary>}
+  const filterPanel = (
+    <FilterContainer
+      className={compact ? "map-filter-panel" : "panel map-filter-panel"}
+    >
+      {compact && <summary>筛选地图与场站</summary>}
+      {!compact && (
         <div className="panel-title">
-          <div>
-            <h2>地图概览</h2>
-            <p>
-              业务状态与运行快照分开展示；点位和数量均按当前账号授权范围查询
-            </p>
-          </div>
-          <button
-            className="outline"
-            disabled={loading}
-            onClick={() => setRefresh((r) => r + 1)}
-          >
-            刷新地图数据
-          </button>
+          <h2>场站筛选</h2>
         </div>
-        <form
-          className="business-form map-filter-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            selectedSequence.current++;
-            setSelected(null);
-            setPage(1);
-            setFilters({ ...draft });
-          }}
-        >
-          <label>
-            场站名称
-            <input
-              aria-label="地图场站名称"
-              value={draft.q}
-              maxLength={150}
-              onChange={(e) => setDraft({ ...draft, q: e.target.value })}
-            />
-          </label>
-          <label>
-            区域
-            <input
-              aria-label="地图区域"
-              value={draft.district}
-              maxLength={50}
-              placeholder="授权范围全部"
-              onChange={(e) => setDraft({ ...draft, district: e.target.value })}
-            />
-          </label>
-          <label>
-            运营商
+      )}
+      <form
+        className="business-form map-filter-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          selectedSequence.current++;
+          setSelected(null);
+          setPage(1);
+          setFilters({ ...draft });
+        }}
+      >
+        <label>
+          场站名称
+          <input
+            aria-label="地图场站名称"
+            value={draft.q}
+            maxLength={150}
+            onChange={(e) => setDraft({ ...draft, q: e.target.value })}
+          />
+        </label>
+        <label>
+          区域
+          <input
+            aria-label="地图区域"
+            value={draft.district}
+            maxLength={50}
+            placeholder="授权范围全部"
+            onChange={(e) => setDraft({ ...draft, district: e.target.value })}
+          />
+        </label>
+        <label>
+          运营商
+          <select
+            aria-label="地图运营商"
+            value={draft.operator_id}
+            onChange={(e) =>
+              setDraft({ ...draft, operator_id: e.target.value })
+            }
+          >
+            <option value="">全部授权企业</option>
+            {operators.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {(
+          [
+            ["station_type", "场站类型", stationTypes],
+            ["status", "业务状态", businessStates],
+            ["runtime_state", "运行快照", runtimeStates],
+          ] as const
+        ).map(([key, label, options]) => (
+          <label key={key}>
+            {label}
             <select
-              aria-label="地图运营商"
-              value={draft.operator_id}
-              onChange={(e) =>
-                setDraft({ ...draft, operator_id: e.target.value })
-              }
+              aria-label={`地图${label}`}
+              value={draft[key]}
+              onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
             >
-              <option value="">全部授权企业</option>
-              {operators.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
+              <option value="">全部</option>
+              {Object.entries(options).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
                 </option>
               ))}
             </select>
           </label>
-          {(
-            [
-              ["station_type", "场站类型", stationTypes],
-              ["status", "业务状态", businessStates],
-              ["runtime_state", "运行快照", runtimeStates],
-            ] as const
-          ).map(([key, label, options]) => (
-            <label key={key}>
-              {label}
-              <select
-                aria-label={`地图${label}`}
-                value={draft[key]}
-                onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
-              >
-                <option value="">全部</option>
-                {Object.entries(options).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ))}
-          <details className="map-advanced-filters">
-            <summary>更多筛选（用途、场所、功率、星级）</summary>
-            <div className="map-advanced-fields">
-              {(
-                [
-                  ["usage_type", "用途"],
-                  ["construction_site", "建设场所"],
-                  ["site_state", "站点运营状态"],
-                  ["source_sync_state", "来源同步状态"],
-                ] as const
-              ).map(([key, label]) => (
-                <label key={key}>
-                  {label}
-                  <select
-                    aria-label={`地图${label}`}
-                    value={draft[key]}
-                    onChange={(e) =>
-                      setDraft({ ...draft, [key]: e.target.value })
-                    }
-                  >
-                    <option value="">全部</option>
-                    {Object.entries(classifications[key] ?? {}).map(
-                      ([value, text]) => (
-                        <option key={value} value={value}>
-                          {text}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </label>
-              ))}
-              <label>
-                最小功率kW
-                <input
-                  aria-label="地图最小功率"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={draft.min_power}
+        ))}
+        <details className="map-advanced-filters">
+          <summary>更多筛选（用途、场所、功率、星级）</summary>
+          <div className="map-advanced-fields">
+            {(
+              [
+                ["usage_type", "用途"],
+                ["construction_site", "建设场所"],
+                ["site_state", "站点运营状态"],
+                ["source_sync_state", "来源同步状态"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key}>
+                {label}
+                <select
+                  aria-label={`地图${label}`}
+                  value={draft[key]}
                   onChange={(e) =>
-                    setDraft({ ...draft, min_power: e.target.value })
+                    setDraft({ ...draft, [key]: e.target.value })
                   }
-                />
-              </label>
-              <label>
-                最大功率kW
-                <input
-                  aria-label="地图最大功率"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={draft.max_power}
-                  onChange={(e) =>
-                    setDraft({ ...draft, max_power: e.target.value })
-                  }
-                />
-              </label>
-              {canRating && (
-                <label>
-                  有效星级
-                  <select
-                    aria-label="地图有效星级"
-                    value={draft.stars}
-                    onChange={(e) =>
-                      setDraft({ ...draft, stars: e.target.value })
-                    }
-                  >
-                    <option value="">不限</option>
-                    {[0, 1, 2, 3, 4, 5].map((n) => (
-                      <option key={n} value={n}>
-                        {n}星
+                >
+                  <option value="">全部</option>
+                  {Object.entries(classifications[key] ?? {}).map(
+                    ([value, text]) => (
+                      <option key={value} value={value}>
+                        {text}
                       </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-            </div>
-          </details>
-          <div className="map-filter-actions">
-            <button className="outline" disabled={loading}>
-              筛选地图
-            </button>
-            <button
-              className="outline"
-              type="button"
-              onClick={() => {
-                setDraft(empty);
-                setFilters(empty);
-                setPage(1);
-                selectedSequence.current++;
-                setSelected(null);
-              }}
-            >
-              重置筛选
-            </button>
+                    ),
+                  )}
+                </select>
+              </label>
+            ))}
+            <label>
+              最小功率kW
+              <input
+                aria-label="地图最小功率"
+                type="number"
+                min={0}
+                step="0.01"
+                value={draft.min_power}
+                onChange={(e) =>
+                  setDraft({ ...draft, min_power: e.target.value })
+                }
+              />
+            </label>
+            <label>
+              最大功率kW
+              <input
+                aria-label="地图最大功率"
+                type="number"
+                min={0}
+                step="0.01"
+                value={draft.max_power}
+                onChange={(e) =>
+                  setDraft({ ...draft, max_power: e.target.value })
+                }
+              />
+            </label>
+            {canRating && (
+              <label>
+                有效星级
+                <select
+                  aria-label="地图有效星级"
+                  value={draft.stars}
+                  onChange={(e) =>
+                    setDraft({ ...draft, stars: e.target.value })
+                  }
+                >
+                  <option value="">不限</option>
+                  {[0, 1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>
+                      {n}星
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
-        </form>
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-      </FilterContainer>
-      {!compact && (
-        <section className="map-overview-cards" aria-label="地图查询概况">
-          {[
-            ["筛选场站", data?.matching, "按已查询条件统计"],
-            ["可定位场站", data?.mappable, "坐标已满足地图展示条件"],
-            ["当前视窗", data?.in_view, "随拖动与缩放更新"],
-            ["待定位 / 待适配", data?.unplottable, "保留原始数据，等待完善"],
-          ].map(([label, value, caption]) => (
-            <article key={String(label)}>
-              <span>{label}</span>
-              <strong>
-                {value ?? "—"}
-                <small>个</small>
-              </strong>
-              <p>{caption}</p>
-            </article>
-          ))}
-        </section>
+        </details>
+        <div className="map-filter-actions">
+          <button className="primary" disabled={loading}>
+            筛选地图
+          </button>
+          <button
+            className="outline"
+            type="button"
+            onClick={() => {
+              setDraft(empty);
+              setFilters(empty);
+              setPage(1);
+              selectedSequence.current++;
+              setSelected(null);
+            }}
+          >
+            重置筛选
+          </button>
+        </div>
+      </form>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
       )}
+    </FilterContainer>
+  );
+  return (
+    <div className="business-stack map-page">
+      {!compact && filterPanel}
       <section className="panel map-canvas-panel" ref={mapSectionRef}>
         <div className="panel-title">
           <div>
-            <h2>{compact ? "场站分布地图" : "可视化一张图"}</h2>
+            <h2>场站分布地图</h2>
             <p>
               {!hasBasemap
                 ? "坐标视图，尚未配置客户底图；不含道路或行政边界"
                 : tileError
                   ? "底图暂不可用，点位及查询仍可使用"
-                  : basemapName}{" "}
-              · 拖动/缩放及每60秒重新查询快照
+                  : basemapName}
             </p>
           </div>
           <button className="outline" onClick={() => setReset((r) => r + 1)}>
             回到福州视窗
           </button>
         </div>
+        {compact && filterPanel}
         <div className="map-summary">
-          <span>
-            数据查询时间：
-            {data?.generated_at
-              ? new Date(data.generated_at).toLocaleString("zh-CN", {
-                  timeZone: "Asia/Shanghai",
-                  hour12: false,
-                })
-              : "正在读取"}{" "}
-            · 每60秒重新查询
-          </span>
+          {!compact && (
+            <div className="map-counts" aria-label="地图查询概况">
+              <span>
+                筛选场站 <b>{data?.matching ?? "—"}</b>
+              </span>
+              <span>
+                可定位 <b>{data?.mappable ?? "—"}</b>
+              </span>
+              <span>
+                当前视窗 <b>{data?.in_view ?? "—"}</b>
+              </span>
+            </div>
+          )}
           <button
             className="outline"
             onClick={() => {
@@ -612,13 +591,19 @@ export function StationMapPanel({
           </div>
         </div>
         <p className="map-data-note">
+          运行状态来自最近同步快照，缺失时显示未知。地图仅显示可用的 WGS84
+          坐标。
           {data && (
             <>
-              查询时间：{new Date(data.generated_at).toLocaleString("zh-CN")}
-              （非源数据采集时间）。
+              {" "}
+              更新于{" "}
+              {new Date(data.generated_at).toLocaleString("zh-CN", {
+                timeZone: "Asia/Shanghai",
+                hour12: false,
+              })}
+              （查询时间）
             </>
           )}
-          运行状态来自最近同步枪口快照，非实时监控；缺失不推断为离线。仅WGS84且投影范围内的来源坐标落点，其他坐标保留在待适配列表。
         </p>
       </section>
       {selected && (

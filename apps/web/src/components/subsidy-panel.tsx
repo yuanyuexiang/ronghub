@@ -234,7 +234,9 @@ export function SubsidyPanel({
       )}
       <div className="record-pane" hidden={!!detail}>
         <WorkspaceViews
-          compact={role === "operator"}
+          secondaryLabel={
+            role === "operator" ? "补贴政策与电量数据" : undefined
+          }
           label="补贴业务视图"
           value={view}
           onChange={setView}
@@ -452,13 +454,25 @@ export function SubsidyPanel({
               </h2>
               <p>原始核算、人工调整与发放记录分别留存</p>
             </div>
-            <button
-              className="outline"
-              disabled={busy}
-              onClick={() => run(load)}
-            >
-              刷新记录
-            </button>
+            <div className="action-row">
+              <button
+                className="outline"
+                disabled={busy}
+                onClick={() => run(load)}
+              >
+                刷新记录
+              </button>
+              {role === "operator" && canCreate && (
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => setView("policies")}
+                >
+                  新建补贴申请
+                </button>
+              )}
+            </div>
           </div>
           <QueueFilters
             queue={queue}

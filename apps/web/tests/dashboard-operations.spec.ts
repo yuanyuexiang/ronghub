@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "./fixtures";
+import { test, expect, navigateWorkspace, type Page } from "./fixtures";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const password = JSON.parse(
@@ -41,7 +41,24 @@ test("workbench shows scoped stock and independent periods while refresh keeps a
       contexts.map((context) => context.newPage()),
     );
     await login(own, "operator_a");
-    await own.getByText("经营观测与接入记录", { exact: true }).click();
+    await expect(
+      own.getByRole("heading", { name: "充电站排名" }),
+    ).toBeVisible();
+    await expect(own.getByLabel("运营周期总览", { exact: true })).toHaveCount(
+      0,
+    );
+    await own.getByRole("button", { name: "审核结果", exact: true }).click();
+    await expect(
+      own.getByRole("heading", { name: "场站接入进展查看", level: 1 }),
+    ).toBeVisible();
+    await own.goBack();
+    await expect(
+      own.getByRole("heading", { name: "充电站排名" }),
+    ).toBeVisible();
+    await navigateWorkspace(own, "经营观测与接入记录");
+    await expect(own.getByRole("heading", { name: "充电站排名" })).toHaveCount(
+      0,
+    );
     const panel = own.getByLabel("运营周期总览", { exact: true });
     await own.getByLabel("总览观测周期", { exact: true }).selectOption("month");
     await own.getByLabel("总览周期日期", { exact: true }).fill("2026-11-15");

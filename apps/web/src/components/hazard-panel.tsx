@@ -215,12 +215,31 @@ export function HazardPanel({
   const dirty = Boolean(
     comment.trim() || name.trim() || phone.trim() || performed,
   );
-  const workspaceRef = useRecordFocus(detail?.id);
+  const workspaceRef = useRecordFocus(creating ? -1 : detail?.id);
+  const registrationDirty =
+    creating &&
+    Boolean(
+      selected ||
+      title.trim() ||
+      description.trim() ||
+      due ||
+      severity === "major",
+    );
   const canLeave = useWorkspaceLeave(
-    dirty || (creating && Boolean(title.trim() || description.trim())),
+    dirty || registrationDirty,
     busy,
     registerLeaveGuard,
   );
+  function clearRegistration() {
+    setCreating(false);
+    setTitle("");
+    setDescription("");
+    setRequirement(null);
+    setSeverity("normal");
+    setDue("");
+    setSelected(null);
+    setTarget("");
+  }
   function closeDetail() {
     if (!canLeave()) return;
     detailRequest.current?.abort();
@@ -451,30 +470,167 @@ export function HazardPanel({
       ref={workspaceRef}
       aria-label="隐患督办工作区"
     >
-      <div className="record-pane" hidden={!!detail}>
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">HAZARD SUPERVISION</span>
-            <h2>隐患督办</h2>
-            <p className="muted">
-              整改进度由企业填报，跟踪由监管人员关闭。企业完成整改后，跟踪仍继续。
+      {canCreate && role === "regulator" && creating && (
+        <section
+          className="hazard-create record-detail"
+          aria-label="登记新隐患"
+        >
+          <div className="panel-title">
+            <h2>登记新隐患</h2>
+            <button
+              type="button"
+              className="outline"
+              disabled={busy}
+              onClick={() => {
+                if (!canLeave()) return;
+                clearRegistration();
+                setError("");
+              }}
+            >
+              返回督办列表
+            </button>
+          </div>
+          {error && (
+            <p className="error" role="alert">
+              {error}
             </p>
-          </div>
-          <span className="badge">本地模拟</span>
-        </div>
-        <div className="hazard-principles">
-          <div>
-            <strong>01 登记跟踪</strong>
-            <span>一般 / 重大挂牌督办</span>
-          </div>
-          <div>
-            <strong>02 企业整改</strong>
-            <span>开始整改 · 事实及证明留存</span>
-          </div>
-          <div>
-            <strong>03 监管关闭</strong>
-            <span>独立确认 · 停止跟踪告警</span>
-          </div>
+          )}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (dirty) {
+                setError("请先保留或明确放弃当前督办反馈，再登记新隐患");
+                return;
+              }
+              if (!selected) {
+                setError("请选择隐患场站");
+                return;
+              }
+              void run(async () => {
+                const value = await read(
+                  typedApi.POST("/api/v1/hazards", {
+                    headers: { "x-csrf-token": csrf },
+                    body: {
+                      station_id: selected.id,
+                      operator_id: Number(target),
+                      title,
+                      description,
+                      rich_document: requirement,
+                      severity,
+                      due_at: new Date(due).toISOString(),
+                    },
+                  }),
+                );
+                setDetail(value);
+                clearRegistration();
+                clearReply();
+                setPage(1);
+                setRevision((r) => r + 1);
+                setMessage("隐患已登记发布，进入跟踪中。");
+              });
+            }}
+          >
+            <fieldset disabled={busy}>
+              <HazardTarget
+                selected={selected}
+                disabled={busy}
+                onSelect={(item) => {
+                  setSelected(item);
+                  setTarget("");
+                }}
+              />
+              <div className="form-grid">
+                <label>
+                  隐患名称
+                  <input
+                    aria-label="督办隐患名称"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    maxLength={150}
+                    required
+                  />
+                </label>
+                <label>
+                  目标运营商（请确认）
+                  <select
+                    aria-label="督办目标运营商"
+                    value={target}
+                    onChange={(e) => setTarget(e.target.value)}
+                    required
+                  >
+                    <option value="">请选择目标运营商</option>
+                    {selected && (
+                      <option value={selected.operator_id}>
+                        {selected.operator_name}
+                      </option>
+                    )}
+                  </select>
+                </label>
+                <label>
+                  隐患分级
+                  <select
+                    aria-label="督办隐患分级"
+                    value={severity}
+                    onChange={(e) =>
+                      setSeverity(
+                        e.target.value === "major" ? "major" : "normal",
+                      )
+                    }
+                  >
+                    <option value="normal">一般</option>
+                    <option value="major">重大（挂牌督办）</option>
+                  </select>
+                </label>
+                <label>
+                  整改期限（设备本地时间）
+                  <input
+                    aria-label="督办整改期限"
+                    type="datetime-local"
+                    value={due}
+                    onChange={(e) => setDue(e.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+              <p>隐患说明（最多4000字）</p>
+              <RichEditor
+                label="督办隐患说明"
+                document={requirement}
+                body={description}
+                articleId={null}
+                images={[]}
+                disabled={busy}
+                onChange={(value, plain) => {
+                  setRequirement(value);
+                  setDescription(plain);
+                }}
+              />
+              <button
+                disabled={busy || !selected || !target || !description.trim()}
+                type="submit"
+              >
+                {busy ? "正在登记…" : "登记并发布督办"}
+              </button>
+            </fieldset>
+          </form>
+        </section>
+      )}
+      <div className="record-pane" hidden={!!detail || creating}>
+        <div className="section-heading">
+          <h2>隐患督办</h2>
+          {canCreate && role === "regulator" && (
+            <button
+              type="button"
+              className="primary"
+              disabled={busy}
+              onClick={() => {
+                setError("");
+                setCreating(true);
+              }}
+            >
+              登记新隐患
+            </button>
+          )}
         </div>
         {error && (
           <p className="error" role="alert">
@@ -485,139 +641,6 @@ export function HazardPanel({
           <p className="notice" role="status">
             {message}
           </p>
-        )}
-        {canCreate && role === "regulator" && (
-          <details
-            className="hazard-create"
-            open={creating}
-            onToggle={(event) => setCreating(event.currentTarget.open)}
-          >
-            <summary>登记新隐患</summary>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (dirty) {
-                  setError("请先保留或明确放弃当前督办反馈，再登记新隐患");
-                  return;
-                }
-                if (!selected) {
-                  setError("请选择隐患场站");
-                  return;
-                }
-                void run(async () => {
-                  const value = await read(
-                    typedApi.POST("/api/v1/hazards", {
-                      headers: { "x-csrf-token": csrf },
-                      body: {
-                        station_id: selected.id,
-                        operator_id: Number(target),
-                        title,
-                        description,
-                        rich_document: requirement,
-                        severity,
-                        due_at: new Date(due).toISOString(),
-                      },
-                    }),
-                  );
-                  setDetail(value);
-                  setCreating(false);
-                  clearReply();
-                  setTitle("");
-                  setDescription("");
-                  setRequirement(null);
-                  setDue("");
-                  setSelected(null);
-                  setTarget("");
-                  setPage(1);
-                  setRevision((r) => r + 1);
-                  setMessage("隐患已登记发布，进入跟踪中。");
-                });
-              }}
-            >
-              <fieldset disabled={busy}>
-                <HazardTarget
-                  selected={selected}
-                  disabled={busy}
-                  onSelect={(item) => {
-                    setSelected(item);
-                    setTarget("");
-                  }}
-                />
-                <div className="form-grid">
-                  <label>
-                    隐患名称
-                    <input
-                      aria-label="督办隐患名称"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      maxLength={150}
-                      required
-                    />
-                  </label>
-                  <label>
-                    目标运营商（请确认）
-                    <select
-                      aria-label="督办目标运营商"
-                      value={target}
-                      onChange={(e) => setTarget(e.target.value)}
-                      required
-                    >
-                      <option value="">请选择目标运营商</option>
-                      {selected && (
-                        <option value={selected.operator_id}>
-                          {selected.operator_name}
-                        </option>
-                      )}
-                    </select>
-                  </label>
-                  <label>
-                    隐患分级
-                    <select
-                      aria-label="督办隐患分级"
-                      value={severity}
-                      onChange={(e) =>
-                        setSeverity(
-                          e.target.value === "major" ? "major" : "normal",
-                        )
-                      }
-                    >
-                      <option value="normal">一般</option>
-                      <option value="major">重大（挂牌督办）</option>
-                    </select>
-                  </label>
-                  <label>
-                    整改期限（设备本地时间）
-                    <input
-                      aria-label="督办整改期限"
-                      type="datetime-local"
-                      value={due}
-                      onChange={(e) => setDue(e.target.value)}
-                      required
-                    />
-                  </label>
-                </div>
-                <p>隐患说明（最多4000字）</p>
-                <RichEditor
-                  label="督办隐患说明"
-                  document={requirement}
-                  body={description}
-                  articleId={null}
-                  images={[]}
-                  disabled={busy}
-                  onChange={(value, plain) => {
-                    setRequirement(value);
-                    setDescription(plain);
-                  }}
-                />
-                <button
-                  disabled={busy || !selected || !target || !description.trim()}
-                  type="submit"
-                >
-                  {busy ? "正在登记…" : "登记并发布督办"}
-                </button>
-              </fieldset>
-            </form>
-          </details>
         )}
         <form
           className="hazard-filters"
@@ -843,14 +866,12 @@ export function HazardPanel({
               className="outline"
               disabled={busy || loading || exporting || Boolean(listError)}
               onClick={() => void download()}
+              title="导出已查询结果，最多 10,000 条"
             >
               {exporting ? "正在导出…" : "导出督办 CSV"}
             </button>
           )}
         </div>
-        <p className="muted">
-          导出使用已应用查询的全部结果，最多10000条。修改筛选后请点击查询；超期标记不是短信已发送的证明。
-        </p>
       </div>
       {error && detail && (
         <p className="error" role="alert">

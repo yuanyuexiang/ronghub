@@ -12,10 +12,24 @@ export async function returnToBusinessList(page: Page, module: string) {
   const button = page.getByRole("button", { name: close[module], exact: true });
   if (await button.isVisible()) await button.click();
   await expect(button).not.toBeVisible();
+  if (module === "巡检") {
+    const list = page.getByRole("heading", {
+      name: /^(巡检任务跟踪|企业整改任务)$/,
+    });
+    if (!(await list.isVisible())) {
+      const back = page.getByRole("button", {
+        name: "返回任务列表",
+        exact: true,
+      });
+      if (await back.isVisible()) await back.click();
+      else await navigateWorkspace(page, /^(巡检任务管理|巡检任务)$/);
+    }
+    await expect(list).toBeVisible();
+    return;
+  }
   const views: Record<string, [string, string]> = {
     补贴: ["补贴业务视图", "补贴申请记录"],
     星级: ["星级评价业务视图", "企业申报查看"],
-    巡检: ["巡检业务视图", "巡检任务管理"],
   };
   if (views[module]) {
     const [label, name] = views[module];
@@ -31,10 +45,6 @@ export async function returnToBusinessList(page: Page, module: string) {
     else if (module === "星级")
       await nav
         .getByRole("button", { name: "企业申报管理", exact: true })
-        .click();
-    else if (module === "巡检")
-      await nav
-        .getByRole("button", { name: "企业整改任务", exact: true })
         .click();
   }
   await expect(button).not.toBeVisible();

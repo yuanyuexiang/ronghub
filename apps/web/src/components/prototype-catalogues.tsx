@@ -79,14 +79,8 @@ export function SubsidyRuleOverview({
 }
 export function RatingIndicatorCatalogue({
   standards,
-  onConfigure,
-  canManage,
-  configureDisabled = false,
 }: {
   standards: ApiSchemas["RatingStandardResponse"][];
-  onConfigure: () => void;
-  canManage: boolean;
-  configureDisabled?: boolean;
 }) {
   const [id, setId] = useState("");
   const standard = standards.find((s) => String(s.id) === id) ?? standards[0];
@@ -98,21 +92,6 @@ export function RatingIndicatorCatalogue({
       className="prototype-indicator-catalogue"
       aria-label="分类评价指标"
     >
-      <div className="panel-title">
-        <div>
-          <h3>分类评价指标与星级配置</h3>
-          <p>设施设备、运维安全、服务体验、环境配套按所选标准分类展示</p>
-        </div>
-        {canManage && (
-          <button
-            className="outline"
-            disabled={configureDisabled}
-            onClick={onConfigure}
-          >
-            新增指标 / 配置新版本
-          </button>
-        )}
-      </div>
       <div className="prototype-query">
         <label>
           评价标准版本
@@ -136,60 +115,64 @@ export function RatingIndicatorCatalogue({
           ))}
         </div>
       </div>
-      {categories.map((category) => (
-        <section key={category.code}>
-          <h4>
-            {category.name} · 分类权重 {category.weight}
-          </h4>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  {[
-                    "指标名称",
-                    "指标权重",
-                    "数据来源",
-                    "数据维度",
-                    "状态",
-                    "生效日期",
-                    "说明",
-                  ].map((s) => (
-                    <th key={s}>{s}</th>
-                  ))}
+      {standard ? (
+        <div className="table-wrap">
+          <table
+            className="indicator-catalogue-table"
+            aria-label="分类指标及权重"
+          >
+            <thead>
+              <tr>
+                <th>指标名称</th>
+                <th className="numeric-cell">指标权重</th>
+                <th>数据来源</th>
+                <th>数据维度</th>
+                <th>状态</th>
+                <th>生效日期</th>
+                <th>说明</th>
+              </tr>
+            </thead>
+            {categories.map((category) => (
+              <tbody key={category.code}>
+                <tr className="indicator-category">
+                  <th scope="rowgroup" colSpan={7}>
+                    {category.name} · 分类权重 {category.weight}
+                  </th>
                 </tr>
-              </thead>
-              <tbody>
-                {standard?.rules.indicators
-                  ?.filter((i) =>
-                    standard.rules.categories?.length
-                      ? i.category === category.code
-                      : true,
+                {standard.rules.indicators
+                  ?.filter(
+                    (indicator) =>
+                      !standard.rules.categories?.length ||
+                      indicator.category === category.code,
                   )
-                  .map((i) => (
-                    <tr key={i.code}>
-                      <td>{i.name}</td>
-                      <td>{i.weight}</td>
+                  .map((indicator) => (
+                    <tr key={indicator.code}>
+                      <td>{indicator.name}</td>
+                      <td className="numeric-cell">{indicator.weight}</td>
                       <td>
-                        {i.source === "runtime" ? "平台数据" : "专家 / 材料"}
+                        {indicator.source === "runtime"
+                          ? "平台数据"
+                          : "专家 / 材料"}
                       </td>
-                      <td>{i.field_name ?? "—"}</td>
+                      <td>{indicator.field_name ?? "—"}</td>
                       <td>
-                        {i.enabled == null
+                        {indicator.enabled == null
                           ? "历史未留存"
-                          : i.enabled
+                          : indicator.enabled
                             ? "已启用"
                             : "已停用"}
                       </td>
-                      <td>{i.effective_from ?? "未留存"}</td>
-                      <td>{i.description ?? "—"}</td>
+                      <td>{indicator.effective_from ?? "未留存"}</td>
+                      <td>{indicator.description ?? "—"}</td>
                     </tr>
                   ))}
               </tbody>
-            </table>
-          </div>
-        </section>
-      ))}
-      {!standard && <p className="empty">暂无可展示的评价标准</p>}
+            ))}
+          </table>
+        </div>
+      ) : (
+        <p className="empty">暂无可展示的评价标准</p>
+      )}
     </section>
   );
 }

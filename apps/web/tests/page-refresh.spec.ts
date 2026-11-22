@@ -275,7 +275,7 @@ test("regulator refresh reaches mounted view readers without applying search dra
     ["场站运营商管理", "/api/v1/companies"],
     ["新增发布资讯", "/api/v1/content"],
     ["充电量统计", "/api/v1/statistics"],
-    ["接入管理", "/api/v1/applications"],
+    ["接入管理", "/api/v1/map/stations"],
     ["告警数据", "/api/v1/alerts"],
     ["巡检任务管理", "/api/v1/inspections"],
     ["场站数据同步", "/api/v1/sync/tasks"],

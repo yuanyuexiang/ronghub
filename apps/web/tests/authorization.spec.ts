@@ -74,7 +74,7 @@ test("configured read-only role hides writes and revokes the prior session", asy
       op.getByRole("heading", { name: "我的场站申请" }),
     ).toBeVisible();
     await expect(
-      op.getByRole("button", { name: "新建草稿", exact: true }),
+      op.getByRole("button", { name: "新增接入申请", exact: true }),
     ).toHaveCount(0);
     await navigateWorkspace(op, "企业资料");
     await op.getByRole("button", { name: "查看企业资料" }).click();

@@ -457,59 +457,10 @@ export function ContentPanel({
           {error}
         </p>
       )}
-      {((canManage && manage && role === "regulator") ||
-        role === "operator") && (
-        <div hidden={!!detail || showForm}>
-          <NoticeRecords
-            defaultExpanded={contentView === "notice"}
-            refreshKey={recordsVersion}
-            manage={manage && role === "regulator"}
-            onOpen={(id) => run(() => open(id))}
-          />
-        </div>
-      )}
-      {canManage && role === "regulator" && (
-        <section
-          className={`panel ${showForm ? "record-detail" : ""}`}
-          hidden={!!detail && !showForm}
-        >
+      {canManage && role === "regulator" && showForm && (
+        <section className="panel record-detail">
           <div className="panel-title">
-            <div>
-              <h2>
-                {contentView === "notice"
-                  ? "自定义通知发布"
-                  : contentView === "protocol"
-                    ? "监管协议内容维护"
-                    : "资讯发布管理"}
-              </h2>
-              <p>草稿可修改，发布后冻结正文；支持定向企业与定时可见</p>
-            </div>
-            <div className="action-row">
-              <button
-                className="outline"
-                onClick={() => {
-                  if (!canLeave()) return;
-                  setManage(!manage);
-                  setPage(1);
-                }}
-              >
-                切换到{manage ? "阅读" : "管理"}视图
-              </button>
-              {canCreate && (
-                <button
-                  className="outline"
-                  onClick={() => {
-                    if (!canLeave()) return;
-                    setManage(true);
-                    setDraft(newDraft);
-                    setEditing(null);
-                    setShowForm(!showForm);
-                  }}
-                >
-                  新建内容草稿
-                </button>
-              )}
-            </div>
+            <h2>{editing ? "编辑内容草稿" : "新建内容草稿"}</h2>
           </div>
           {showForm && (editing ? canEdit : canCreate) && (
             <form
@@ -817,66 +768,89 @@ export function ContentPanel({
       )}
       <section className="panel record-pane" hidden={!!detail || showForm}>
         <div className="panel-title">
-          <div>
-            <h2>{manage ? "发布内容台账" : "公告资讯与通知"}</h2>
-            <p>
-              {manage
-                ? "包含草稿与定时发布记录"
-                : "仅展示已到发布时间、当前账号有权查看的内容"}
-            </p>
-          </div>
-          <form
-            className="search"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (page !== 1 || appliedQ !== q) {
-                setAppliedQ(q);
-                setPage(1);
-              } else run(load);
-            }}
-          >
-            <label>
-              内容分类
-              <select
-                aria-label="内容分类"
-                value={kindFilter}
-                disabled={busy || listLoading}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  if (
-                    value === "information" ||
-                    value === "" ||
-                    value === "announcement" ||
-                    value === "news" ||
-                    value === "notice" ||
-                    value === "protocol" ||
-                    value === "contact"
-                  ) {
-                    setKindFilter(value);
-                    setPage(1);
-                  }
+          <h2>{manage ? "发布内容台账" : "公告资讯与通知"}</h2>
+          {canManage && role === "regulator" && (
+            <div className="action-row view-heading-actions">
+              {canCreate && (
+                <button
+                  className="primary"
+                  onClick={() => {
+                    if (!canLeave()) return;
+                    setManage(true);
+                    setDraft(newDraft);
+                    setEditing(null);
+                    setShowForm(true);
+                  }}
+                >
+                  新建内容草稿
+                </button>
+              )}
+              <button
+                className="outline"
+                onClick={() => {
+                  if (!canLeave()) return;
+                  setManage(!manage);
+                  setPage(1);
                 }}
               >
-                {contentView === "all" && <option value="">全部分类</option>}
-                {contentView === "information" && (
-                  <option value="information">资讯与公告</option>
-                )}
-                {availableKinds.map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <input
-              aria-label="搜索内容标题"
-              placeholder="搜索内容标题"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <button>查询内容</button>
-          </form>
+                切换到{manage ? "阅读" : "管理"}视图
+              </button>
+            </div>
+          )}
         </div>
+        <form
+          className="search content-list-filters"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (page !== 1 || appliedQ !== q) {
+              setAppliedQ(q);
+              setPage(1);
+            } else run(load);
+          }}
+        >
+          <label>
+            内容分类
+            <select
+              aria-label="内容分类"
+              value={kindFilter}
+              disabled={busy || listLoading}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (
+                  value === "information" ||
+                  value === "" ||
+                  value === "announcement" ||
+                  value === "news" ||
+                  value === "notice" ||
+                  value === "protocol" ||
+                  value === "contact"
+                ) {
+                  setKindFilter(value);
+                  setPage(1);
+                }
+              }}
+            >
+              {contentView === "all" && <option value="">全部分类</option>}
+              {contentView === "information" && (
+                <option value="information">资讯与公告</option>
+              )}
+              {availableKinds.map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <input
+            aria-label="搜索内容标题"
+            placeholder="搜索内容标题"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <button type="submit" className="primary">
+            查询内容
+          </button>
+        </form>
         {error && (
           <p className="error" role="alert">
             {error}
@@ -1037,6 +1011,17 @@ export function ContentPanel({
           </button>
         </div>
       </section>
+      {((canManage && manage && role === "regulator") ||
+        role === "operator") && (
+        <div hidden={!!detail || showForm}>
+          <NoticeRecords
+            defaultExpanded={contentView === "notice"}
+            refreshKey={recordsVersion}
+            manage={manage && role === "regulator"}
+            onOpen={(id) => run(() => open(id))}
+          />
+        </div>
+      )}
       {detail && (
         <div
           className="panel business-record-detail record-detail application-detail"

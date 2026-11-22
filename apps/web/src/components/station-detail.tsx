@@ -140,7 +140,6 @@ export function StationDetail({
     >
       <div className="panel-title">
         <div>
-          <p className="record-eyebrow">场站信息管理 / 场站详情</p>
           <h2 id="station-detail-title">{station?.name || "场站与设备详情"}</h2>
           <p>{station?.address || "正在读取场站信息"}</p>
         </div>
@@ -169,9 +168,6 @@ export function StationDetail({
               </span>
               <span>台账额定总功率 {station.power_kw} kW</span>
             </div>
-            <p className="muted">
-              以下为来源上报资料；未知不等于否或零。正式投运日期、来源状态与平台审批状态分别管理。
-            </p>
             <nav className="record-tabs" aria-label="场站详情分区">
               {[
                 ["basic", "基本信息"],

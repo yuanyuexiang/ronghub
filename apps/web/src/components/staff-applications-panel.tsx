@@ -186,12 +186,7 @@ export function StaffApplicationsPanel({
         hidden={!!detail}
       >
         <div className="panel-title">
-          <div>
-            <h2>工作人员账号申请审核</h2>
-            <p>
-              仅全域账号管理员可审核；需线下核验身份，不自动授予监管权限或验证申请电话。
-            </p>
-          </div>
+          <h2>工作人员账号申请审核</h2>
           <button
             className="outline"
             disabled={busy}

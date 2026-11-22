@@ -223,7 +223,10 @@ export function RatingPanel({
           (reviewScores[i.code] ?? "") !==
             String(detail!.current_scores?.[i.code] ?? ""),
       ));
-  const workspaceRef = useRecordFocus(detail?.id);
+  const workspaceRef = useRecordFocus(
+    detail?.id,
+    showBuilder ? "standard-editor" : view,
+  );
   const reviewDirty =
     !!detail &&
     !editable &&
@@ -261,7 +264,9 @@ export function RatingPanel({
       )}
       <div className="record-pane" hidden={!!detail}>
         <WorkspaceViews
-          compact={role === "operator"}
+          secondaryLabel={
+            role === "operator" ? "评价标准与历史结果" : undefined
+          }
           label="星级评价业务视图"
           value={view}
           onChange={setView}
@@ -278,7 +283,7 @@ export function RatingPanel({
             ["publications", "评价结果与公示"],
             ["process", "评审过程管理"],
             ...(canDataSupport ? [["data", "数据支撑评价"] as const] : []),
-            ...(canCreate && role === "operator"
+            ...(canCreate && role === "operator" && view !== "applications"
               ? ([["create", "新增星级申报"]] as const)
               : []),
           ]}
@@ -288,36 +293,47 @@ export function RatingPanel({
           hidden={view !== "standards" && view !== "create"}
         >
           <div className="panel-title">
-            <div>
-              <h2>{view === "create" ? "新增星级申报" : "星级评价标准"}</h2>
-              <p>
-                评价标准 ·
-                申报自评不等于已核实运行数据；人工项须核验证据，平台项使用冻结观测且不允许人工覆盖
-              </p>
-            </div>
-            {canStandards && globalScope && role === "association" && (
-              <button
-                className="outline"
-                disabled={busy || materialBusy}
-                onClick={() => {
-                  setBuilderSeed(undefined);
-                  setShowBuilder(!showBuilder);
-                }}
-              >
-                配置新标准版本
-              </button>
-            )}
+            <h2>
+              {view === "create"
+                ? "新增星级申报"
+                : showBuilder
+                  ? "配置评价标准"
+                  : "星级评价标准"}
+            </h2>
+            {view === "standards" &&
+              (showBuilder ? (
+                <button
+                  type="button"
+                  className="outline"
+                  disabled={busy || materialBusy}
+                  onClick={() => {
+                    if (canLeave()) setShowBuilder(false);
+                  }}
+                >
+                  返回评价标准
+                </button>
+              ) : (
+                canStandards &&
+                globalScope &&
+                role === "association" && (
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={busy || materialBusy}
+                    onClick={() => {
+                      setBuilderSeed(undefined);
+                      setShowBuilder(true);
+                    }}
+                  >
+                    配置新标准版本
+                  </button>
+                )
+              ))}
           </div>
           {view === "standards" && (
-            <RatingIndicatorCatalogue
-              standards={standards}
-              canManage={canStandards && globalScope && role === "association"}
-              configureDisabled={showBuilder}
-              onConfigure={() => {
-                setBuilderSeed(undefined);
-                setShowBuilder(true);
-              }}
-            />
+            <div hidden={showBuilder}>
+              <RatingIndicatorCatalogue standards={standards} />
+            </div>
           )}
           {showBuilder && globalScope && (
             <RatingStandardWorkbench
@@ -334,7 +350,7 @@ export function RatingPanel({
               }}
             />
           )}
-          <div className="table-wrap" hidden={view === "create"}>
+          <div className="table-wrap" hidden={view === "create" || showBuilder}>
             <table>
               <thead>
                 <tr>
@@ -673,23 +689,29 @@ export function RatingPanel({
                         ? "星级申报与评审"
                         : "星级申报及结果"}
               </h2>
-              <p>
-                {view === "results"
-                  ? "按申报查看评审分数、建议星级与结果状态；默认展示已复核待公示记录，可按状态查询历史结果。公示与有效星级请进入公示查询。"
-                  : view === "process"
-                    ? "按申报状态和提交时间定位事项，进入详情核对提交、复核与公示记录。"
-                    : view === "data"
-                      ? "进入评价依据核对指标原始值、数据来源与缺项；资料不足不推定为零分或有效星级。"
-                      : "每次评定保留标准版本、初始分、人工修改和公示历史"}
-              </p>
+              {view === "results" && (
+                <p>默认显示已复核待公示记录，可按状态查询。</p>
+              )}
             </div>
-            <button
-              className="outline"
-              disabled={materialBusy}
-              onClick={() => run(load)}
-            >
-              刷新评价
-            </button>
+            <div className="action-row">
+              <button
+                className="outline"
+                disabled={materialBusy}
+                onClick={() => run(load)}
+              >
+                刷新评价
+              </button>
+              {role === "operator" && view === "applications" && canCreate && (
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy || materialBusy}
+                  onClick={() => setView("create")}
+                >
+                  新增星级申报
+                </button>
+              )}
+            </div>
           </div>
           <QueueFilters
             queue={queue}

@@ -218,7 +218,6 @@ export function PublicPortal() {
           <section className="portal-hero" aria-label="资讯公告查询">
             <div className="portal-container">
               <div className="portal-hero-copy">
-                <span className="portal-kicker">福州市 · 公共信息服务</span>
                 <h1>充电资讯与公告</h1>
                 <p>监管通知 · 政策法规 · 工作动态</p>
                 <form
@@ -253,10 +252,7 @@ export function PublicPortal() {
             aria-label="公开资讯列表"
           >
             <div className="portal-news-heading">
-              <div>
-                <span className="portal-kicker">公开信息</span>
-                <h2>资讯公告</h2>
-              </div>
+              <h2>资讯公告</h2>
             </div>
             <nav className="portal-tabs" aria-label="资讯分类">
               <Link

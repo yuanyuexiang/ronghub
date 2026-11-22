@@ -54,6 +54,9 @@ test("station ledger and application picker reach records beyond the first page"
       page.getByText("第1页 · 共1个场站", { exact: true }),
     ).toBeVisible();
     await navigateWorkspace(page, /^(场站申请|接入管理)$/);
+    await page
+      .getByRole("button", { name: "新增接入申请", exact: true })
+      .click();
     await page.getByLabel("申请场站名称筛选", { exact: true }).fill(group);
     await page
       .locator(".station-picker")

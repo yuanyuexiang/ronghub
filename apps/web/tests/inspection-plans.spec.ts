@@ -101,7 +101,6 @@ test("private cross-page inspection draft preserves local edits and replays a lo
     await login(owner, "operator_a");
     await login(outside, "operator_b");
     await navigateWorkspace(reg, "巡检任务管理");
-    await navigateWorkspace(reg, "巡检计划创建");
     plan = await create(reg);
     await reg
       .getByRole("button", { name: "关闭计划详情", exact: true })
@@ -361,7 +360,7 @@ test("partial plan can clear rich content, protect unsaved navigation and delete
       .getByLabel("计划任务名称", { exact: true })
       .fill("尚未保存的内容");
     await region
-      .getByRole("button", { name: "新建巡检计划", exact: true })
+      .getByRole("button", { name: "关闭计划详情", exact: true })
       .click();
     await expect(region.getByRole("alert")).toContainText("未保存修改");
     await region

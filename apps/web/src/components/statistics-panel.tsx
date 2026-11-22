@@ -51,9 +51,9 @@ export function StatisticsPanel({ role }: { role: string }) {
   const canCombined = reportOrders && reportSubsidies && reportStatistics;
   const [view, setView] = useBusinessView("energy");
   const combined = view === "combined" && canCombined;
+  const construction = view === "district" || view === "operator";
   const [draft, setDraft] = useState(initial),
     [filters, setFilters] = useState(initial),
-    [refresh, setRefresh] = useState(0),
     [data, setData] = useState<Report | null>(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false),
@@ -119,10 +119,53 @@ export function StatisticsPanel({ role }: { role: string }) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [filters, view, refresh, pageRefreshRevision]);
+  }, [filters, view, pageRefreshRevision]);
   const maximum = Math.max(
     1,
     ...(data?.timeline.map((d) => Number(d.kwh || 0)) || []),
+  );
+  const ranking = data && (
+    <section className="panel">
+      <div className="panel-title">
+        <div>
+          <h2>{dimensions[data.dimension]}电量排行</h2>
+        </div>
+      </div>
+      <div className="table-wrap">
+        <table className="aligned-records">
+          <thead>
+            <tr>
+              {[
+                dimensions[data.dimension],
+                "场站数",
+                "接口数",
+                "总功率kW",
+                "观测电量kWh",
+              ].map((heading, column) => (
+                <th
+                  key={heading}
+                  className={column > 0 ? "numeric-cell" : undefined}
+                >
+                  {heading}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.dimension_ranking.map((s) => (
+              <tr key={s.key}>
+                <td>{s.name}</td>
+                <td className="numeric-cell">{s.station_count}</td>
+                <td className="numeric-cell">{s.connectors}</td>
+                <td className="numeric-cell">{s.power_kw}</td>
+                <td className="numeric-cell">{s.kwh ?? "暂无数据"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!data.ranking.length && <p className="empty">当前筛选范围没有场站</p>}
+      </div>
+    </section>
   );
   return (
     <div className="business-stack statistics-workspace">
@@ -163,22 +206,20 @@ export function StatisticsPanel({ role }: { role: string }) {
           display: combined || view === "utilization" ? "none" : "grid",
         }}
       >
-        <section className="panel">
-          <div className="panel-title">
-            <div>
+        <section
+          className={construction ? "panel construction-statistics" : "panel"}
+        >
+          {!construction && (
+            <div className="panel-title">
               <h2>统计范围</h2>
-              <p>按日、月、年汇总，最多366天；部分周期按所选日期截断</p>
             </div>
-            <button
-              className="outline"
-              disabled={loading}
-              onClick={() => setRefresh(refresh + 1)}
-            >
-              刷新统计
-            </button>
-          </div>
+          )}
           <form
-            className="business-form"
+            className={
+              construction
+                ? "business-form construction-filters"
+                : "business-form"
+            }
             onSubmit={(e) => {
               e.preventDefault();
               setFilters({ ...draft });
@@ -224,29 +265,24 @@ export function StatisticsPanel({ role }: { role: string }) {
                 ))}
               </select>
             </label>
-            <label>
-              排名维度
-              <select
-                aria-label="统计排名维度"
-                value={
-                  view === "district"
-                    ? "district"
-                    : view === "operator"
-                      ? "operator"
-                      : draft.dimension
-                }
-                disabled={view === "district" || view === "operator"}
-                onChange={(e) =>
-                  setDraft({ ...draft, dimension: e.target.value })
-                }
-              >
-                {Object.entries(dimensions).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!construction && (
+              <label>
+                排名维度
+                <select
+                  aria-label="统计排名维度"
+                  value={draft.dimension}
+                  onChange={(e) =>
+                    setDraft({ ...draft, dimension: e.target.value })
+                  }
+                >
+                  {Object.entries(dimensions).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label>
               区域
               <input
@@ -276,25 +312,38 @@ export function StatisticsPanel({ role }: { role: string }) {
                 ))}
               </select>
             </label>
-            <button className="outline" disabled={loading}>
-              查询统计
-            </button>
-            {canExport && role !== "association" && data && (
-              <a
-                className="outline export-link"
-                href={"/api/v1/statistics/analysis/export?" + params}
+            <div className="statistics-actions">
+              <button className="primary" disabled={loading}>
+                查询统计
+              </button>
+              <button
+                type="button"
+                className="outline"
+                disabled={loading}
+                onClick={() => {
+                  setDraft(initial);
+                  setFilters({ ...initial });
+                }}
               >
-                导出周期分析CSV
-              </a>
-            )}
-            {canExport && role !== "association" && data && (
-              <a
-                className="outline export-link"
-                href={"/api/v1/statistics/export?" + params}
-              >
-                导出场站电量CSV
-              </a>
-            )}
+                重置筛选
+              </button>
+              {canExport && role !== "association" && data && (
+                <a
+                  className="outline export-link"
+                  href={"/api/v1/statistics/analysis/export?" + params}
+                >
+                  导出周期分析CSV
+                </a>
+              )}
+              {canExport && role !== "association" && data && (
+                <a
+                  className="outline export-link"
+                  href={"/api/v1/statistics/export?" + params}
+                >
+                  导出场站电量CSV
+                </a>
+              )}
+            </div>
           </form>
           {error && (
             <p className="error" role="alert">
@@ -306,79 +355,82 @@ export function StatisticsPanel({ role }: { role: string }) {
               正在汇总统计数据…
             </p>
           )}
-        </section>
-        {data && !["energy", "power"].includes(view) && (
-          <section className="panel">
-            <div className="panel-title">
-              <div>
-                <h2>
-                  {view === "district"
-                    ? "区域建站统计"
-                    : view === "operator"
-                      ? "运营商建站统计"
-                      : "用电与额定功率分析"}
-                </h2>
-                <p>
-                  建站数量和额定功率取当前授权台账；电量为所选日期区间的独立观测，不将额定功率当作实际用电功率。
-                </p>
-              </div>
-            </div>
-            <div className="table-wrap">
-              <table className="aligned-records">
-                <thead>
-                  <tr>
-                    {[
-                      "序号",
-                      dimensions[data.dimension],
-                      "当前场站数",
-                      "当前接口数",
-                      "台账额定功率 kW",
-                      "区间观测电量 kWh",
-                      "建站数量同比 / 环比",
-                      "额定功率同比 / 环比",
-                    ].map((name, column) => (
-                      <th
-                        key={name}
-                        className={
-                          column >= 2 && column <= 5
-                            ? "numeric-cell"
-                            : undefined
-                        }
-                      >
-                        {name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.dimension_ranking.map((row, index) => (
-                    <tr key={row.key}>
-                      <td>{index + 1}</td>
-                      <td>{row.name}</td>
-                      <td className="numeric-cell">{row.station_count}</td>
-                      <td className="numeric-cell">{row.connectors}</td>
-                      <td className="numeric-cell">{row.power_kw}</td>
-                      <td className="numeric-cell">{row.kwh ?? "暂无观测"}</td>
-                      <td>待历史建站快照</td>
-                      <td>待历史功率快照</td>
+          {data && construction && (
+            <>
+              <div className="table-wrap">
+                <table
+                  className="aligned-records"
+                  aria-label={
+                    view === "district" ? "区域建站统计" : "运营商建站统计"
+                  }
+                >
+                  <thead>
+                    <tr>
+                      {[
+                        "序号",
+                        dimensions[data.dimension],
+                        "当前场站数",
+                        "当前接口数",
+                        "台账额定功率 kW",
+                        "区间观测电量 kWh",
+                        "建站数量同比 / 环比",
+                        "额定功率同比 / 环比",
+                      ].map((name, column) => (
+                        <th
+                          key={name}
+                          className={
+                            column >= 2 && column <= 5
+                              ? "numeric-cell"
+                              : undefined
+                          }
+                        >
+                          {name}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              {!data.dimension_ranking.length && (
-                <p className="empty">当前授权范围暂无场站</p>
-              )}
-            </div>
-            <p className="muted table-note">
-              历史建站增量、同比环比与实际用电功率须有对应历史及计量来源后计算，当前不以零代替缺失数据。
-            </p>
-          </section>
-        )}
+                  </thead>
+                  <tbody>
+                    {data.dimension_ranking.map((row, index) => (
+                      <tr key={row.key}>
+                        <td>{index + 1}</td>
+                        <td>{row.name}</td>
+                        <td className="numeric-cell">{row.station_count}</td>
+                        <td className="numeric-cell">{row.connectors}</td>
+                        <td className="numeric-cell">{row.power_kw}</td>
+                        <td className="numeric-cell">
+                          {row.kwh
+                            ?.replace(/(\.\d*?)0+$/, "$1")
+                            .replace(/\.$/, "") ?? "暂无观测"}
+                        </td>
+                        <td>暂无历史数据</td>
+                        <td>暂无历史数据</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!data.dimension_ranking.length && (
+                  <p className="empty">当前授权范围暂无场站</p>
+                )}
+              </div>
+              <details className="table-note construction-statistics-note">
+                <summary>查看统计口径</summary>
+                <p className="muted">
+                  场站数、接口数及额定功率来自当前台账。区间电量来自所选日期内的观测。
+                  场站数和额定功率的同比与环比需有历史快照后计算。
+                </p>
+              </details>
+            </>
+          )}
+        </section>
         {data && (
           <div
             className="business-stack"
             hidden={!["energy", "power"].includes(view)}
           >
+            <p className="muted statistics-period">
+              统计区间 {data.start_date} 至 {data.end_date}
+            </p>
+            {view === "energy" && ranking}
             <section className="metrics">
               {[
                 ["授权场站", data.station_count, "个"],
@@ -396,9 +448,6 @@ export function StatisticsPanel({ role }: { role: string }) {
                     {value}
                     <small>{unit}</small>
                   </strong>
-                  <p>
-                    统计区间 {data.start_date} 至 {data.end_date}
-                  </p>
                 </article>
               ))}
             </section>
@@ -449,7 +498,7 @@ export function StatisticsPanel({ role }: { role: string }) {
               <div className="energy-chart">
                 <svg
                   role="img"
-                  aria-label={`$按{grains[data.granularity]}电量走势：蓝色为有观测电量，灰色为缺失周期`}
+                  aria-label={`按{grains[data.granularity]}电量走势：蓝色为有观测电量，灰色为缺失周期`}
                   viewBox={`0 0 ${Math.max(720, data.timeline.length * 24)} 200`}
                   style={{ minWidth: Math.max(720, data.timeline.length * 24) }}
                 >
@@ -545,98 +594,55 @@ export function StatisticsPanel({ role }: { role: string }) {
                 </div>
               </details>
             </section>
-            <section className="panel">
-              <div className="panel-title">
-                <div>
-                  <h2>{dimensions[data.dimension]}电量排行</h2>
-                  <p>有观测的场站按电量排列，缺少记录的场站保留在表尾</p>
+            {view === "power" && ranking}
+            <details className="prototype-related">
+              <summary>查看统计口径与数据完整性</summary>
+              <div className="prototype-related-body">
+                <p className="muted">
+                  生成时间{" "}
+                  {new Date(data.generated_at).toLocaleString("zh-CN", {
+                    timeZone: "Asia/Shanghai",
+                  })}{" "}
+                  · 时区 {data.timezone}
+                </p>
+                <div className="business-form">
+                  <div>
+                    <h3>前一等长区间观测</h3>
+                    <p>
+                      {data.previous_period.start_date} 至{" "}
+                      {data.previous_period.end_date}
+                    </p>
+                    <p>
+                      {data.previous_period.kwh ?? "暂无数据"} kWh · 有记录
+                      {data.previous_period.observed_days}天
+                    </p>
+                    <p className="muted">
+                      等长区间仅供观测对照；月年比较窗口见上方定义。
+                    </p>
+                  </div>
+                  <div>
+                    <h3>场站业务状态</h3>
+                    {Object.entries(data.status_distribution).map(
+                      ([key, count]) => (
+                        <p key={key}>
+                          {states[key] || key}：{count}个
+                        </p>
+                      ),
+                    )}
+                  </div>
+                </div>
+                <div className="statistics-detail">
+                  <p>{data.basis}</p>
+                  <p className="muted">{data.comparison_date_basis}</p>
+                  <p className="muted">{data.energy_date_basis}</p>
+                  {Object.entries(data.unavailable).map(([key, reason]) => (
+                    <p className="muted" key={key}>
+                      {labels[key]}：暂无数据，{reason}
+                    </p>
+                  ))}
                 </div>
               </div>
-              <div className="table-wrap">
-                <table className="aligned-records">
-                  <thead>
-                    <tr>
-                      {[
-                        dimensions[data.dimension],
-                        "场站数",
-                        "接口数",
-                        "总功率kW",
-                        "观测电量kWh",
-                      ].map((heading, column) => (
-                        <th
-                          key={heading}
-                          className={column > 0 ? "numeric-cell" : undefined}
-                        >
-                          {heading}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.dimension_ranking.map((s) => (
-                      <tr key={s.key}>
-                        <td>{s.name}</td>
-                        <td className="numeric-cell">{s.station_count}</td>
-                        <td className="numeric-cell">{s.connectors}</td>
-                        <td className="numeric-cell">{s.power_kw}</td>
-                        <td className="numeric-cell">{s.kwh ?? "暂无数据"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!data.ranking.length && (
-                  <p className="empty">当前筛选范围没有场站</p>
-                )}
-              </div>
-            </section>
-            <section className="panel">
-              <div className="panel-title">
-                <div>
-                  <h2>口径与数据完整性</h2>
-                  <p>
-                    生成时间{" "}
-                    {new Date(data.generated_at).toLocaleString("zh-CN")} · 时区{" "}
-                    {data.timezone}
-                  </p>
-                </div>
-              </div>
-              <div className="business-form">
-                <div>
-                  <h3>前一等长区间观测</h3>
-                  <p>
-                    {data.previous_period.start_date} 至{" "}
-                    {data.previous_period.end_date}
-                  </p>
-                  <p>
-                    {data.previous_period.kwh ?? "暂无数据"} kWh · 有记录
-                    {data.previous_period.observed_days}天
-                  </p>
-                  <p className="muted">
-                    等长区间仅供观测对照；月年比较窗口见上方定义。
-                  </p>
-                </div>
-                <div>
-                  <h3>场站业务状态</h3>
-                  {Object.entries(data.status_distribution).map(
-                    ([key, count]) => (
-                      <p key={key}>
-                        {states[key] || key}：{count}个
-                      </p>
-                    ),
-                  )}
-                </div>
-              </div>
-              <div className="statistics-detail">
-                <p>{data.basis}</p>
-                <p className="muted">{data.comparison_date_basis}</p>
-                <p className="muted">{data.energy_date_basis}</p>
-                {Object.entries(data.unavailable).map(([key, reason]) => (
-                  <p className="muted" key={key}>
-                    {labels[key]}：暂无数据，{reason}
-                  </p>
-                ))}
-              </div>
-            </section>
+            </details>
           </div>
         )}
       </div>

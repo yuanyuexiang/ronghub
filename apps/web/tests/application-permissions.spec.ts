@@ -51,7 +51,7 @@ test("submit-only enterprise staff can submit without editing, uploading or with
     const record = await created.json();
     await navigateWorkspace(limited, /^(场站申请|接入管理)$/);
     await expect(
-      limited.getByRole("button", { name: "新建草稿", exact: true }),
+      limited.getByRole("button", { name: "新增接入申请", exact: true }),
     ).toHaveCount(0);
     await limited.getByLabel("检索申请编号").fill(String(record.id));
     await expect(

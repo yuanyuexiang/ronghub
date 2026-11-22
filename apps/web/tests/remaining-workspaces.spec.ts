@@ -71,7 +71,7 @@ test("construction statistics request actual server dimensions", async ({
   await navigateWorkspace(page, "建站统计（区域）");
   expect((await response).status()).toBe(200);
   await expect(
-    page.getByRole("heading", { name: "区域建站统计", exact: true }),
+    page.getByRole("table", { name: "区域建站统计", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "观测电量同比与环比", exact: true }),
@@ -84,7 +84,20 @@ test("construction statistics request actual server dimensions", async ({
   await navigateWorkspace(page, "建站统计（运营商）");
   expect((await operator).status()).toBe(200);
   await expect(
-    page.getByRole("heading", { name: "运营商建站统计", exact: true }),
+    page.getByRole("table", { name: "运营商建站统计", exact: true }),
+  ).toBeVisible();
+  const statistics = page.locator(".construction-statistics");
+  await expect(
+    statistics.getByRole("button", { name: "查询统计", exact: true }),
+  ).toBeVisible();
+  await expect(statistics.getByRole("table")).toBeVisible();
+  await expect(statistics.getByLabel("统计排名维度")).toHaveCount(0);
+  await expect(
+    statistics.getByText("场站数、接口数及额定功率", { exact: false }),
+  ).toBeHidden();
+  await statistics.getByText("查看统计口径", { exact: true }).click();
+  await expect(
+    statistics.getByText("场站数、接口数及额定功率", { exact: false }),
   ).toBeVisible();
   await page.screenshot({
     path: "../../.backups/batch567-current-statistics.png",
@@ -214,23 +227,27 @@ test("operator commissioning and decommissioning views apply server kind filters
 }) => {
   await login(page, "operator_a");
   await navigateWorkspace(page, "场站申请");
-  for (const [kind, label] of [
-    ["commission", "投运申请"],
-    ["decommission", "核销申请"],
-  ]) {
+  for (const kind of ["commission", "decommission"]) {
+    await page.getByLabel("筛选申请类型", { exact: true }).selectOption(kind);
     const response = page.waitForResponse(
       (r) =>
         r.url().includes("/api/v1/applications?") &&
         new URL(r.url()).searchParams.get("kind") === kind,
     );
-    await navigateWorkspace(page, label);
+    await page.getByRole("button", { name: "查询申请", exact: true }).click();
     expect((await response).status()).toBe(200);
     await expect(page.getByLabel("筛选申请类型", { exact: true })).toHaveValue(
       kind,
     );
-    await expect(page.getByLabel("申请类型", { exact: true })).toHaveValue(
-      kind,
-    );
+    await page
+      .getByRole("button", { name: "新增接入申请", exact: true })
+      .click();
+    await expect(
+      page.getByRole("combobox", { name: "申请类型", exact: true }),
+    ).toHaveValue(kind);
+    await page
+      .getByRole("button", { name: "返回申请列表", exact: true })
+      .click();
   }
   await page.screenshot({
     path: "../../.backups/batch567-current-operator.png",

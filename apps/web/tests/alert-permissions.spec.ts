@@ -48,6 +48,7 @@ test("alert confirmation staff cannot configure rules or inject observations", a
         .getByRole("navigation", { name: "告警工作区" })
         .getByRole("button", { name: "规则配置", exact: true })
         .click();
+      await page.getByText("历史阈值规则与样本验证", { exact: true }).click();
       await expect(
         page.getByRole("button", { name: "新增规则版本", exact: true }),
       ).toHaveCount(0);

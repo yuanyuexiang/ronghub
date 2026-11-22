@@ -6,7 +6,7 @@ import { useCapability } from "./permissions";
 import { RuntimePanel } from "./runtime-panel";
 import { SubsidyDeviceDays } from "./subsidy-device-days";
 import { StationMapPanel } from "./station-map-panel";
-import { DashboardOperations } from "./dashboard-operations";
+import type { NavigationItem } from "./workspace-navigation";
 function useRead<T>(
   query: object,
   read: (signal: AbortSignal) => Promise<{ data?: T; error?: unknown }>,
@@ -486,7 +486,7 @@ export function OperatorOverview({
   onNavigate,
 }: {
   summary: ApiSchemas["DashboardSummary"];
-  onNavigate: (tab: string) => void;
+  onNavigate: (item: NavigationItem) => void;
 }) {
   const canStations = useCapability("stations.read"),
     canStats = useCapability("statistics.read");
@@ -500,13 +500,7 @@ export function OperatorOverview({
       className="business-stack operator-overview"
       aria-label="运营商接入总览"
     >
-      <section className="panel">
-        <div className="panel-title">
-          <div>
-            <h2>场站与累计观测概览</h2>
-            <p>本企业授权范围；留存观测不代表已认证的全生命周期累计</p>
-          </div>
-        </div>
+      <section className="panel" aria-label="场站与累计观测概览">
         <div className="prototype-metric-row">
           {[
             ["本企业场站", summary.stations],
@@ -526,19 +520,34 @@ export function OperatorOverview({
         </div>
         <div className="prototype-shortcuts">
           {[
-            ["监管通知", "公告与通知", canNotices],
-            ["审核结果", "场站申请", canApplications],
-            ["巡检通知", "整改任务", canInspections],
-            ["隐患督办", "隐患督办", canHazards],
+            {
+              label: "监管通知",
+              tab: "公告与通知",
+              view: "notice",
+              allowed: canNotices,
+            },
+            {
+              label: "审核结果",
+              tab: "场站申请",
+              view: "progress",
+              allowed: canApplications,
+            },
+            {
+              label: "巡检通知",
+              tab: "整改任务",
+              view: "tasks",
+              allowed: canInspections,
+            },
+            { label: "隐患督办", tab: "隐患督办", allowed: canHazards },
           ]
-            .filter(([, , allowed]) => allowed)
-            .map(([k, v]) => (
+            .filter(({ allowed }) => allowed)
+            .map(({ label, tab, view }) => (
               <button
                 className="outline"
-                key={String(v)}
-                onClick={() => onNavigate(String(v))}
+                key={tab}
+                onClick={() => onNavigate({ label, tab, view })}
               >
-                {String(k)}
+                {label}
               </button>
             ))}
         </div>
@@ -551,12 +560,6 @@ export function OperatorOverview({
         )}
         {canStats && <StationRanking page={page} onPage={setPage} />}
       </div>
-      <details className="prototype-related">
-        <summary>经营观测与接入记录</summary>
-        <div className="prototype-related-body">
-          <DashboardOperations />
-        </div>
-      </details>
     </div>
   );
 }
@@ -588,7 +591,7 @@ function StationRanking({
       <div className="panel-title">
         <div>
           <h2>充电站排名</h2>
-          <p>昨日电量由高到低，每页5条；不同来源分别排名，缺观测不按零处理</p>
+          <p>按昨日电量降序，分来源排名</p>
         </div>
       </div>
       <Feedback error={error} loading={loading} />

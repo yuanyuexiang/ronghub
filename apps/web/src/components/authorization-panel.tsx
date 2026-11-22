@@ -198,26 +198,40 @@ export function AuthorizationPanel({
           className="panel"
           hidden={view === "accounts" || showNew || !!account}
         >
-          <div className="panel-title">
-            <div>
-              <h2>业务权限角色</h2>
-              <p>
-                在三类基础身份内分配模块查看与办理权限，只能下发自身拥有的权限；运营商始终限制在所属企业，数据区域取企业归属与账号区域授权的交集
-              </p>
+          {showRole ? (
+            <div className="panel-title">
+              <h2>{profile ? "编辑权限角色" : "新建权限角色"}</h2>
+              <button
+                type="button"
+                className="outline"
+                disabled={busy}
+                onClick={() => {
+                  if (canLeave()) setShowRole(false);
+                }}
+              >
+                返回角色列表
+              </button>
             </div>
-            <button
-              className="outline"
-              disabled={!globalScope || busy || showRole}
-              onClick={() => startRole(null)}
-            >
-              新建权限角色
-            </button>
-            {!globalScope && (
-              <p className="muted">
-                区域账号可引用共享角色，不能修改全域共享定义。
-              </p>
-            )}
-          </div>
+          ) : (
+            <div className="panel-title">
+              <div>
+                <h2>业务权限角色</h2>
+                {!globalScope && (
+                  <p>区域账号可使用共享角色，修改由全域账号办理。</p>
+                )}
+              </div>
+              {globalScope && (
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => startRole(null)}
+                >
+                  新建权限角色
+                </button>
+              )}
+            </div>
+          )}
           {showRole && globalScope && (
             <form
               onSubmit={(e) => {
@@ -374,46 +388,43 @@ export function AuthorizationPanel({
       )}
       {canAccounts && (
         <section className="panel" hidden={view === "roles" || showRole}>
-          <div className="panel-title">
-            <div>
+          {!showNew && !account && (
+            <div className="panel-title">
               <h2>账号管理</h2>
-              <p>
-                调整授权或启停后撤销原会话；不能更改自身账号，也不能维护权限高于自身的账号
-              </p>
+              <div className="action-row view-heading-actions">
+                <form
+                  className="search"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    appliedListQuery.current = { q };
+                    if (page !== 1) setPage(1);
+                    else run(load);
+                  }}
+                >
+                  <input
+                    aria-label="搜索账号"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="账号名称"
+                    maxLength={100}
+                  />
+                  <button disabled={busy}>查询账号</button>
+                </form>
+                <button
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => {
+                    if (canLeave()) {
+                      setAccount(null);
+                      setShowNew(!showNew);
+                    }
+                  }}
+                >
+                  新建账号
+                </button>
+              </div>
             </div>
-            <div className="action-row" hidden={showNew || !!account}>
-              <form
-                className="search"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  appliedListQuery.current = { q };
-                  if (page !== 1) setPage(1);
-                  else run(load);
-                }}
-              >
-                <input
-                  aria-label="搜索账号"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="账号名称"
-                  maxLength={100}
-                />
-                <button disabled={busy}>查询账号</button>
-              </form>
-              <button
-                className="outline"
-                disabled={busy}
-                onClick={() => {
-                  if (canLeave()) {
-                    setAccount(null);
-                    setShowNew(!showNew);
-                  }
-                }}
-              >
-                新建账号
-              </button>
-            </div>
-          </div>
+          )}
           {(showNew || account) && (
             <div className="panel-title">
               <h2>

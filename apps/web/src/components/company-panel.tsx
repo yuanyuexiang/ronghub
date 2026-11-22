@@ -114,12 +114,7 @@ export function CompanyPanel({
       <section ref={workspaceRef} className="panel company-workspace">
         <div className="record-pane" hidden={!!detail}>
           <div className="panel-title">
-            <div>
-              <h2>{role === "operator" ? "本企业资料" : "运营商企业台账"}</h2>
-              <p>
-                信用代码精确检索，企业名称按字面包含检索；联系人资料仅限监管与所属企业查看。CSV每次最多导出10000家，超限请缩小查询范围。
-              </p>
-            </div>
+            <h2>{role === "operator" ? "本企业资料" : "运营商企业台账"}</h2>
             <form
               className="search"
               onSubmit={(e) => {
@@ -147,6 +142,7 @@ export function CompanyPanel({
               {canExport && (
                 <a
                   className="outline export-link"
+                  title="按已查询条件导出，最多 10,000 家"
                   href={
                     "/api/v1/companies/export?" +
                     new URLSearchParams(appliedListQuery.current)

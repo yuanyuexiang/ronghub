@@ -2,12 +2,16 @@
 import { useEffect, useRef } from "react";
 
 /** Keep the list's state mounted while moving focus to the selected record. */
-export function useRecordFocus(identity: number | undefined) {
+export function useRecordFocus(identity: number | undefined, pane?: string) {
   const root = useRef<HTMLElement>(null);
-  const previous = useRef(identity);
+  const previous = useRef({ identity, pane });
   useEffect(() => {
-    if (previous.current === identity) return;
-    previous.current = identity;
+    if (
+      previous.current.identity === identity &&
+      previous.current.pane === pane
+    )
+      return;
+    previous.current = { identity, pane };
     const heading = Array.from(
       root.current?.querySelectorAll<HTMLElement>(
         identity == null ? ".record-pane h2" : ".record-detail .panel-title h2",
@@ -18,6 +22,6 @@ export function useRecordFocus(identity: number | undefined) {
       heading.focus({ preventScroll: true });
     }
     root.current?.scrollIntoView({ block: "start" });
-  }, [identity]);
+  }, [identity, pane]);
   return root;
 }

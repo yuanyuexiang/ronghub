@@ -80,7 +80,16 @@ test("application queue reaches history with combined filters and resets after c
     await expect(
       page.getByText("当前条件下没有申请记录", { exact: true }),
     ).toBeVisible();
+    await page
+      .getByRole("button", { name: "新增接入申请", exact: true })
+      .click();
     await pickStation(page, "申请场站", fixture);
+    await page.route(
+      /\/api\/v1\/applications\/\d+$/,
+      (route) =>
+        route.fulfill({ status: 503, json: { detail: "暂时无法读取详情" } }),
+      { times: 1 },
+    );
     const created = page.waitForResponse(
       (r) =>
         r.url().endsWith("/api/v1/applications") &&
@@ -90,6 +99,23 @@ test("application queue reaches history with combined filters and resets after c
     const response = await created;
     expect(response.status()).toBe(201);
     const record = await response.json();
+    await expect(page.getByRole("main").getByRole("alert")).toContainText(
+      `草稿 APP-${record.id} 已创建`,
+    );
+    await page
+      .getByRole("row")
+      .filter({
+        has: page.getByRole("cell", { name: `APP-${record.id}`, exact: true }),
+      })
+      .getByRole("button", { name: "查看处理", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", {
+        name: `APP-${record.id} · 场站接入`,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: /返回申请列表/ }).click();
     await expect(
       page.getByRole("cell", { name: `APP-${record.id}`, exact: true }),
     ).toBeVisible();

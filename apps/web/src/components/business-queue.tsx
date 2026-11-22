@@ -411,12 +411,6 @@ export function QueueFilters({
           重置{label}筛选
         </button>
       </form>
-      <p className="muted application-list-note">
-        名称为当前台账；编号保留。新建申报返回全部记录第一页。最近提交取实际提交记录，缺失不以创建时间代替；日期含结束日。
-        {kinds
-          ? "办理状态与星级有效性分别判断。"
-          : "金额采用原核算精度展示，不代表正式结算。"}
-      </p>
       {queue.error && (
         <p className="error" role="alert">
           {queue.error}

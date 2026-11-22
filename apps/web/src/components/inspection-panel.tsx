@@ -1,7 +1,6 @@
 "use client";
 import { useBusinessView } from "./business-view-context";
 import {
-  WorkspaceViews,
   useWorkspaceLeave,
   type LeaveGuardRegistrar,
 } from "./business-workspace";
@@ -72,14 +71,18 @@ export function InspectionPanel({
   const [taskOrigin, setTaskOrigin] = useState("tasks");
   const [planDirty, setPlanDirty] = useState(false);
   const [planBusy, setPlanBusy] = useState(false);
-  const workspaceRef = useRecordFocus(detail?.id);
+  const workspaceRef = useRecordFocus(detail?.id, view);
   const dirty = Boolean(
     comment.trim() ||
     contactName.trim() ||
     contactPhone.trim() ||
     performedAt ||
-    title.trim() ||
-    description.trim() ||
+    (view === "quick" &&
+      (sid ||
+        title.trim() ||
+        description.trim() ||
+        due ||
+        severity !== "normal")) ||
     planDirty,
   );
   const canLeave = useWorkspaceLeave(
@@ -87,6 +90,14 @@ export function InspectionPanel({
     busy || materialBusy || planBusy,
     registerLeaveGuard,
   );
+  function resetQuickAssignment() {
+    setSid("");
+    setTitle("");
+    setDescription("");
+    setRequirementDocument(null);
+    setSeverity("normal");
+    setDue("");
+  }
   function closeDetail() {
     if (!canLeave()) return;
     setView(taskOrigin);
@@ -168,25 +179,11 @@ export function InspectionPanel({
         </p>
       )}
       <div className="record-pane" hidden={!!detail}>
-        <WorkspaceViews
-          label="巡检业务视图"
-          value={view}
-          onChange={setView}
-          disabled={busy || materialBusy || planBusy}
-          items={
-            canAssign && role === "regulator"
-              ? [
-                  ["tasks", "巡检任务管理"],
-                  ["plans", "巡检计划"],
-                  ["quick", "单站快捷下发"],
-                ]
-              : [["tasks", "企业整改任务"]]
-          }
-        />
         <div className="record-pane" hidden={view !== "plans"}>
           {canAssign && role === "regulator" && (
             <InspectionPlans
               csrf={csrf}
+              onBack={() => setView("tasks")}
               onDirty={setPlanDirty}
               onBusy={setPlanBusy}
               parentBusy={busy || materialBusy}
@@ -210,12 +207,18 @@ export function InspectionPanel({
           {canAssign && role === "regulator" && (
             <section className="panel">
               <div className="panel-title">
-                <div>
-                  <h2>单站快捷下发</h2>
-                  <p>
-                    演示闭环规则 · 任务按场站归属定向到企业；重大隐患醒目标记
-                  </p>
-                </div>
+                <h2>单站快捷下发</h2>
+                <button
+                  type="button"
+                  className="outline"
+                  onClick={() => {
+                    if (!canLeave()) return;
+                    resetQuickAssignment();
+                    setView("tasks");
+                  }}
+                >
+                  返回任务列表
+                </button>
               </div>
               <form
                 className="business-form"
@@ -238,9 +241,7 @@ export function InspectionPanel({
                     queue.reset();
                     setTaskOrigin("tasks");
                     setDetail(await readDetail(task.id));
-                    setTitle("");
-                    setDescription("");
-                    setRequirementDocument(null);
+                    resetQuickAssignment();
                   });
                 }}
               >
@@ -317,17 +318,36 @@ export function InspectionPanel({
       <section className="panel" hidden={!detail && view !== "tasks"}>
         <div className="record-pane" hidden={!!detail || view !== "tasks"}>
           <div className="panel-title">
-            <div>
-              <h2>{role === "operator" ? "企业整改任务" : "巡检任务跟踪"}</h2>
-              <p>逾期按服务器当前时间计算，保留回复与复核历史</p>
+            <h2>{role === "operator" ? "企业整改任务" : "巡检任务跟踪"}</h2>
+            <div className="action-row view-heading-actions">
+              {canAssign && role === "regulator" && (
+                <>
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={busy || materialBusy || planBusy}
+                    onClick={() => setView("plans")}
+                  >
+                    巡检计划
+                  </button>
+                  <button
+                    type="button"
+                    className="outline"
+                    disabled={busy || materialBusy || planBusy}
+                    onClick={() => setView("quick")}
+                  >
+                    单站快捷下发
+                  </button>
+                </>
+              )}
+              <button
+                className="outline"
+                onClick={() => run(load)}
+                disabled={busy || materialBusy}
+              >
+                刷新任务
+              </button>
             </div>
-            <button
-              className="outline"
-              onClick={() => run(load)}
-              disabled={busy || materialBusy}
-            >
-              刷新任务
-            </button>
           </div>
           <form
             className="application-filters"
@@ -479,19 +499,21 @@ export function InspectionPanel({
               重置巡检筛选
             </button>
           </form>
-          <p className="muted application-list-note">
-            当前台账名称；新建返回全部第一页。逾期按查询时刻判断，已关闭或未设置期限不记逾期。反馈状态只说明有无实际留存回复，不代表复核通过；填报执行时间不使用系统提交时间补空。
-            <br />
-            已应用创建日期：{queue.query.created_from || "不限"} 至{" "}
-            {queue.query.created_to || "不限"} · 反馈：
-            {queue.query.execution_state === "reported"
-              ? "已反馈"
-              : queue.query.execution_state === "not_reported"
-                ? "未反馈"
-                : queue.query.execution_state === "unknown"
-                  ? "历史未留存"
-                  : "全部"}
-          </p>
+          {(queue.query.created_from ||
+            queue.query.created_to ||
+            queue.query.execution_state) && (
+            <p className="muted application-list-note">
+              已查询创建日期 {queue.query.created_from || "不限"} 至{" "}
+              {queue.query.created_to || "不限"} · 反馈
+              {queue.query.execution_state === "reported"
+                ? "已反馈"
+                : queue.query.execution_state === "not_reported"
+                  ? "未反馈"
+                  : queue.query.execution_state === "unknown"
+                    ? "历史未留存"
+                    : "全部"}
+            </p>
+          )}
           <InspectionExport
             query={queue.query}
             busy={busy || materialBusy || queue.loading || Boolean(queue.error)}
@@ -622,6 +644,13 @@ export function InspectionPanel({
             label="巡检"
             busy={busy || materialBusy}
           />
+          <details className="table-note">
+            <summary>查看任务状态说明</summary>
+            <p className="muted">
+              查询时按任务期限判断逾期。已关闭或无期限的任务不计逾期。
+              反馈状态按留存回复统计，复核结果与实际执行时间在任务详情查看。
+            </p>
+          </details>
         </div>
         {detail && (
           <div

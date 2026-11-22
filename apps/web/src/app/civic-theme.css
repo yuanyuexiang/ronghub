@@ -540,10 +540,6 @@ body .prototype-workspace .map-filter-panel {
 body .prototype-workspace .map-canvas-panel {
   border-radius: var(--civic-radius);
 }
-body .prototype-workspace .map-overview-cards article {
-  border-color: var(--civic-border);
-  border-radius: 8px;
-}
 
 /* Public reading and authentication share the same brand, with independent page layouts. */
 body .corrected-public-portal .portal-header {

@@ -134,12 +134,7 @@ export function RegistrationPanel({
       )}
       <section className="panel record-pane" hidden={!!detail}>
         <div className="panel-title">
-          <div>
-            <h2>企业注册审核</h2>
-            <p>
-              核对企业资料与资质，选择账号权限角色；通过后原子创建企业档案与登录账号
-            </p>
-          </div>
+          <h2>企业注册审核</h2>
           <form
             className="search"
             onSubmit={(e) => {
@@ -316,7 +311,7 @@ export function RegistrationPanel({
                   </label>
                   <div className="action-row">
                     <button
-                      className="outline"
+                      className="primary"
                       disabled={busy || !comment.trim() || !profile}
                       onClick={() => review("approve")}
                     >

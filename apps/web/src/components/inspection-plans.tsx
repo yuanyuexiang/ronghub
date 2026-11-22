@@ -185,6 +185,7 @@ function Targets({
 
 export function InspectionPlans({
   csrf,
+  onBack,
   parentBusy,
   onPublished,
   onOpenTask,
@@ -192,6 +193,7 @@ export function InspectionPlans({
   onBusy,
 }: {
   csrf: string;
+  onBack: () => void;
   parentBusy: boolean;
   onPublished: () => Promise<void>;
   onOpenTask: (id: number) => Promise<void>;
@@ -438,23 +440,28 @@ export function InspectionPlans({
   );
   return (
     <section className="panel inspection-plans" aria-label="巡检计划与批量下发">
-      <div className="panel-title">
-        <div>
-          <h2>巡检计划与批量下发</h2>
-          <p>
-            先保存草稿、核对目标，再为每个场站生成独立任务。未发布内容仅创建者可见。
-          </p>
-        </div>
-        <button
-          type="button"
-          className="outline"
-          disabled={disabled}
-          onClick={() => void select("new")}
-        >
-          新建巡检计划
-        </button>
-      </div>
       <div className="record-pane" hidden={!!detail}>
+        <div className="panel-title">
+          <h2>巡检计划与批量下发</h2>
+          <div className="action-row view-heading-actions">
+            <button
+              type="button"
+              className="primary"
+              disabled={disabled}
+              onClick={() => void select("new")}
+            >
+              新建巡检计划
+            </button>
+            <button
+              type="button"
+              className="outline"
+              disabled={disabled}
+              onClick={onBack}
+            >
+              返回任务列表
+            </button>
+          </div>
+        </div>
         <form
           className="plan-list-filters"
           onSubmit={(e) => {
@@ -492,7 +499,7 @@ export function InspectionPlans({
               ))}
             </select>
           </label>
-          <button className="outline" disabled={loading || disabled}>
+          <button className="primary" disabled={loading || disabled}>
             查询巡检计划
           </button>
           <button

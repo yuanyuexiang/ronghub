@@ -226,7 +226,6 @@ export function AlertPanel({
                 <h2>
                   {role === "regulator" ? "告警事件跟踪" : "企业告警事件"}
                 </h2>
-                <p>持续异常合并、恢复后留档，人工确认与设备恢复分别记录。</p>
               </div>
               <button
                 className="outline"
@@ -645,220 +644,229 @@ export function AlertPanel({
         hidden={currentView !== "rules"}
       >
         <AlertConfiguration key={category} role={role} csrf={csrf} />
-        <section className="panel">
-          <div className="panel-title">
-            <div>
-              <h2>告警规则</h2>
-              <p>演示阈值规则 · 真实故障、离线及异常指标依赖客户运维接口</p>
-            </div>
-            {(canRules || canSamples) && role === "regulator" && (
-              <div className="action-row">
-                {canRules && globalScope && (
-                  <button
-                    className="outline"
-                    onClick={() => setShowRules(!showRules)}
-                  >
-                    新增规则版本
-                  </button>
-                )}
-                {canSamples && (
-                  <button
-                    className="outline"
-                    onClick={() => setShowSamples(!showSamples)}
-                  >
-                    演示样本验证
-                  </button>
+        <details className="prototype-related">
+          <summary>历史阈值规则与样本验证</summary>
+          <div className="prototype-related-body">
+            <section className="panel">
+              <div className="panel-title">
+                <div>
+                  <h2>告警规则</h2>
+                  <p>模拟环境的旧版固定阈值规则</p>
+                </div>
+                {(canRules || canSamples) && role === "regulator" && (
+                  <div className="action-row">
+                    {canRules && globalScope && (
+                      <button
+                        className="outline"
+                        onClick={() => setShowRules(!showRules)}
+                      >
+                        新增规则版本
+                      </button>
+                    )}
+                    {canSamples && (
+                      <button
+                        className="outline"
+                        onClick={() => setShowSamples(!showSamples)}
+                      >
+                        演示样本验证
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-          <div className="table-wrap">
-            <table className="aligned-records">
-              <thead>
-                <tr>
-                  {[
-                    "规则名称",
-                    "指标 / 单位",
-                    "触发阈值 ≥",
-                    "恢复阈值 ≤",
-                    "站内通知",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className={
-                        h === "触发阈值 ≥" || h === "恢复阈值 ≤"
-                          ? "numeric-cell"
-                          : undefined
-                      }
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rules.map((r) => (
-                  <tr key={r.id}>
-                    <td>
-                      {r.name}
-                      <span>
-                        {r.code} / V{r.version}
-                      </span>
-                    </td>
-                    <td>
-                      {r.metric} / {r.unit}
-                    </td>
-                    <td className="numeric-cell">{r.trigger_value}</td>
-                    <td className="numeric-cell">{r.recover_value}</td>
-                    <td>{r.notifications_enabled ? "开启" : "关闭"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {!rules.length && <p className="empty">暂无告警规则</p>}
-          </div>
-          {showRules && canRules && globalScope && role === "regulator" && (
-            <form
-              className="business-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const data = new FormData(e.currentTarget);
-                run(async () => {
-                  read(
-                    await typedApi.POST("/api/v1/alerts/rules", {
-                      headers: { "x-csrf-token": csrf },
-                      body: {
-                        code: String(data.get("code") ?? ""),
-                        version: Number(data.get("version")),
-                        name: String(data.get("name") ?? ""),
-                        metric: String(data.get("metric") ?? ""),
-                        unit: String(data.get("unit") ?? ""),
-                        trigger_value: String(data.get("trigger") ?? ""),
-                        recover_value: String(data.get("recover") ?? ""),
-                        notifications_enabled: data.has("notifications"),
-                      },
-                    }),
-                  );
-                  const d = read(
-                    await typedApi.GET("/api/v1/alerts/rules", {
-                      cache: "no-store",
-                    }),
-                  );
-                  setRules(d.items);
-                  setShowRules(false);
-                });
-              }}
-            >
-              {[
-                ["code", "规则代码", "text"],
-                ["version", "版本", "number"],
-                ["name", "规则名称", "text"],
-                ["metric", "指标代码", "text"],
-                ["unit", "单位", "text"],
-                ["trigger", "触发阈值", "number"],
-                ["recover", "恢复阈值", "number"],
-              ].map(([key, label, type]) => (
-                <label key={key}>
-                  {label}
-                  <input
-                    name={key}
-                    required
-                    type={type}
-                    step={type === "number" ? "any" : undefined}
-                    maxLength={key === "name" ? 150 : 60}
-                  />
-                </label>
-              ))}
-              <label>
-                生成站内通知
-                <input type="checkbox" name="notifications" defaultChecked />
-              </label>
-              <button className="outline" disabled={busy}>
-                保存规则版本
-              </button>
-            </form>
-          )}
-          {showSamples && canSamples && role === "regulator" && (
-            <form
-              className="business-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                run(async () => {
-                  const d = read(
-                    await typedApi.POST("/api/v1/alerts/samples", {
-                      headers: { "x-csrf-token": csrf },
-                      body: {
-                        station_id: Number(sid),
-                        rule_id: Number(rid),
-                        target,
-                        value,
-                        observed_at: new Date().toISOString(),
-                      },
-                    }),
-                  );
-                  setResult(
-                    (
-                      {
-                        opened: "已创建告警",
-                        recovered: "已记录恢复",
-                        merged: "已合并持续异常",
-                        normal: "正常样本",
-                        ignored_stale: "已忽略重复或迟到样本",
-                      } as Record<string, string>
-                    )[d.outcome],
-                  );
-                  await load();
-                  if (d.outcome === "opened") queue.reset();
-                });
-              }}
-            >
-              <StationPicker
-                label="告警演示场站"
-                value={sid}
-                onChange={setSid}
-              />
-              <label>
-                演示规则
-                <select
-                  aria-label="告警演示规则"
-                  value={rid}
-                  onChange={(e) => setRid(e.target.value)}
+              <div className="table-wrap">
+                <table className="aligned-records">
+                  <thead>
+                    <tr>
+                      {[
+                        "规则名称",
+                        "指标 / 单位",
+                        "触发阈值 ≥",
+                        "恢复阈值 ≤",
+                        "站内通知",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className={
+                            h === "触发阈值 ≥" || h === "恢复阈值 ≤"
+                              ? "numeric-cell"
+                              : undefined
+                          }
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rules.map((r) => (
+                      <tr key={r.id}>
+                        <td>
+                          {r.name}
+                          <span>
+                            {r.code} / V{r.version}
+                          </span>
+                        </td>
+                        <td>
+                          {r.metric} / {r.unit}
+                        </td>
+                        <td className="numeric-cell">{r.trigger_value}</td>
+                        <td className="numeric-cell">{r.recover_value}</td>
+                        <td>{r.notifications_enabled ? "开启" : "关闭"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!rules.length && <p className="empty">暂无告警规则</p>}
+              </div>
+              {showRules && canRules && globalScope && role === "regulator" && (
+                <form
+                  className="business-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const data = new FormData(e.currentTarget);
+                    run(async () => {
+                      read(
+                        await typedApi.POST("/api/v1/alerts/rules", {
+                          headers: { "x-csrf-token": csrf },
+                          body: {
+                            code: String(data.get("code") ?? ""),
+                            version: Number(data.get("version")),
+                            name: String(data.get("name") ?? ""),
+                            metric: String(data.get("metric") ?? ""),
+                            unit: String(data.get("unit") ?? ""),
+                            trigger_value: String(data.get("trigger") ?? ""),
+                            recover_value: String(data.get("recover") ?? ""),
+                            notifications_enabled: data.has("notifications"),
+                          },
+                        }),
+                      );
+                      const d = read(
+                        await typedApi.GET("/api/v1/alerts/rules", {
+                          cache: "no-store",
+                        }),
+                      );
+                      setRules(d.items);
+                      setShowRules(false);
+                    });
+                  }}
                 >
-                  {rules.map((r) => (
-                    <option value={r.id} key={r.id}>
-                      {r.name} V{r.version}
-                    </option>
+                  {[
+                    ["code", "规则代码", "text"],
+                    ["version", "版本", "number"],
+                    ["name", "规则名称", "text"],
+                    ["metric", "指标代码", "text"],
+                    ["unit", "单位", "text"],
+                    ["trigger", "触发阈值", "number"],
+                    ["recover", "恢复阈值", "number"],
+                  ].map(([key, label, type]) => (
+                    <label key={key}>
+                      {label}
+                      <input
+                        name={key}
+                        required
+                        type={type}
+                        step={type === "number" ? "any" : undefined}
+                        maxLength={key === "name" ? 150 : 60}
+                      />
+                    </label>
                   ))}
-                </select>
-              </label>
-              <label>
-                监测对象
-                <input
-                  aria-label="告警监测对象"
-                  value={target}
-                  onChange={(e) => setTarget(e.target.value)}
-                  maxLength={100}
-                  required
-                />
-              </label>
-              <label>
-                样本值
-                <input
-                  aria-label="告警样本值"
-                  type="number"
-                  step="any"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  required
-                />
-              </label>
-              <button className="outline" disabled={busy || !sid || !rid}>
-                提交演示样本
-              </button>
-              <span role="status">{result}</span>
-            </form>
-          )}
-        </section>
+                  <label>
+                    生成站内通知
+                    <input
+                      type="checkbox"
+                      name="notifications"
+                      defaultChecked
+                    />
+                  </label>
+                  <button className="outline" disabled={busy}>
+                    保存规则版本
+                  </button>
+                </form>
+              )}
+              {showSamples && canSamples && role === "regulator" && (
+                <form
+                  className="business-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    run(async () => {
+                      const d = read(
+                        await typedApi.POST("/api/v1/alerts/samples", {
+                          headers: { "x-csrf-token": csrf },
+                          body: {
+                            station_id: Number(sid),
+                            rule_id: Number(rid),
+                            target,
+                            value,
+                            observed_at: new Date().toISOString(),
+                          },
+                        }),
+                      );
+                      setResult(
+                        (
+                          {
+                            opened: "已创建告警",
+                            recovered: "已记录恢复",
+                            merged: "已合并持续异常",
+                            normal: "正常样本",
+                            ignored_stale: "已忽略重复或迟到样本",
+                          } as Record<string, string>
+                        )[d.outcome],
+                      );
+                      await load();
+                      if (d.outcome === "opened") queue.reset();
+                    });
+                  }}
+                >
+                  <StationPicker
+                    label="告警演示场站"
+                    value={sid}
+                    onChange={setSid}
+                  />
+                  <label>
+                    演示规则
+                    <select
+                      aria-label="告警演示规则"
+                      value={rid}
+                      onChange={(e) => setRid(e.target.value)}
+                    >
+                      {rules.map((r) => (
+                        <option value={r.id} key={r.id}>
+                          {r.name} V{r.version}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    监测对象
+                    <input
+                      aria-label="告警监测对象"
+                      value={target}
+                      onChange={(e) => setTarget(e.target.value)}
+                      maxLength={100}
+                      required
+                    />
+                  </label>
+                  <label>
+                    样本值
+                    <input
+                      aria-label="告警样本值"
+                      type="number"
+                      step="any"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <button className="outline" disabled={busy || !sid || !rid}>
+                    提交演示样本
+                  </button>
+                  <span role="status">{result}</span>
+                </form>
+              )}
+            </section>
+          </div>
+        </details>
       </div>
       <div
         id={`${workspaceId}-sources`}

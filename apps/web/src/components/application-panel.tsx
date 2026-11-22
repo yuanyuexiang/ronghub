@@ -2,7 +2,6 @@
 import { StationDirectory } from "./station-directory";
 import { StationDetail } from "./station-detail";
 import { useBusinessView } from "./business-view-context";
-import { WorkspaceViews } from "./business-workspace";
 import { useRecordFocus } from "./use-record-focus";
 import {
   ApplicationEvidencePanel,
@@ -66,9 +65,17 @@ export function ApplicationPanel({
   csrf: string;
   registerLeaveGuard?: (guard: (() => boolean) | null) => void;
 }) {
+  const [creating, setCreating] = useState(false);
   const [profileStation, setProfileStation] = useState<number | null>(null);
   const [focusedStationName, setFocusedStationName] = useState("");
   const [applicationView, setApplicationView] = useBusinessView("all");
+  const canSource = useCapability("stations.read");
+  const stationWorkflow = role === "regulator" && canSource;
+  const operation = useRef(
+    ["commission", "decommission"].includes(applicationView),
+  ).current;
+  const [queueOpen, setQueueOpen] = useState(applicationView === "queue");
+  const showDirectory = stationWorkflow && !queueOpen;
   const progressOnly = role === "operator" && applicationView === "progress";
   const canCreate = useCapability("applications.create"),
     canEdit = useCapability("applications.edit"),
@@ -121,13 +128,18 @@ export function ApplicationPanel({
     if (hasUnsaved) setLeaveRequested(true);
     else closeDetail();
   }
-  const workspaceRef = useRecordFocus(detail?.id);
-  const canSource = useCapability("stations.read");
+  const workspaceRef = useRecordFocus(
+    creating ? -1 : detail?.id,
+    showDirectory ? "stations" : "applications",
+  );
   const [materialRevision, setMaterialRevision] = useState(0);
   const [review, setReview] = useState<ApplicationReviewState | null>(null);
   const initialViewQuery = {
     ...initialQuery,
-    kind: ["all", "progress"].includes(applicationView) ? "" : applicationView,
+    kind: ["all", "progress", "queue"].includes(applicationView)
+      ? ""
+      : applicationView,
+    status: applicationView === "queue" ? "submitted" : "",
   };
   const [query, setQuery] = useState(initialViewQuery),
     [draft, setDraft] = useState(initialViewQuery);
@@ -177,6 +189,7 @@ export function ApplicationPanel({
   }
   const pageRefreshRevision = usePageRefresh();
   useEffect(() => {
+    if (showDirectory) return;
     setError("");
     load(query).catch((e) =>
       setError(e instanceof Error ? e.message : "申请加载失败"),
@@ -184,18 +197,18 @@ export function ApplicationPanel({
     return () => {
       ++listSequence.current;
     };
-  }, [query, pageRefreshRevision]);
+  }, [query, pageRefreshRevision, showDirectory]);
   function search(event: FormEvent) {
     event.preventDefault();
     if (busy || materialBusy || editorBusy) return;
     setDetail(null);
     ++detailSequence.current;
-    if (!progressOnly) setApplicationView(draft.kind || "all");
     setQuery({ ...draft, page: 1 });
   }
   async function create() {
-    if (busy || materialBusy || editorBusy) return;
+    if (busy || materialBusy || editorBusy || !sid) return;
     setBusy(true);
+    setError("");
     try {
       const { data, error } = await typedApi.POST("/api/v1/applications", {
         headers: { "x-csrf-token": csrf },
@@ -206,11 +219,16 @@ export function ApplicationPanel({
         },
       });
       if (!data) throw new Error(apiError(error, "创建申请失败"));
-      setApplicationView("all");
       setDraft(initialQuery);
       setQuery({ ...initialQuery });
-      setDetail(null);
-      ++detailSequence.current;
+      setSid("");
+      const opened = await open(data.id);
+      setCreating(false);
+      if (!opened) {
+        setError(
+          `草稿 APP-${data.id} 已创建。详情暂时无法读取，请从申请列表打开。`,
+        );
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "创建失败");
     } finally {
@@ -233,6 +251,7 @@ export function ApplicationPanel({
       if (!data) throw new Error(apiError(error, "无法读取申请详情"));
       setDetail(data);
       setComment("");
+      return true;
     } catch (e) {
       if (sequence === detailSequence.current)
         setError(e instanceof Error ? e.message : "请求失败");
@@ -284,539 +303,585 @@ export function ApplicationPanel({
     [],
   );
   return (
-    <section ref={workspaceRef} className="panel application-workspace">
-      <div className="record-pane" hidden={!!detail}>
-        {role === "regulator" && canSource && (
-          <div
-            className="station-business-workspace"
-            aria-label="场站业务办理台账"
-          >
-            <StationDirectory
-              onOpen={setProfileStation}
-              actionMode={
-                ["commission", "decommission"].includes(applicationView)
-                  ? "operation"
-                  : "access"
-              }
-              onApplication={(station_id, name, kind) => {
-                const next = {
-                  ...initialQuery,
-                  station_id: String(station_id),
-                  kind,
-                };
-                setFocusedStationName(name);
-                setApplicationView(kind);
-                setDraft(next);
-                setQuery(next);
-              }}
-            />
-            {profileStation !== null && (
-              <StationDetail
-                stationId={profileStation}
-                onClose={() => setProfileStation(null)}
-              />
-            )}
-          </div>
-        )}
-        {focusedStationName && query.station_id && (
-          <p className="progress-readonly-note">
-            当前办理场站：{focusedStationName}
-            。以下按申请记录追溯与审核，投运/核销仍按现有申请审批办理。
-          </p>
-        )}
-
-        <div hidden={progressOnly}>
-          <WorkspaceViews
-            keepVisible
-            compact={role === "operator"}
-            label="场站申请业务视图"
-            value={applicationView === "progress" ? "all" : applicationView}
-            disabled={busy || materialBusy || editorBusy || listLoading}
-            items={[["all", "全部接入事项"], ...Object.entries(kinds)]}
-            onChange={(view) => {
-              setApplicationView(view);
+    <section ref={workspaceRef} className="business-stack">
+      {stationWorkflow && (
+        <div className="record-pane" hidden={!showDirectory}>
+          <StationDirectory
+            onOpen={setProfileStation}
+            actionMode={operation ? "operation" : "access"}
+            actions={
+              <button
+                type="button"
+                className="outline"
+                onClick={() => setQueueOpen(true)}
+              >
+                查看申请记录
+              </button>
+            }
+            onApplication={(station_id, name, kind) => {
               const next = {
                 ...initialQuery,
-                kind: view === "all" ? "" : view,
+                station_id: String(station_id),
+                kind,
               };
+              setFocusedStationName(name);
               setDraft(next);
               setQuery(next);
-              if (view !== "all") setKind(view);
+              setQueueOpen(true);
             }}
           />
+          {profileStation !== null && (
+            <StationDetail
+              stationId={profileStation}
+              onClose={() => setProfileStation(null)}
+            />
+          )}
         </div>
-        <div className="panel-title">
-          <div>
-            <h2>
-              {applicationView === "progress"
-                ? "场站接入进展查看"
-                : role === "operator"
-                  ? "我的场站申请"
-                  : "场站申请审核"}
-            </h2>
-            <p>演示状态规则 · 不作为客户已批准流程，正式模式禁用</p>
-          </div>
-          {canCreate &&
-            role === "operator" &&
-            applicationView !== "progress" && (
-              <div className="search">
-                <StationPicker label="申请场站" value={sid} onChange={setSid} />
+      )}
+      <section className="panel application-workspace" hidden={showDirectory}>
+        {creating && (
+          <div className="record-detail">
+            <div className="panel-title">
+              <h2>新增接入申请</h2>
+              <button
+                type="button"
+                className="outline"
+                disabled={busy}
+                onClick={() => {
+                  setCreating(false);
+                  setError("");
+                }}
+              >
+                返回申请列表
+              </button>
+            </div>
+            <form
+              className="business-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void create();
+              }}
+            >
+              <StationPicker label="申请场站" value={sid} onChange={setSid} />
+              <label>
+                申请类型
                 <select
-                  aria-label="申请类型"
                   value={kind}
-                  onChange={(e) => setKind(e.target.value)}
+                  onChange={(event) => setKind(event.target.value)}
+                  disabled={busy}
                 >
-                  {Object.entries(kinds).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
+                  {Object.entries(kinds).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
                     </option>
                   ))}
                 </select>
-                <button
-                  disabled={busy || materialBusy || editorBusy || !sid}
-                  onClick={create}
-                >
-                  新建草稿
-                </button>
-              </div>
+              </label>
+              <button className="primary" disabled={busy || !sid}>
+                新建草稿
+              </button>
+            </form>
+            {error && (
+              <p className="error" role="alert">
+                {error}
+              </p>
             )}
-        </div>
-        <form className="application-filters" onSubmit={search}>
-          <label>
-            场站或企业名称
-            <input
-              aria-label="检索申请场站或企业"
-              maxLength={150}
-              value={draft.q}
-              onChange={(e) => setDraft({ ...draft, q: e.target.value })}
-            />
-          </label>
-          <label>
-            申请编号
-            <input
-              aria-label="检索申请编号"
-              type="number"
-              min="1"
-              value={draft.application_id}
-              onChange={(e) =>
-                setDraft({ ...draft, application_id: e.target.value })
-              }
-            />
-          </label>
-          <label>
-            申请类型
-            <select
-              aria-label="筛选申请类型"
-              value={draft.kind}
-              onChange={(e) => setDraft({ ...draft, kind: e.target.value })}
-            >
-              <option value="">全部类型</option>
-              {Object.entries(kinds).map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            申请状态
-            <select
-              aria-label="筛选申请状态"
-              value={draft.status}
-              onChange={(e) => setDraft({ ...draft, status: e.target.value })}
-            >
-              <option value="">全部状态</option>
-              {Object.entries(statuses).map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="primary"
-            disabled={busy || materialBusy || editorBusy || listLoading}
-          >
-            查询申请
-          </button>
-          <button
-            type="button"
-            className="outline"
-            disabled={busy || materialBusy || editorBusy || listLoading}
-            onClick={() => {
-              if (!progressOnly) setApplicationView("all");
-              setDraft(initialQuery);
-              setQuery({ ...initialQuery });
-              setDetail(null);
-              ++detailSequence.current;
-            }}
-          >
-            重置申请筛选
-          </button>
-        </form>
-        <p className="muted application-list-note">
-          场站和企业名称为当前台账名称；申请编号与历史记录保留。创建草稿后返回全部申请第一页。
-        </p>
-        {listLoading && (
-          <p className="empty" role="status">
-            正在加载申请…
-          </p>
+          </div>
         )}
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                {[
-                  "申请编号",
-                  "场站 / 企业",
-                  "申请类型",
-                  "状态",
-                  "创建时间（北京）",
-                  "操作",
-                ].map((h) => (
-                  <th key={h}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((a) => (
-                <tr key={a.id}>
-                  <td>APP-{a.id}</td>
-                  <td>
-                    {a.station_name}
-                    <br />
-                    <small className="muted">
-                      {a.operator_name} · 场站 #{a.station_id}
-                    </small>
-                  </td>
-                  <td>{kinds[a.kind]}</td>
-                  <td>
-                    <em className={a.status === "approved" ? "green" : "amber"}>
-                      {statuses[a.status]}
-                    </em>
-                  </td>
-                  <td>
-                    {new Date(a.created_at).toLocaleString("zh-CN", {
-                      timeZone: "Asia/Shanghai",
-                      hour12: false,
-                    })}
-                  </td>
-                  <td>
-                    <button
-                      className="outline"
-                      disabled={busy || materialBusy || editorBusy}
-                      onClick={() => open(a.id)}
-                    >
-                      查看处理
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!rows.length && !listLoading && !error && (
-            <p className="empty">当前条件下没有申请记录</p>
-          )}
-        </div>
-        <div className="action-row application-pagination">
-          <button
-            className="outline"
-            disabled={
-              busy ||
-              materialBusy ||
-              editorBusy ||
-              listLoading ||
-              query.page === 1
-            }
-            onClick={() => setQuery({ ...query, page: query.page - 1 })}
-          >
-            申请上一页
-          </button>
-          <span>
-            申请第{query.page}页 · 共{total}条
-          </span>
-          <button
-            className="outline"
-            disabled={
-              busy ||
-              materialBusy ||
-              editorBusy ||
-              listLoading ||
-              query.page * 20 >= total
-            }
-            onClick={() => setQuery({ ...query, page: query.page + 1 })}
-          >
-            申请下一页
-          </button>
-        </div>
-      </div>
-      {detail && (
-        <div
-          className="application-detail record-detail"
-          role="region"
-          aria-label="申请详情工作区"
-        >
-          {error && (
-            <p className="error application-list-note" role="alert">
-              {error}
+        <div className="record-pane" hidden={!!detail || creating}>
+          {focusedStationName && query.station_id && (
+            <p className="progress-readonly-note">
+              当前筛选场站：{focusedStationName}
             </p>
           )}
-          {leaveRequested && (
-            <div className="record-leave-warning" role="alert">
-              <p>
-                申请信息或处理意见尚未保存。返回列表将放弃这些修改，已上传材料仍保留。
-              </p>
-              <button
-                className="outline"
-                onClick={() => setLeaveRequested(false)}
-              >
-                继续编辑申请
-              </button>
-              <button className="outline" onClick={closeDetail}>
-                放弃修改并返回申请列表
-              </button>
-            </div>
-          )}
-          <div className="record-backline">
-            <button
-              className="outline"
-              disabled={busy || materialBusy || editorBusy}
-              onClick={requestClose}
-            >
-              ← 返回申请列表
-            </button>
-            <span>
-              {role === "operator"
-                ? "场站申请 / 申请详情"
-                : "接入管理 / 申请详情"}
-            </span>
-          </div>
+
           <div className="panel-title">
             <div>
               <h2>
-                APP-{detail.id} · {kinds[detail.kind]}
+                {applicationView === "progress"
+                  ? "场站接入进展查看"
+                  : role === "operator"
+                    ? "我的场站申请"
+                    : "场站申请审核"}
               </h2>
-              <p>
-                {statuses[detail.status]} · 记录版本 {detail.version}
-              </p>
             </div>
+            {stationWorkflow && (
+              <button
+                type="button"
+                className="outline"
+                onClick={() => {
+                  setFocusedStationName("");
+                  setDraft(initialViewQuery);
+                  setQuery({ ...initialViewQuery });
+                  setQueueOpen(false);
+                }}
+              >
+                返回场站列表
+              </button>
+            )}
+            {canCreate && role === "operator" && !progressOnly && (
+              <button
+                type="button"
+                className="primary"
+                disabled={busy || materialBusy || editorBusy}
+                onClick={() => {
+                  setSid("");
+                  setKind(query.kind || "access");
+                  setError("");
+                  setCreating(true);
+                }}
+              >
+                新增接入申请
+              </button>
+            )}
+          </div>
+          <form className="application-filters" onSubmit={search}>
+            <label>
+              场站或企业名称
+              <input
+                aria-label="检索申请场站或企业"
+                maxLength={150}
+                value={draft.q}
+                onChange={(e) => setDraft({ ...draft, q: e.target.value })}
+              />
+            </label>
+            <label>
+              申请编号
+              <input
+                aria-label="检索申请编号"
+                type="number"
+                min="1"
+                value={draft.application_id}
+                onChange={(e) =>
+                  setDraft({ ...draft, application_id: e.target.value })
+                }
+              />
+            </label>
+            <label>
+              申请类型
+              <select
+                aria-label="筛选申请类型"
+                value={draft.kind}
+                onChange={(e) => setDraft({ ...draft, kind: e.target.value })}
+              >
+                <option value="">全部类型</option>
+                {Object.entries(kinds).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              申请状态
+              <select
+                aria-label="筛选申请状态"
+                value={draft.status}
+                onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+              >
+                <option value="">全部状态</option>
+                {Object.entries(statuses).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="primary"
+              disabled={busy || materialBusy || editorBusy || listLoading}
+            >
+              查询申请
+            </button>
+            <button
+              type="button"
+              className="outline"
+              disabled={busy || materialBusy || editorBusy || listLoading}
+              onClick={() => {
+                setFocusedStationName("");
+                setDraft(initialQuery);
+                setQuery({ ...initialQuery });
+                setDetail(null);
+                ++detailSequence.current;
+              }}
+            >
+              重置申请筛选
+            </button>
+          </form>
+          {listLoading && (
+            <p className="empty" role="status">
+              正在加载申请…
+            </p>
+          )}
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  {[
+                    "申请编号",
+                    "场站 / 企业",
+                    "申请类型",
+                    "状态",
+                    "创建时间（北京）",
+                    "操作",
+                  ].map((h) => (
+                    <th key={h}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((a) => (
+                  <tr key={a.id}>
+                    <td>APP-{a.id}</td>
+                    <td>
+                      {a.station_name}
+                      <br />
+                      <small className="muted">
+                        {a.operator_name} · 场站 #{a.station_id}
+                      </small>
+                    </td>
+                    <td>{kinds[a.kind]}</td>
+                    <td>
+                      <em
+                        className={a.status === "approved" ? "green" : "amber"}
+                      >
+                        {statuses[a.status]}
+                      </em>
+                    </td>
+                    <td>
+                      {new Date(a.created_at).toLocaleString("zh-CN", {
+                        timeZone: "Asia/Shanghai",
+                        hour12: false,
+                      })}
+                    </td>
+                    <td>
+                      <button
+                        className="outline"
+                        disabled={busy || materialBusy || editorBusy}
+                        onClick={() => open(a.id)}
+                      >
+                        查看处理
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!rows.length && !listLoading && !error && (
+              <p className="empty">当前条件下没有申请记录</p>
+            )}
+          </div>
+          <div className="action-row application-pagination">
             <button
               className="outline"
-              disabled={busy || materialBusy || editorBusy}
-              onClick={requestClose}
+              disabled={
+                busy ||
+                materialBusy ||
+                editorBusy ||
+                listLoading ||
+                query.page === 1
+              }
+              onClick={() => setQuery({ ...query, page: query.page - 1 })}
             >
-              关闭详情
+              申请上一页
+            </button>
+            <span>
+              申请第{query.page}页 · 共{total}条
+            </span>
+            <button
+              className="outline"
+              disabled={
+                busy ||
+                materialBusy ||
+                editorBusy ||
+                listLoading ||
+                query.page * 20 >= total
+              }
+              onClick={() => setQuery({ ...query, page: query.page + 1 })}
+            >
+              申请下一页
             </button>
           </div>
-          {progressOnly && (
-            <div className="progress-readonly-note">
-              <p>
-                当前为进度查看，可核对申请资料和审核记录。需要补充或修改材料时，进入办理视图。
+        </div>
+        {detail && (
+          <div
+            className="application-detail record-detail"
+            role="region"
+            aria-label="申请详情工作区"
+          >
+            {error && (
+              <p className="error application-list-note" role="alert">
+                {error}
               </p>
+            )}
+            {leaveRequested && (
+              <div className="record-leave-warning" role="alert">
+                <p>
+                  申请信息或处理意见尚未保存。返回列表将放弃这些修改，已上传材料仍保留。
+                </p>
+                <button
+                  className="outline"
+                  onClick={() => setLeaveRequested(false)}
+                >
+                  继续编辑申请
+                </button>
+                <button className="outline" onClick={closeDetail}>
+                  放弃修改并返回申请列表
+                </button>
+              </div>
+            )}
+            <div className="record-backline">
               <button
                 className="outline"
-                onClick={() => setApplicationView("all")}
+                disabled={busy || materialBusy || editorBusy}
+                onClick={requestClose}
               >
-                前往接入申请办理
+                ← 返回申请列表
+              </button>
+              <span>
+                {role === "operator"
+                  ? "场站申请 / 申请详情"
+                  : "接入管理 / 申请详情"}
+              </span>
+            </div>
+            <div className="panel-title">
+              <div>
+                <h2>
+                  APP-{detail.id} · {kinds[detail.kind]}
+                </h2>
+                <p>
+                  {statuses[detail.status]} · 记录版本 {detail.version}
+                </p>
+              </div>
+              <button
+                className="outline"
+                disabled={busy || materialBusy || editorBusy}
+                onClick={requestClose}
+              >
+                关闭详情
               </button>
             </div>
-          )}
-          <dl className="record-summary-grid">
-            <div>
-              <dt>申请场站</dt>
-              <dd>{detail.station_name}</dd>
-            </div>
-            <div>
-              <dt>运营商</dt>
-              <dd>{detail.operator_name}</dd>
-            </div>
-            <div>
-              <dt>创建时间（北京）</dt>
-              <dd>
-                {new Date(detail.created_at).toLocaleString("zh-CN", {
-                  timeZone: "Asia/Shanghai",
-                  hour12: false,
-                })}
-              </dd>
-            </div>
-          </dl>
-          <div className="detail-grid application-review-layout">
-            <div className="application-review-content">
-              <h3 className="record-section-title">场站与送审资料</h3>
-              <div className="application-evidence-container">
-                <ApplicationEvidencePanel
-                  key={`evidence-${detail.id}`}
-                  applicationId={detail.id}
-                  version={detail.version}
-                  status={detail.status}
-                  revision={materialRevision}
-                  onReview={setReview}
-                />
+            {progressOnly && (
+              <div className="progress-readonly-note">
+                <p>
+                  当前为进度查看，可核对申请资料和审核记录。需要补充或修改材料时，进入办理视图。
+                </p>
+                <button
+                  className="outline"
+                  onClick={() => setApplicationView("all")}
+                >
+                  前往接入申请办理
+                </button>
               </div>
-              {canEdit &&
-                !progressOnly &&
-                role === "operator" &&
-                ["draft", "rejected"].includes(detail.status) && (
-                  <DraftEditor
-                    key={`${detail.id}-${detail.version}`}
-                    application={detail}
-                    csrf={csrf}
-                    parentBusy={busy || materialBusy}
-                    onBusy={setEditorBusy}
-                    onDirty={setEditorDirty}
-                    onSaved={async () => {
-                      await load();
-                      if (detailSequence.current === renderedDetailSequence)
-                        await open(detail.id);
-                    }}
+            )}
+            <dl className="record-summary-grid">
+              <div>
+                <dt>申请场站</dt>
+                <dd>{detail.station_name}</dd>
+              </div>
+              <div>
+                <dt>运营商</dt>
+                <dd>{detail.operator_name}</dd>
+              </div>
+              <div>
+                <dt>创建时间（北京）</dt>
+                <dd>
+                  {new Date(detail.created_at).toLocaleString("zh-CN", {
+                    timeZone: "Asia/Shanghai",
+                    hour12: false,
+                  })}
+                </dd>
+              </div>
+            </dl>
+            <div className="detail-grid application-review-layout">
+              <div className="application-review-content">
+                <h3 className="record-section-title">场站与送审资料</h3>
+                <div className="application-evidence-container">
+                  <ApplicationEvidencePanel
+                    key={`evidence-${detail.id}`}
+                    applicationId={detail.id}
+                    version={detail.version}
+                    status={detail.status}
+                    revision={materialRevision}
+                    onReview={setReview}
                   />
-                )}
-              <Attachments
-                key={detail.id}
-                applicationId={detail.id}
-                version={detail.version}
-                parentBusy={busy || editorBusy}
-                onBusy={setMaterialBusy}
-                editable={
-                  canMaterials &&
+                </div>
+                {canEdit &&
                   !progressOnly &&
                   role === "operator" &&
-                  ["draft", "rejected"].includes(detail.status)
-                }
-                csrf={csrf}
-                categories={
-                  review?.applicationId === detail.id ? review.categories : {}
-                }
-                onChanged={() => setMaterialRevision((old) => old + 1)}
-                applicationVersion={detail.version}
-              />
-              <section className="materials">
-                <h3>提交内容</h3>
-                <p>{text(detail.payload.note, "无申请说明")}</p>
-                {detail.kind === "change" && (
-                  <p>
-                    拟变更名称：{text(detail.payload.name, "未填写")}
-                    <br />
-                    拟变更地址：{text(detail.payload.address, "未填写")}
+                  ["draft", "rejected"].includes(detail.status) && (
+                    <DraftEditor
+                      key={`${detail.id}-${detail.version}`}
+                      application={detail}
+                      csrf={csrf}
+                      parentBusy={busy || materialBusy}
+                      onBusy={setEditorBusy}
+                      onDirty={setEditorDirty}
+                      onSaved={async () => {
+                        await load();
+                        if (detailSequence.current === renderedDetailSequence)
+                          await open(detail.id);
+                      }}
+                    />
+                  )}
+                <Attachments
+                  key={detail.id}
+                  applicationId={detail.id}
+                  version={detail.version}
+                  parentBusy={busy || editorBusy}
+                  onBusy={setMaterialBusy}
+                  editable={
+                    canMaterials &&
+                    !progressOnly &&
+                    role === "operator" &&
+                    ["draft", "rejected"].includes(detail.status)
+                  }
+                  csrf={csrf}
+                  categories={
+                    review?.applicationId === detail.id ? review.categories : {}
+                  }
+                  onChanged={() => setMaterialRevision((old) => old + 1)}
+                  applicationVersion={detail.version}
+                />
+                <section className="materials">
+                  <h3>提交内容</h3>
+                  <p>{text(detail.payload.note, "无申请说明")}</p>
+                  {detail.kind === "change" && (
+                    <p>
+                      拟变更名称：{text(detail.payload.name, "未填写")}
+                      <br />
+                      拟变更地址：{text(detail.payload.address, "未填写")}
+                    </p>
+                  )}
+                </section>
+              </div>
+              <div className="application-review-actions" hidden={progressOnly}>
+                <h3>当前操作</h3>
+                <p className="muted">
+                  操作受角色、所属企业和记录状态共同约束。
+                </p>
+                {(role === "operator" &&
+                  ((canSubmit &&
+                    ["draft", "rejected"].includes(detail.status)) ||
+                    (canWithdraw &&
+                      ["draft", "submitted", "rejected"].includes(
+                        detail.status,
+                      )))) ||
+                (role === "regulator" &&
+                  canReview &&
+                  detail.status === "submitted") ? (
+                  <label>
+                    处理意见
+                    <textarea
+                      aria-label="处理意见"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      maxLength={2000}
+                      placeholder={
+                        role === "regulator"
+                          ? "审核操作必须填写意见"
+                          : "可填写提交或撤回说明"
+                      }
+                    />
+                  </label>
+                ) : (
+                  <p className="muted">
+                    当前记录无可执行操作，可查看材料和处理历史。
                   </p>
                 )}
-              </section>
-            </div>
-            <div className="application-review-actions" hidden={progressOnly}>
-              <h3>当前操作</h3>
-              <p className="muted">操作受角色、所属企业和记录状态共同约束。</p>
-              {(role === "operator" &&
-                ((canSubmit && ["draft", "rejected"].includes(detail.status)) ||
-                  (canWithdraw &&
+                {editorDirty && (
+                  <p className="muted">
+                    申请信息有未保存修改，请先保存后提交。
+                  </p>
+                )}
+                <div className="action-row">
+                  {canSubmit &&
+                    role === "operator" &&
+                    ["draft", "rejected"].includes(detail.status) && (
+                      <button
+                        disabled={
+                          busy ||
+                          materialBusy ||
+                          editorBusy ||
+                          editorDirty ||
+                          (canSource &&
+                            (!review ||
+                              review.applicationId !== detail.id ||
+                              review.version !== detail.version ||
+                              review.revision !== materialRevision ||
+                              review.busy ||
+                              !review.token))
+                        }
+                        className="outline"
+                        onClick={() => act("submit")}
+                      >
+                        提交审核
+                      </button>
+                    )}
+                  {canWithdraw &&
+                    role === "operator" &&
                     ["draft", "submitted", "rejected"].includes(
                       detail.status,
-                    )))) ||
-              (role === "regulator" &&
-                canReview &&
-                detail.status === "submitted") ? (
-                <label>
-                  处理意见
-                  <textarea
-                    aria-label="处理意见"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    maxLength={2000}
-                    placeholder={
-                      role === "regulator"
-                        ? "审核操作必须填写意见"
-                        : "可填写提交或撤回说明"
-                    }
-                  />
-                </label>
-              ) : (
-                <p className="muted">
-                  当前记录无可执行操作，可查看材料和处理历史。
-                </p>
-              )}
-              {editorDirty && (
-                <p className="muted">申请信息有未保存修改，请先保存后提交。</p>
-              )}
-              <div className="action-row">
-                {canSubmit &&
-                  role === "operator" &&
-                  ["draft", "rejected"].includes(detail.status) && (
-                    <button
-                      disabled={
-                        busy ||
-                        materialBusy ||
-                        editorBusy ||
-                        editorDirty ||
-                        (canSource &&
-                          (!review ||
-                            review.applicationId !== detail.id ||
-                            review.version !== detail.version ||
-                            review.revision !== materialRevision ||
-                            review.busy ||
-                            !review.token))
-                      }
-                      className="outline"
-                      onClick={() => act("submit")}
-                    >
-                      提交审核
-                    </button>
-                  )}
-                {canWithdraw &&
-                  role === "operator" &&
-                  ["draft", "submitted", "rejected"].includes(
-                    detail.status,
-                  ) && (
-                    <button
-                      disabled={busy || materialBusy || editorBusy}
-                      className="outline"
-                      onClick={() => act("withdraw")}
-                    >
-                      撤回申请
-                    </button>
-                  )}
-                {canReview &&
-                  role === "regulator" &&
-                  detail.status === "submitted" && (
-                    <>
+                    ) && (
                       <button
-                        disabled={
-                          busy || materialBusy || editorBusy || !comment.trim()
-                        }
+                        disabled={busy || materialBusy || editorBusy}
                         className="outline"
-                        onClick={() => act("approve")}
+                        onClick={() => act("withdraw")}
                       >
-                        审核通过
+                        撤回申请
                       </button>
-                      <button
-                        disabled={
-                          busy || materialBusy || editorBusy || !comment.trim()
-                        }
-                        className="outline"
-                        onClick={() => act("reject")}
-                      >
-                        驳回申请
-                      </button>
-                    </>
-                  )}
+                    )}
+                  {canReview &&
+                    role === "regulator" &&
+                    detail.status === "submitted" && (
+                      <>
+                        <button
+                          disabled={
+                            busy ||
+                            materialBusy ||
+                            editorBusy ||
+                            !comment.trim()
+                          }
+                          className="outline"
+                          onClick={() => act("approve")}
+                        >
+                          审核通过
+                        </button>
+                        <button
+                          disabled={
+                            busy ||
+                            materialBusy ||
+                            editorBusy ||
+                            !comment.trim()
+                          }
+                          className="outline"
+                          onClick={() => act("reject")}
+                        >
+                          驳回申请
+                        </button>
+                      </>
+                    )}
+                </div>
+                <h3>处理记录</h3>
+                {detail.history?.map((h, i) => (
+                  <article className="timeline" key={i}>
+                    <b>{actions[h.action] || h.action}</b>
+                    <p>{h.comment || "无补充意见"}</p>
+                    <small>
+                      {new Date(h.created_at).toLocaleString("zh-CN")}
+                    </small>
+                  </article>
+                ))}
               </div>
-              <h3>处理记录</h3>
-              {detail.history?.map((h, i) => (
-                <article className="timeline" key={i}>
-                  <b>{actions[h.action] || h.action}</b>
-                  <p>{h.comment || "无补充意见"}</p>
-                  <small>
-                    {new Date(h.created_at).toLocaleString("zh-CN")}
-                  </small>
-                </article>
-              ))}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </section>
     </section>
   );
 }

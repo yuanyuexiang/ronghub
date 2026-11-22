@@ -78,9 +78,7 @@ export function InspectionExport({
       >
         {exporting ? "正在导出…" : "导出巡检任务 CSV"}
       </button>
-      <p className="muted">
-        导出全部已应用筛选结果，不受当前页限制；最多10000条，超限请缩小范围，不截断结果。
-      </p>
+      <p className="muted">导出全部已查询记录，最多 10,000 条。</p>
       {error && (
         <p role="alert" className="error">
           {error}

@@ -1,30 +1,34 @@
 # Repository Guidelines
 
-## Project Layout
+## Project Structure
 
-RongHub is the Fuzhou charging supervision platform. Read `README.md` for current paths and `项目上下文.md` for the project handoff. Initial applications are implemented; consult `docs/project/工作地图.md` and `docs/project/本地开发.md` for verified progress and startup. Do not claim unimplemented workflows are complete.
+RongHub is Fuzhou’s charging supervision platform for regulators, associations, and operators. The web app also serves the public portal. Mini program development is deferred.
 
-- `apps/server/`: FastAPI API and worker code, tests and Alembic migrations.
-- `apps/web/`: Next.js and TypeScript application for three Web roles.
-- `packages/api-client/`: generated OpenAPI TypeScript declarations; typed request adoption is in progress.
-- `tests/e2e/`, `deploy/`, `scripts/`: system verification, deployment and tooling.
-- `docs/`: requirements, architecture, design, project notes and research.
-- `references/customer/`: original workbook and intact Mockplus prototype.
-- `references/standards/`: protocol references, subject to applicability checks.
-- `outputs/`: deliverables; preserve quotation versions.
+- `apps/server/app/` contains the FastAPI API and sync worker. Alembic revisions live in `apps/server/alembic/versions/`.
+- `apps/web/src/` contains Next.js routes, styles, shared components, and API helpers. `packages/api-client/` contains generated TypeScript contracts.
+- `deploy/` and `scripts/` contain deployment configuration and local tooling. Preserve the original workbook and Mockplus assets under `references/customer/`. Consult `README.md` and `项目上下文.md` for project status.
 
-## Implementation Direction
+## Local Development and Build
 
-Use Python/FastAPI, Next.js and PostgreSQL. The management mini program is deferred. Treat customer prototypes as the business baseline while improving visual quality, usability and architecture. Confirm substantive business changes and trace them to requirements.
+- Follow `docs/project/本地开发.md` to configure local PostgreSQL. Install pinned dependencies with `uv sync --directory apps/server --frozen` and `pnpm --dir apps/web install --frozen-lockfile`.
+- In `apps/server`, run `uv run alembic upgrade head` to migrate and `uv run uvicorn app.main:app` to start the API. Start the sync worker with `uv run python -m app.sync`.
+- In `apps/web`, run `pnpm dev` for development, `pnpm typecheck` for TypeScript checks, and `pnpm build` for the production build.
+- For the configured local Docker stack, run `python3 scripts/stack_ops.py up --build` from the root and open `http://127.0.0.1:3080`.
 
-## Development and Verification
+## Coding Style and API Contracts
 
-Python uv.lock and frontend pnpm-lock.yaml exist. Run documented commands from the correct application directories. Preserve generated prototype files and Chinese reference filenames. Inspect hidden workbook sheets when assessing requirements.
+Use four spaces and snake_case in Python. Run `uv run ruff check app tests` in `apps/server`. Use two spaces in TypeScript, PascalCase for React components, and kebab-case for shared module filenames. Follow `apps/web/AGENTS.md`.
 
-After API model changes, run `pnpm api:generate`, `pnpm api:check` and `pnpm typecheck` in `apps/web`; never hand-edit generated declarations. Unknown response schemas are incomplete contracts, not permission to cast arbitrary JSON.
+After API changes, run `pnpm api:generate` and `pnpm api:check` in `apps/web`. Regenerate declarations from the API and keep unmodeled responses typed as unknown.
 
-Verify permissions, cross-operator isolation, approval transitions, Decimal calculations, synchronization idempotency and recovery. Use real PostgreSQL for database behavior tests. Check representative UI against the prototype before expanding the design.
+## Testing
+
+Use `uv run pytest -q` in `apps/server` for `tests/test_*.py`, backed by dedicated local PostgreSQL. Run `pnpm exec playwright test` in `apps/web` against the seeded local app for `tests/*.spec.ts`. Cover relevant permission boundaries, cross-operator isolation, approval transitions, Decimal precision, and sync retries. Compare affected screens with the customer prototype.
+
+## Commits and Pull Requests
+
+Use short, action-oriented subjects with prefixes seen in history, such as `fix: align table card headings`, `feat:`, `docs:`, and `test:`. Describe scope, verification, linked issues when available, and migration or configuration changes. Include screenshots for visible UI changes.
 
 ## Configuration and Handoff
 
-Do not commit credentials, tokens or real customer records. Public portal publication requires explicit consent and `content.public`; authenticated `audience=all` never implies anonymous access. Keep sanitized configuration examples and dependency lockfiles. Update `项目上下文.md` after material decisions, keeping confirmed facts separate from proposals and preserving known limitations.
+Keep secrets and real customer records out of Git. Public portal publishing requires explicit consent and `content.public`. Confirm substantive workflow changes against requirements and record material decisions in `项目上下文.md`.

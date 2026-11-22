@@ -74,9 +74,7 @@ export function BusinessExports({
         >
           导出办理过程
         </button>
-        <small className="muted">
-          按已查询条件导出全部匹配记录，每次最多10000条；过程按动作计数。
-        </small>
+        <small className="muted">导出已查询结果，最多 10,000 条。</small>
       </div>
       {error && (
         <p className="error" role="alert">

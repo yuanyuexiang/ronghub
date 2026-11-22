@@ -158,6 +158,10 @@ test("operator material submission and regulator approval across browser context
       ).toBeVisible();
     }
     await navigateWorkspace(op, /^(场站申请|接入管理)$/);
+    await op.getByRole("button", { name: "新增接入申请", exact: true }).click();
+    await expect(
+      op.getByRole("button", { name: "查询申请", exact: true }),
+    ).toBeHidden();
     await pickStation(op, "申请场站", fixture);
     const created = op.waitForResponse(
       (r) =>
@@ -166,10 +170,6 @@ test("operator material submission and regulator approval across browser context
     );
     await op.getByRole("button", { name: "新建草稿" }).click();
     const application = await (await created).json();
-    const row = op
-      .getByRole("row")
-      .filter({ hasText: `APP-${application.id}` });
-    await row.getByRole("button", { name: "查看处理" }).click();
     await op
       .getByLabel("申请说明", { exact: true })
       .fill("浏览器验收：补充场站资质说明");
@@ -268,7 +268,11 @@ test("operator material submission and regulator approval across browser context
       op.getByRole("region", { name: "申请详情工作区", exact: true }),
     ).toContainText("待审核");
     await expect(op.getByLabel("上传申请材料")).toHaveCount(0);
-    await navigateWorkspace(reg, /^(场站申请|接入管理)$/);
+    await reg.getByRole("button", { name: /接入待审/ }).click();
+    await expect(reg.getByLabel("筛选申请状态")).toHaveValue("submitted");
+    await expect(
+      reg.getByRole("heading", { name: "场站列表", exact: true }),
+    ).toBeHidden();
     const review = reg
       .getByRole("row")
       .filter({ hasText: `APP-${application.id}` });
