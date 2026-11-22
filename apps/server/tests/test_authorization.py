@@ -43,7 +43,11 @@ def test_capability_revocation_and_bounded_delegation(accounts, staff, business_
             role_ids.append(r.json()["id"])
             return r.json()
 
-        readonly = role("只读企业", "operator", ["stations.read", "applications.read"])
+        readonly = role(
+            "只读企业",
+            "operator",
+            ["stations.read", "applications.read", "content.read", "content.notice_export"],
+        )
         assert (
             reg.patch(
                 f"/api/v1/accounts/{uid}",
@@ -60,6 +64,9 @@ def test_capability_revocation_and_bounded_delegation(accounts, staff, business_
         assert op.get("/api/v1/auth/me").status_code == 401
         oh = login(op, names[0])
         assert op.get("/api/v1/applications").status_code == 200
+        notice_export = "/api/v1/content/operator-notices/export"
+        assert op.get(notice_export).status_code == 200
+        assert reg.get(notice_export).status_code == 403
         assert (
             op.post(
                 "/api/v1/applications",
@@ -81,6 +88,7 @@ def test_capability_revocation_and_bounded_delegation(accounts, staff, business_
         assert op.get("/api/v1/auth/me").status_code == 401
         login(op, names[0])
         assert op.get("/api/v1/applications").status_code == 403
+        assert op.get(notice_export).status_code == 403
         assert op.get("/api/v1/dashboard").json()["pending"] is None
         assert "applications_pending" not in op.get("/api/v1/dashboard").json()
         # Per-account disabling also revokes sessions permanently until a fresh login.

@@ -82,7 +82,9 @@ LABELS = {
     "roles.manage": "权限角色管理",
 }
 BASE = {
-    "regulator": set(LABELS) - {"content.notice_export"},
+    # Administrators need the full capability set to manage subordinate accounts.
+    # Business endpoints still enforce their own role and data scope.
+    "regulator": set(LABELS),
     "association": {
         "stations.read",
         "stations.export",
