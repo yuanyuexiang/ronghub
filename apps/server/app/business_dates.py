@@ -8,7 +8,14 @@ from pydantic import BaseModel, model_validator
 from sqlalchemy import select
 
 from app.hourly_energy import BEIJING
-from app.models import RatingAction, RatingApplication, SubsidyAction, SubsidyClaim
+from app.models import (
+    ApprovalAction,
+    RatingAction,
+    RatingApplication,
+    StationApplication,
+    SubsidyAction,
+    SubsidyClaim,
+)
 
 
 class BusinessDates(BaseModel):
@@ -54,11 +61,11 @@ Dates = Annotated[BusinessDates, Depends(date_filters)]
 
 
 def submission_time(model):
-    action, fk = (
-        (SubsidyAction, SubsidyAction.claim_id)
-        if model is SubsidyClaim
-        else (RatingAction, RatingAction.application_id)
-    )
+    action, fk = {
+        SubsidyClaim: (SubsidyAction, SubsidyAction.claim_id),
+        RatingApplication: (RatingAction, RatingAction.application_id),
+        StationApplication: (ApprovalAction, ApprovalAction.application_id),
+    }[model]
     return (
         select(action.created_at)
         .where(fk == model.id, action.action == "submit")
@@ -69,17 +76,26 @@ def submission_time(model):
     )
 
 
+def apply_beijing_days(stmt, column, start, end):
+    if start and end and start > end:
+        raise HTTPException(422, "开始日期不能晚于结束日期")
+    if end == date.max:
+        raise HTTPException(422, "结束日期须早于9999-12-31")
+    if start:
+        stmt = stmt.where(column >= datetime.combine(start, time.min, BEIJING))
+    if end:
+        stmt = stmt.where(column < datetime.combine(end + timedelta(days=1), time.min, BEIJING))
+    return stmt
+
+
 def apply_dates(stmt, model, dates):
     dates = dates or BusinessDates()
-    submitted = submission_time(model)
-    if dates.submitted_from:
-        stmt = stmt.where(submitted >= datetime.combine(dates.submitted_from, time.min, BEIJING))
-    if dates.submitted_to:
-        stmt = stmt.where(
-            submitted < datetime.combine(dates.submitted_to + timedelta(days=1), time.min, BEIJING)
-        )
-    if model is RatingApplication and (dates.period_from or dates.period_to):
-        raise HTTPException(422, "星级申报不支持补贴申请周期条件")
+    stmt = apply_beijing_days(
+        stmt, submission_time(model), dates.submitted_from, dates.submitted_to
+    )
+    if model is not SubsidyClaim and (dates.period_from or dates.period_to):
+        module = "星级申报" if model is RatingApplication else "场站申请"
+        raise HTTPException(422, f"{module}不支持补贴申请周期条件")
     if model is SubsidyClaim:
         # Inclusive overlap: a claim spanning the selected period remains visible.
         if dates.period_from:

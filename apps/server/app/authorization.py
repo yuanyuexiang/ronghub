@@ -11,6 +11,7 @@ LABELS = {
     "stations.read": "场站查看",
     "stations.export": "场站地图列表导出",
     "applications.read": "场站申请查看",
+    "applications.export": "场站申请清单导出",
     "applications.create": "场站申请建草稿",
     "applications.edit": "场站申请编辑",
     "applications.materials": "场站申请材料维护",
@@ -68,6 +69,7 @@ LABELS = {
     "content.reply": "回复通知",
     "content.delete": "内容草稿删除",
     "content.export": "内容与通知元数据导出",
+    "content.notice_export": "企业自身通知导出",
     "companies.read": "企业档案查看",
     "companies.write": "企业资料维护",
     "companies.status": "企业启停",
@@ -80,7 +82,7 @@ LABELS = {
     "roles.manage": "权限角色管理",
 }
 BASE = {
-    "regulator": set(LABELS),
+    "regulator": set(LABELS) - {"content.notice_export"},
     "association": {
         "stations.read",
         "stations.export",
@@ -97,6 +99,7 @@ BASE = {
         "stations.read",
         "stations.export",
         "applications.read",
+        "applications.export",
         "applications.create",
         "applications.edit",
         "applications.materials",
@@ -126,6 +129,7 @@ BASE = {
         "alerts.read",
         "content.read",
         "content.reply",
+        "content.notice_export",
         "companies.read",
         "companies.write",
         "companies.export",
@@ -201,7 +205,10 @@ def normalize_grants(role, grants):
                 and not (module == "alerts" and cap == "alerts.notifications")
                 and not (
                     module == "content"
-                    and cap in {"content.reply", "content.delete", "content.export", "content.public"}
+                    and cap in {
+                        "content.reply", "content.delete", "content.export",
+                        "content.notice_export", "content.public",
+                    }
                 )
             )
     return sorted(result)
@@ -278,6 +285,8 @@ def request_capability(request):
             return capability
         raise HTTPException(403, "页面视图接口未配置授权规则")
     if head == "applications":
+        if read and parts == ["applications", "export"]:
+            return "applications.export"
         if read:
             return "applications.read"
         if request.method == "POST" and parts[-1] == "attachments":
@@ -309,6 +318,8 @@ def request_capability(request):
             return "companies.status"
         return "companies.read" if read else "companies.write"
     if head == "content":
+        if read and parts == ["content", "operator-notices", "export"]:
+            return "content.notice_export"
         if read and parts[-1] == "export":
             return "content.export"
         if not read and parts[-1] == "batch-actions":

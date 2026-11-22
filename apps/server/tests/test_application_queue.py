@@ -125,3 +125,89 @@ def test_queue_reaches_old_records_combines_filters_and_scopes(accounts, staff):
             client.close()
         with SessionLocal.begin() as db:
             db.get(User, reg_id).allowed_districts = None
+
+
+def test_latest_real_submission_material_count_and_scoped_export(accounts):
+    from datetime import UTC, datetime
+
+    from app.models import ApprovalAction, Attachment
+
+    names, password, stations = accounts
+    with SessionLocal.begin() as db:
+        owner, foreign = (db.scalar(select(User).where(User.username == name)) for name in names)
+        station = db.get(Station, stations[0])
+        station.name = "=Queue-export-" + secrets.token_hex(6)
+        address = station.address
+        entries = [
+            StationApplication(
+                station_id=sid,
+                operator_id=user.operator_id,
+                applicant_id=user.id,
+                kind="access",
+                status=status,
+            )
+            for sid, user, status in [
+                (stations[0], owner, "draft"),
+                (stations[0], owner, "submitted"),
+                (stations[1], foreign, "submitted"),
+            ]
+        ]
+        db.add_all(entries)
+        db.flush()
+        draft, submitted, outside = [entry.id for entry in entries]
+        db.add_all(
+            [
+                ApprovalAction(
+                    application_id=submitted,
+                    actor_id=owner.id,
+                    action="submit",
+                    created_at=datetime(2026, 11, 20, 16, tzinfo=UTC),
+                ),
+                ApprovalAction(
+                    application_id=submitted,
+                    actor_id=owner.id,
+                    action="submit",
+                    created_at=datetime(2026, 11, 19, 16, tzinfo=UTC),
+                ),
+                *[
+                    Attachment(
+                        application_id=submitted,
+                        uploaded_by=owner.id,
+                        storage_key=secrets.token_hex(16),
+                        filename="proof.pdf",
+                        content_type="application/pdf",
+                        size=10,
+                        sha256="0" * 64,
+                        active=active,
+                    )
+                    for active in [True, False]
+                ],
+            ]
+        )
+        name = station.name
+    with TestClient(app, client=("app-submission-" + secrets.token_hex(8), 1)) as client:
+        assert (
+            client.post(
+                "/api/v1/auth/login", json={"username": names[0], "password": password}
+            ).status_code
+            == 200
+        )
+        path = "/api/v1/applications"
+        rows = {row["id"]: row for row in client.get(path).json()["items"]}
+        assert rows[draft]["last_submitted_at"] is None
+        assert rows[draft]["active_material_count"] == 0
+        assert rows[submitted]["last_submitted_at"] == "2026-11-19T16:00:00+00:00"
+        assert rows[submitted]["active_material_count"] == 1
+        assert rows[submitted]["station_address"] == address
+        assert outside not in rows
+        window = {"submitted_from": "2026-11-20", "submitted_to": "2026-11-20"}
+        filtered = client.get(path, params=window)
+        assert filtered.status_code == 200, filtered.text
+        assert [row["id"] for row in filtered.json()["items"]] == [submitted]
+        assert (
+            client.get(path, params={**window, "submitted_from": "2026-11-21"}).status_code == 422
+        )
+        exported = client.get(path + "/export", params=window)
+        assert exported.status_code == 200, exported.text
+        assert f"APP-{submitted}," in exported.text and f"'{name}" in exported.text
+        assert f"APP-{draft}," not in exported.text and f"APP-{outside}," not in exported.text

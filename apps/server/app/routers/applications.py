@@ -1,31 +1,67 @@
-from fastapi import APIRouter, HTTPException, Query, Request
+import csv
+import io
+from datetime import date
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, or_, select
 
-from app.authorization import APPLICATION_ACTIONS, authorize_business_write
+from app.application_evidence import ApplicationContact, normalize_payload
+from app.authorization import APPLICATION_ACTIONS, authorize_business_write, require
+from app.business_dates import apply_beijing_days, submission_time
 from app.contracts import StationApplicationDetail, StationApplicationPage, StationApplicationRecord
 from app.dependencies import DB, Actor, SnapshotActor
-from app.models import Operator, Station, StationApplication
+from app.models import Attachment, Audit, Operator, Station, StationApplication
 from app.reporting import SnapshotDB
+from app.routers.statistics import csv_cell, csv_response
 from app.scopes import records as scoped_records
-from app.workflows import KINDS
+from app.workflows import KINDS, output
 
 router = APIRouter()
 
 
-def named_output(db, application):
-    from app.workflows import output
+last_submit = submission_time(StationApplication)
+active_materials = (
+    select(func.count())
+    .where(Attachment.application_id == StationApplication.id, Attachment.active.is_(True))
+    .correlate(StationApplication)
+    .scalar_subquery()
+)
 
+
+def application_rows():
+    return (
+        select(
+            StationApplication,
+            Station.name,
+            Station.address,
+            Operator.name,
+            last_submit.label("last_submitted_at"),
+            active_materials.label("active_material_count"),
+        )
+        .join(Station, Station.id == StationApplication.station_id)
+        .join(Operator, Operator.id == StationApplication.operator_id)
+    )
+
+
+def record_output(row):
+    a, station_name, station_address, operator_name, submitted, materials = row
     return {
-        **output(application),
-        "station_name": db.scalar(select(Station.name).where(Station.id == application.station_id)),
-        "operator_name": db.scalar(
-            select(Operator.name).where(Operator.id == application.operator_id)
-        ),
+        **output(a),
+        "station_name": station_name,
+        "station_address": station_address,
+        "operator_name": operator_name,
+        "last_submitted_at": submitted.isoformat() if submitted else None,
+        "active_material_count": materials,
     }
 
 
-from app.application_evidence import ApplicationContact, normalize_payload
+def named_output(db, application):
+    return record_output(
+        db.execute(application_rows().where(StationApplication.id == application.id)).one()
+    )
 
 
 class ApplicationInput(BaseModel):
@@ -57,63 +93,127 @@ def create_application(body: ApplicationInput, user: Actor, db: DB, request: Req
     return response
 
 
-@router.get("/api/v1/applications", response_model=StationApplicationPage)
-def applications(
-    user: SnapshotActor,
-    db: SnapshotDB,
-    q: str = Query("", max_length=150),
-    status: str = Query("", max_length=30),
-    kind: str = Query("", max_length=30),
-    application_id: int | None = Query(None, ge=1, le=9223372036854775807),
-    station_id: int | None = Query(None, ge=1, le=9223372036854775807),
-    page: int = Query(1, ge=1, le=2147483647),
-    page_size: int = Query(20, ge=1, le=100),
-):
-    from app.workflows import output
+class ApplicationFilters(BaseModel):
+    q: str = Field("", max_length=150)
+    status: str = Field("", max_length=30)
+    kind: str = Field("", max_length=30)
+    application_id: int | None = Field(None, ge=1, le=9223372036854775807)
+    station_id: int | None = Field(None, ge=1, le=9223372036854775807)
+    submitted_from: date | None = None
+    submitted_to: date | None = None
 
-    if status not in {"", "draft", "submitted", "rejected", "approved", "withdrawn"}:
+
+Filters = Annotated[ApplicationFilters, Depends()]
+
+
+def filtered_applications(user, filters):
+    if filters.status not in {"", "draft", "submitted", "rejected", "approved", "withdrawn"}:
         raise HTTPException(422, "不支持的申请状态")
-    if kind and kind not in KINDS:
+    if filters.kind and filters.kind not in KINDS:
         raise HTTPException(422, "不支持的申请类型")
-    stmt = scoped_records(
-        select(StationApplication, Station.name, Operator.name)
-        .join(Station, Station.id == StationApplication.station_id)
-        .join(Operator, Operator.id == StationApplication.operator_id),
-        StationApplication,
-        user,
-    )
+    stmt = scoped_records(application_rows(), StationApplication, user)
     if user.role == "operator" and user.operator_id is not None:
         stmt = stmt.where(StationApplication.operator_id == user.operator_id)
     elif user.role != "regulator":
         raise HTTPException(403, "无权查看场站申请")
-    if q.strip():
+    if query := filters.q.strip():
         stmt = stmt.where(
             or_(
-                Station.name.icontains(q.strip(), autoescape=True),
-                Operator.name.icontains(q.strip(), autoescape=True),
+                Station.name.icontains(query, autoescape=True),
+                Operator.name.icontains(query, autoescape=True),
             )
         )
-    if status:
-        stmt = stmt.where(StationApplication.status == status)
-    if kind:
-        stmt = stmt.where(StationApplication.kind == kind)
-    if station_id is not None:
-        stmt = stmt.where(StationApplication.station_id == station_id)
-    if application_id is not None:
-        stmt = stmt.where(StationApplication.id == application_id)
+    if filters.status:
+        stmt = stmt.where(StationApplication.status == filters.status)
+    if filters.kind:
+        stmt = stmt.where(StationApplication.kind == filters.kind)
+    if filters.station_id is not None:
+        stmt = stmt.where(StationApplication.station_id == filters.station_id)
+    if filters.application_id is not None:
+        stmt = stmt.where(StationApplication.id == filters.application_id)
+    return apply_beijing_days(stmt, last_submit, filters.submitted_from, filters.submitted_to)
+
+
+@router.get("/api/v1/applications", response_model=StationApplicationPage)
+def applications(
+    user: SnapshotActor,
+    db: SnapshotDB,
+    filters: Filters,
+    page: int = Query(1, ge=1, le=2147483647),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    stmt = filtered_applications(user, filters)
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     rows = db.execute(
         stmt.order_by(StationApplication.id.desc()).offset((page - 1) * page_size).limit(page_size)
     )
     return {
-        "items": [
-            {**output(a), "station_name": station_name, "operator_name": operator_name}
-            for a, station_name, operator_name in rows
-        ],
+        "items": [record_output(row) for row in rows],
         "total": total,
         "page": page,
         "page_size": page_size,
     }
+
+
+@router.get(
+    "/api/v1/applications/export",
+    response_class=Response,
+    responses={200: {"content": {"text/csv": {"schema": {"type": "string"}}}}},
+)
+def export_applications(user: SnapshotActor, db: SnapshotDB, filters: Filters):
+    require(db, user, "applications.read")
+    rows = db.execute(
+        filtered_applications(user, filters).order_by(StationApplication.id.desc()).limit(10001)
+    ).all()
+    if len(rows) > 10000:
+        raise HTTPException(422, "单次最多导出10000条，请缩小范围")
+    labels = {
+        "access": "场站接入",
+        "acceptance": "竣工验收",
+        "commission": "投运申请",
+        "decommission": "核销申请",
+        "change": "信息变更",
+    }
+    statuses = {
+        "draft": "草稿",
+        "submitted": "待审核",
+        "rejected": "已驳回",
+        "approved": "已通过",
+        "withdrawn": "已撤回",
+    }
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(
+        [
+            "申请编号",
+            "场站",
+            "地址",
+            "运营商",
+            "申请类型",
+            "状态",
+            "当前材料份数",
+            "最近提交时间(带时区)",
+        ]
+    )
+    for a, name, address, operator, submitted, materials in rows:
+        writer.writerow(
+            [
+                csv_cell(value)
+                for value in (
+                    f"APP-{a.id}",
+                    name,
+                    address,
+                    operator,
+                    labels.get(a.kind, a.kind),
+                    statuses.get(a.status, a.status),
+                    materials,
+                    submitted.isoformat() if submitted else "无提交记录",
+                )
+            ]
+        )
+    db.add(Audit(user_id=user.id, action="applications.export", detail={"rows": len(rows)}))
+    db.commit()
+    return csv_response(buffer.getvalue(), "ronghub-station-applications.csv")
 
 
 @router.get("/api/v1/applications/{application_id}", response_model=StationApplicationDetail)

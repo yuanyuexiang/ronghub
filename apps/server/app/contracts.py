@@ -144,6 +144,7 @@ class AuditPage(BaseModel):
 class StationApplicationRecord(BaseModel):
     id: int
     station_id: int
+    station_address: str
     operator_id: int
     station_name: str
     operator_name: str
@@ -153,6 +154,8 @@ class StationApplicationRecord(BaseModel):
     payload: dict[str, JsonValue]
     rule_version: str
     created_at: str
+    last_submitted_at: str | None
+    active_material_count: int
 
 
 class StationApplicationHistory(BaseModel):
@@ -762,6 +765,21 @@ class NoticeRecord(NoticeDeliveryOutput):
 
 class NoticeRecordPage(BaseModel):
     items: list[NoticeRecord]
+    total: int
+    page: int
+    page_size: int
+
+
+class OperatorNotice(BaseModel):
+    article_id: int
+    title: str
+    published_at: str
+    reply_count: int
+    latest_reply_at: str | None
+
+
+class OperatorNoticePage(BaseModel):
+    items: list[OperatorNotice]
     total: int
     page: int
     page_size: int

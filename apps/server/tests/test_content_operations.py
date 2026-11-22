@@ -287,3 +287,107 @@ def test_information_group_filters_list_and_export_without_notifications_or_prot
         finally:
             with SessionLocal.begin() as db:
                 db.execute(delete(Article).where(Article.id.in_(ids)))
+
+
+def test_operator_notice_inbox_combines_visible_notices_and_own_replies(accounts, staff):
+    from datetime import UTC, datetime, timedelta
+
+    names, password, _stations = accounts
+    prefix = "operator-inbox-" + secrets.token_hex(8)
+    ids = []
+    published = datetime(2026, 11, 19, 16, tzinfo=UTC)
+    clients = [TestClient(app, client=(prefix + str(i), 1)) for i in range(3)]
+    try:
+        for client, username in zip(clients, [*names, staff[0][0]], strict=True):
+            assert (
+                client.post(
+                    "/api/v1/auth/login", json={"username": username, "password": password}
+                ).status_code
+                == 200
+            )
+        own, other, regulator = clients
+        with SessionLocal.begin() as db:
+            owners = [
+                db.scalar(select(User).where(User.username == username)) for username in names
+            ]
+            reg_id = db.scalar(select(User.id).where(User.username == staff[0][0]))
+            operator_a, operator_b = [user.operator_id for user in owners]
+
+            def article(label, **overrides):
+                fields = {
+                    "kind": "notice",
+                    "title": f"{prefix}-{label}",
+                    "body": "confidential-body",
+                    "audience": "operator",
+                    "created_by": reg_id,
+                    "published_at": published,
+                    "status": "published",
+                }
+                row = Article(**(fields | overrides))
+                db.add(row)
+                db.flush()
+                ids.append(row.id)
+                return row
+
+            general = article("general")
+            legacy = article("legacy", operator_id=operator_a)
+            targeted = article("targeted", recipient_ids=[operator_a])
+            db.add(
+                NoticeDelivery(
+                    article_id=targeted.id,
+                    operator_id=operator_a,
+                    operator_name="收件名称",
+                    contacts=[],
+                    publication_version=2,
+                    scheduled_at=published,
+                )
+            )
+            article("outside", operator_id=operator_b)
+            article("scheduled", published_at=now() + timedelta(days=1))
+            article("withdrawn", status="withdrawn")
+            article("news", kind="news")
+            article("outside-window", published_at=published - timedelta(seconds=1))
+            stamp = published + timedelta(hours=1)
+            db.add_all(
+                [
+                    ArticleReply(
+                        article_id=general.id,
+                        operator_id=owner.operator_id,
+                        actor_id=owner.id,
+                        body="confidential-reply",
+                        created_at=stamp + timedelta(hours=index),
+                    )
+                    for index, owner in enumerate(owners)
+                ]
+            )
+            general_id, legacy_id, targeted_id = general.id, legacy.id, targeted.id
+        path = "/api/v1/content/operator-notices"
+        params = {"q": prefix, "published_from": "2026-11-20", "published_to": "2026-11-20"}
+        response = own.get(path, params=params)
+        assert response.status_code == 200, response.text
+        rows = {row["article_id"]: row for row in response.json()["items"]}
+        assert set(rows) == {general_id, legacy_id, targeted_id}
+        assert rows[general_id]["reply_count"] == 1
+        assert rows[general_id]["latest_reply_at"] == stamp.isoformat()
+        assert rows[targeted_id]["latest_reply_at"] is None
+        assert own.get(path, params={**params, "replied": True}).json()["total"] == 1
+        assert own.get(path, params={**params, "replied": False}).json()["total"] == 2
+        other_ids = {row["article_id"] for row in other.get(path, params=params).json()["items"]}
+        assert (
+            general_id in other_ids and targeted_id not in other_ids and legacy_id not in other_ids
+        )
+        assert regulator.get(path, params=params).status_code == 403
+        assert regulator.get(path + "/export", params=params).status_code == 403
+        assert own.get("/api/v1/content/notice-records/export").status_code == 403
+        exported = own.get(path + "/export", params={**params, "replied": False})
+        assert exported.status_code == 200, exported.text
+        assert prefix + "-targeted" in exported.text and prefix + "-legacy" in exported.text
+        for private in ("confidential", prefix + "-outside", prefix + "-general"):
+            assert private not in exported.text
+        assert own.get(path, params={**params, "published_from": "2026-11-21"}).status_code == 422
+    finally:
+        for client in clients:
+            client.close()
+        with SessionLocal.begin() as db:
+            db.execute(delete(ArticleReply).where(ArticleReply.article_id.in_(ids)))
+            db.execute(delete(Article).where(Article.id.in_(ids)))

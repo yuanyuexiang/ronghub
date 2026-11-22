@@ -73,6 +73,10 @@ export function StationDirectory({
   const [exporting, setExporting] = useState(false),
     [exportError, setExportError] = useState("");
   const canExport = useCapability("stations.export");
+  const canCreateApplication = useCapability("applications.create");
+  const canReadApplications = useCapability("applications.read");
+  const canCreateRating = useCapability("ratings.create");
+  const canReadRatings = useCapability("ratings.read");
   const revision = usePageRefresh();
   const request = useRef(0);
   const exportController = useRef<AbortController | null>(null);
@@ -330,32 +334,80 @@ export function StationDirectory({
                 <td>{syncStates[row.source_sync_state] || "未提供"}</td>
                 <td>{clock(row.source_first_connected_at)}</td>
                 <td>
-                  {onApplication &&
-                    (actionMode === "operation"
-                      ? [
-                          ["commission", "投运事项"],
-                          ["decommission", "核销事项"],
-                        ]
-                      : [
-                          ["access", "接入审核"],
-                          ["acceptance", "竣工验收"],
-                        ]
-                    ).map(([kind, label]) => (
-                      <button
-                        key={kind}
-                        className="outline"
-                        onClick={() => onApplication(row.id, row.name, kind)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  <button
-                    className="outline"
-                    aria-label={`查看详情 ${row.name}`}
-                    onClick={() => onOpen(row.id)}
-                  >
-                    查看详情
-                  </button>
+                  <div className="record-row-actions">
+                    <button
+                      className="outline"
+                      aria-label={`查看详情 ${row.name}`}
+                      onClick={() => onOpen(row.id)}
+                    >
+                      查看详情
+                    </button>
+                    {onApplication && actionMode === "operator" && (
+                      <>
+                        {canCreateApplication &&
+                          canReadApplications &&
+                          [
+                            "pending",
+                            "access_approved",
+                            "accepted",
+                            "operating",
+                          ].includes(row.status) && (
+                            <button
+                              type="button"
+                              className="outline"
+                              onClick={() =>
+                                onApplication(
+                                  row.id,
+                                  row.name,
+                                  row.status === "pending"
+                                    ? "access"
+                                    : "change",
+                                )
+                              }
+                            >
+                              {row.status === "pending"
+                                ? "接入申请"
+                                : "接入变更"}
+                            </button>
+                          )}
+                        {canCreateRating &&
+                          canReadRatings &&
+                          ["access_approved", "accepted", "operating"].includes(
+                            row.status,
+                          ) && (
+                            <button
+                              type="button"
+                              className="outline"
+                              onClick={() =>
+                                onApplication(row.id, row.name, "rating")
+                              }
+                            >
+                              星级申报
+                            </button>
+                          )}
+                      </>
+                    )}
+                    {onApplication &&
+                      actionMode !== "operator" &&
+                      (actionMode === "operation"
+                        ? [
+                            ["commission", "投运事项"],
+                            ["decommission", "核销事项"],
+                          ]
+                        : [
+                            ["access", "接入审核"],
+                            ["acceptance", "竣工验收"],
+                          ]
+                      ).map(([kind, label]) => (
+                        <button
+                          key={kind}
+                          className="outline"
+                          onClick={() => onApplication(row.id, row.name, kind)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                  </div>
                 </td>
               </tr>
             ))}

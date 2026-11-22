@@ -1,15 +1,16 @@
 import csv
 import io
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 
 from app import article_assets, content, reply_documents
 from app.authorization import CONTENT_ACTIONS, authorize_business_write, require
+from app.business_dates import apply_beijing_days
 from app.contracts import (
     ContentArticle,
     ContentBatchResult,
@@ -18,6 +19,7 @@ from app.contracts import (
     ContentPage,
     ContentReplyCreated,
     NoticeRecordPage,
+    OperatorNoticePage,
 )
 from app.dependencies import DB, Actor, SnapshotActor
 from app.models import (
@@ -217,6 +219,109 @@ def batch_actions(body: BatchInput, request: Request, user: Actor, db: DB):
     result = {"items": [content.output(row) for row in rows], "total": len(rows)}
     db.commit()
     return result
+
+
+class OperatorNoticeFilters(BaseModel):
+    q: str = Field("", max_length=150)
+    published_from: date | None = None
+    published_to: date | None = None
+    replied: bool | None = None
+
+
+NoticeFilters = Annotated[OperatorNoticeFilters, Depends()]
+
+
+def operator_notice_rows(user, filters):
+    if user.role != "operator" or user.operator_id is None:
+        raise HTTPException(403, "仅运营商可查看本企业通知")
+    replies = (
+        select(
+            ArticleReply.article_id,
+            func.count().label("reply_count"),
+            func.max(ArticleReply.created_at).label("latest_reply_at"),
+        )
+        .where(ArticleReply.operator_id == user.operator_id)
+        .group_by(ArticleReply.article_id)
+        .subquery()
+    )
+    stmt = content.visible(
+        select(
+            Article.id.label("article_id"),
+            Article.title,
+            Article.published_at,
+            func.coalesce(replies.c.reply_count, 0).label("reply_count"),
+            replies.c.latest_reply_at,
+        )
+        .outerjoin(replies, replies.c.article_id == Article.id)
+        .where(Article.kind == "notice"),
+        user,
+    )
+    if query := filters.q.strip():
+        stmt = stmt.where(Article.title.icontains(query, autoescape=True))
+    if filters.replied is not None:
+        stmt = stmt.where(
+            replies.c.reply_count.is_not(None)
+            if filters.replied
+            else replies.c.reply_count.is_(None)
+        )
+    return apply_beijing_days(
+        stmt, Article.published_at, filters.published_from, filters.published_to
+    )
+
+
+@router.get("/operator-notices", response_model=OperatorNoticePage)
+def operator_notices(
+    user: SnapshotActor,
+    db: SnapshotDB,
+    filters: NoticeFilters,
+    page: int = Query(1, ge=1, le=2147483647),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    stmt = operator_notice_rows(user, filters)
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+    rows = db.execute(
+        stmt.order_by(Article.published_at.desc(), Article.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    return {
+        "items": [
+            {
+                "article_id": row.article_id,
+                "title": row.title,
+                "published_at": row.published_at.isoformat(),
+                "reply_count": row.reply_count,
+                "latest_reply_at": row.latest_reply_at.isoformat() if row.latest_reply_at else None,
+            }
+            for row in rows
+        ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
+@router.get(
+    "/operator-notices/export",
+    response_class=Response,
+    responses={200: {"content": {"text/csv": {"schema": {"type": "string"}}}}},
+)
+def export_operator_notices(user: SnapshotActor, db: SnapshotDB, filters: NoticeFilters):
+    require(db, user, "content.read")
+    require(db, user, "content.notice_export")
+    rows = db.execute(
+        operator_notice_rows(user, filters)
+        .order_by(Article.published_at.desc(), Article.id.desc())
+        .limit(10001)
+    ).all()
+    return metadata_csv(
+        db,
+        user,
+        "content.operator-notices.export",
+        "ronghub-operator-notices.csv",
+        ["通知编号", "通知标题", "站内生效时间(带时区)", "回复条数", "最近回复时间(带时区)"],
+        rows,
+    )
 
 
 @router.get("/notice-records", response_model=NoticeRecordPage)
@@ -439,7 +544,7 @@ def export_guard(db, user):
 
 
 def metadata_csv(db, user, action, filename, headers, rows):
-    from app.routers.statistics import csv_cell
+    from app.routers.statistics import csv_cell, csv_response
 
     if len(rows) > 10000:
         raise HTTPException(422, "单次最多导出10000条，请缩小范围")
@@ -452,11 +557,7 @@ def metadata_csv(db, user, action, filename, headers, rows):
         )
     db.add(Audit(user_id=user.id, action=action, detail={"rows": len(rows)}))
     db.commit()
-    return Response(
-        "\ufeff" + buffer.getvalue(),
-        media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
+    return csv_response(buffer.getvalue(), filename)
 
 
 @router.get("/operator-options", response_model=ContentOperatorPage)

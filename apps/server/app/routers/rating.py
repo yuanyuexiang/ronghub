@@ -469,6 +469,14 @@ def create_application(body: ApplicationInput, user: Actor, db: DB, request: Req
     return result
 
 
+def detail_scores(scores):
+    # Historical JSON scores may be stored as numbers. Preserve decimal text on the wire.
+    return {
+        code: str(Decimal(str(value))) if type(value) in (int, float) else value
+        for code, value in scores.items()
+    }
+
+
 @router.get("/applications/{application_id}", response_model=RatingApplicationDetail)
 def detail(application_id: int, user: SnapshotActor, db: SnapshotDB):
     a = rating.access(db, user, application_id)
@@ -503,8 +511,8 @@ def detail(application_id: int, user: SnapshotActor, db: SnapshotDB):
         "operator_name": operator_name,
         "last_submission": receipt,
         "rule_snapshot": a.rule_snapshot,
-        "initial_scores": a.initial_scores,
-        "current_scores": a.current_scores,
+        "initial_scores": detail_scores(a.initial_scores),
+        "current_scores": detail_scores(a.current_scores),
         "history": [
             {
                 "action": r.action,

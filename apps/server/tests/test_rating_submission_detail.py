@@ -180,3 +180,22 @@ def test_detail_receipt_names_history_and_state_share_repeatable_snapshot(
     assert before["last_submission"] is None
     assert after["last_submission"]["actor_id"] == submitter[0]
     assert after["last_submission"]["submitted_at"] == stamp.isoformat()
+
+
+def test_legacy_numeric_scores_read_as_decimal_strings_without_rewriting_history(
+    rating_fixture, accounts
+):
+    aid = create(rating_fixture)
+    initial = {"facility": 88, "service": 90.25, "environment": None, "safety": 0}
+    current = {**initial, "service": "90.2500"}
+    with SessionLocal.begin() as db:
+        record = db.get(RatingApplication, aid)
+        record.initial_scores, record.current_scores = initial, current
+    client = login(accounts[0][0], accounts[1])
+    response = client.get(f"/api/v1/ratings/applications/{aid}")
+    assert response.status_code == 200, response.text
+    expected = {"facility": "88", "service": "90.25", "environment": None, "safety": "0"}
+    assert response.json()["initial_scores"] == expected
+    assert response.json()["current_scores"] == {**expected, "service": "90.2500"}
+    with SessionLocal() as db:
+        assert db.get(RatingApplication, aid).initial_scores == initial

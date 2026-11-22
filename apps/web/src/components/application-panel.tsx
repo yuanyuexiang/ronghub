@@ -21,6 +21,8 @@ type Query = {
   kind: string;
   application_id: string;
   station_id: string;
+  submitted_from: string;
+  submitted_to: string;
   page: number;
 };
 const initialQuery: Query = {
@@ -29,8 +31,43 @@ const initialQuery: Query = {
   kind: "",
   application_id: "",
   station_id: "",
+  submitted_from: "",
+  submitted_to: "",
   page: 1,
 };
+type StationEntry = { id: number; name: string; kind: string };
+
+function applicationFilters(query: Query) {
+  return {
+    q: query.q,
+    status: query.status,
+    kind: query.kind,
+    station_id: query.station_id ? Number(query.station_id) : undefined,
+    application_id: query.application_id
+      ? Number(query.application_id)
+      : undefined,
+    submitted_from: query.submitted_from || undefined,
+    submitted_to: query.submitted_to || undefined,
+  };
+}
+
+function applicationExportUrl(query: Query) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(applicationFilters(query))) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  return `/api/v1/applications/export?${params}`;
+}
+
+function submissionLabel(value: string | null) {
+  return value
+    ? new Date(value).toLocaleString("zh-CN", {
+        timeZone: "Asia/Shanghai",
+        hour12: false,
+      })
+    : "无提交记录";
+}
+
 const text = (value: unknown, fallback: string) =>
   typeof value === "string" && value ? value : fallback;
 const kinds: Record<string, string> = {
@@ -60,14 +97,23 @@ export function ApplicationPanel({
   role,
   csrf,
   registerLeaveGuard,
+  initialStation,
 }: {
   role: string;
   csrf: string;
   registerLeaveGuard?: (guard: (() => boolean) | null) => void;
+  initialStation?: StationEntry;
 }) {
   const [creating, setCreating] = useState(false);
   const [profileStation, setProfileStation] = useState<number | null>(null);
-  const [focusedStationName, setFocusedStationName] = useState("");
+  const [focusedStationName, setFocusedStationName] = useState(
+    initialStation?.name ?? "",
+  );
+  const [draftStation, setDraftStation] = useState<StationEntry>();
+  const [focusMaterial, setFocusMaterial] = useState(false);
+  const materialsHeading = useRef<HTMLDivElement>(null);
+  const materialsChanged = useRef(false);
+  const stationEntryHandled = useRef(false);
   const [applicationView, setApplicationView] = useBusinessView("all");
   const canSource = useCapability("stations.read");
   const stationWorkflow = role === "regulator" && canSource;
@@ -82,7 +128,8 @@ export function ApplicationPanel({
     canMaterials = useCapability("applications.materials"),
     canSubmit = useCapability("applications.submit"),
     canWithdraw = useCapability("applications.withdraw"),
-    canReview = useCapability("applications.review");
+    canReview = useCapability("applications.review"),
+    canExport = useCapability("applications.export");
   const [rows, setRows] = useState<ApiSchemas["StationApplicationRecord"][]>(
       [],
     ),
@@ -122,6 +169,10 @@ export function ApplicationPanel({
     setEditorDirty(false);
     setComment("");
     setError("");
+    if (materialsChanged.current) {
+      materialsChanged.current = false;
+      load().catch((e) => setError(e.message));
+    }
   }
   function requestClose() {
     if (busy || materialBusy || editorBusy) return;
@@ -132,10 +183,17 @@ export function ApplicationPanel({
     creating ? -1 : detail?.id,
     showDirectory ? "stations" : "applications",
   );
+  useEffect(() => {
+    if (!detail || !focusMaterial || !materialsHeading.current) return;
+    materialsHeading.current.focus({ preventScroll: true });
+    materialsHeading.current.scrollIntoView({ block: "center" });
+    setFocusMaterial(false);
+  }, [detail, focusMaterial]);
   const [materialRevision, setMaterialRevision] = useState(0);
   const [review, setReview] = useState<ApplicationReviewState | null>(null);
   const initialViewQuery = {
     ...initialQuery,
+    station_id: initialStation ? String(initialStation.id) : "",
     kind: ["all", "progress", "queue"].includes(applicationView)
       ? ""
       : applicationView,
@@ -158,15 +216,7 @@ export function ApplicationPanel({
         cache: "no-store",
         params: {
           query: {
-            q: target.q,
-            station_id: target.station_id
-              ? Number(target.station_id)
-              : undefined,
-            status: target.status,
-            kind: target.kind,
-            application_id: target.application_id
-              ? Number(target.application_id)
-              : undefined,
+            ...applicationFilters(target),
             page: target.page,
             page_size: 20,
           },
@@ -181,6 +231,16 @@ export function ApplicationPanel({
       }
       setRows(data.items);
       setTotal(data.total);
+      if (initialStation && !stationEntryHandled.current) {
+        stationEntryHandled.current = true;
+        if (target.station_id === String(initialStation.id)) {
+          const active = data.items.find((row) =>
+            ["draft", "submitted", "rejected"].includes(row.status),
+          );
+          if (active) void open(active.id);
+          else startDraft(initialStation);
+        }
+      }
     } catch (error) {
       if (sequence === listSequence.current) throw error;
     } finally {
@@ -205,6 +265,13 @@ export function ApplicationPanel({
     ++detailSequence.current;
     setQuery({ ...draft, page: 1 });
   }
+  function startDraft(station?: StationEntry) {
+    setDraftStation(station);
+    setSid(station ? String(station.id) : "");
+    setKind(station?.kind || query.kind || "access");
+    setError("");
+    setCreating(true);
+  }
   async function create() {
     if (busy || materialBusy || editorBusy || !sid) return;
     setBusy(true);
@@ -215,7 +282,7 @@ export function ApplicationPanel({
         body: {
           station_id: Number(sid),
           kind,
-          payload: { note: "演示申请，材料要求待确认" },
+          payload: {},
         },
       });
       if (!data) throw new Error(apiError(error, "创建申请失败"));
@@ -235,7 +302,7 @@ export function ApplicationPanel({
       setBusy(false);
     }
   }
-  async function open(id: number) {
+  async function open(id: number, focusOnMaterials = false) {
     if (materialBusy) return;
     const sequence = ++detailSequence.current;
     setError("");
@@ -250,6 +317,7 @@ export function ApplicationPanel({
       if (sequence !== detailSequence.current) return;
       if (!data) throw new Error(apiError(error, "无法读取申请详情"));
       setDetail(data);
+      setFocusMaterial(focusOnMaterials);
       setComment("");
       return true;
     } catch (e) {
@@ -342,7 +410,7 @@ export function ApplicationPanel({
         {creating && (
           <div className="record-detail">
             <div className="panel-title">
-              <h2>新增接入申请</h2>
+              <h2>{kind === "change" ? "新增场站变更申请" : "新增接入申请"}</h2>
               <button
                 type="button"
                 className="outline"
@@ -362,10 +430,16 @@ export function ApplicationPanel({
                 void create();
               }}
             >
-              <StationPicker label="申请场站" value={sid} onChange={setSid} />
+              <StationPicker
+                label="申请场站"
+                value={sid}
+                onChange={setSid}
+                initialOption={draftStation}
+              />
               <label>
                 申请类型
                 <select
+                  aria-label="申请类型"
                   value={kind}
                   onChange={(event) => setKind(event.target.value)}
                   disabled={busy}
@@ -419,25 +493,33 @@ export function ApplicationPanel({
                 返回场站列表
               </button>
             )}
-            {canCreate && role === "operator" && !progressOnly && (
-              <button
-                type="button"
-                className="primary"
-                disabled={busy || materialBusy || editorBusy}
-                onClick={() => {
-                  setSid("");
-                  setKind(query.kind || "access");
-                  setError("");
-                  setCreating(true);
-                }}
-              >
-                新增接入申请
-              </button>
-            )}
+            <div className="action-row view-heading-actions">
+              {canExport && !listLoading && !error && (
+                <a className="outline" href={applicationExportUrl(query)}>
+                  导出申请清单
+                </a>
+              )}
+              {canCreate && role === "operator" && !progressOnly && (
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy || materialBusy || editorBusy || listLoading}
+                  onClick={() => {
+                    const selected =
+                      String(initialStation?.id) === query.station_id
+                        ? initialStation
+                        : undefined;
+                    startDraft(selected);
+                  }}
+                >
+                  新增接入申请
+                </button>
+              )}
+            </div>
           </div>
           <form className="application-filters" onSubmit={search}>
             <label>
-              场站或企业名称
+              {role === "operator" ? "场站名称" : "场站或企业名称"}
               <input
                 aria-label="检索申请场站或企业"
                 maxLength={150}
@@ -487,6 +569,29 @@ export function ApplicationPanel({
                 ))}
               </select>
             </label>
+            <label>
+              提交日期起（北京）
+              <input
+                type="date"
+                value={draft.submitted_from}
+                max={draft.submitted_to || "9999-12-30"}
+                onChange={(event) =>
+                  setDraft({ ...draft, submitted_from: event.target.value })
+                }
+              />
+            </label>
+            <label>
+              提交日期止（北京）
+              <input
+                type="date"
+                value={draft.submitted_to}
+                min={draft.submitted_from || undefined}
+                max="9999-12-30"
+                onChange={(event) =>
+                  setDraft({ ...draft, submitted_to: event.target.value })
+                }
+              />
+            </label>
             <button
               className="primary"
               disabled={busy || materialBusy || editorBusy || listLoading}
@@ -519,15 +624,16 @@ export function ApplicationPanel({
             </p>
           )}
           <div className="table-wrap">
-            <table>
+            <table className="aligned-records">
               <thead>
                 <tr>
                   {[
                     "申请编号",
-                    "场站 / 企业",
+                    "场站 / 地址",
                     "申请类型",
                     "状态",
-                    "创建时间（北京）",
+                    "当前上传材料",
+                    "最近提交时间（北京）",
                     "操作",
                   ].map((h) => (
                     <th key={h}>{h}</th>
@@ -540,9 +646,11 @@ export function ApplicationPanel({
                     <td>APP-{a.id}</td>
                     <td>
                       {a.station_name}
-                      <br />
-                      <small className="muted">
-                        {a.operator_name} · 场站 #{a.station_id}
+                      <small className="muted application-station-line">
+                        {a.station_address || "地址未提供"}
+                      </small>
+                      <small className="muted application-station-line">
+                        {a.operator_name}
                       </small>
                     </td>
                     <td>{kinds[a.kind]}</td>
@@ -554,19 +662,34 @@ export function ApplicationPanel({
                       </em>
                     </td>
                     <td>
-                      {new Date(a.created_at).toLocaleString("zh-CN", {
-                        timeZone: "Asia/Shanghai",
-                        hour12: false,
-                      })}
+                      {a.active_material_count
+                        ? `已上传 ${a.active_material_count} 份`
+                        : "未上传"}
                     </td>
+                    <td>{submissionLabel(a.last_submitted_at)}</td>
                     <td>
-                      <button
-                        className="outline"
-                        disabled={busy || materialBusy || editorBusy}
-                        onClick={() => open(a.id)}
-                      >
-                        查看处理
-                      </button>
+                      <div className="record-row-actions">
+                        {role === "operator" &&
+                          canMaterials &&
+                          !progressOnly &&
+                          ["draft", "rejected"].includes(a.status) && (
+                            <button
+                              className="outline"
+                              type="button"
+                              disabled={busy || materialBusy || editorBusy}
+                              onClick={() => open(a.id, true)}
+                            >
+                              补充材料
+                            </button>
+                          )}
+                        <button
+                          className="outline"
+                          disabled={busy || materialBusy || editorBusy}
+                          onClick={() => open(a.id)}
+                        >
+                          {progressOnly ? "查看进展" : "查看处理"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -689,13 +812,8 @@ export function ApplicationPanel({
                 <dd>{detail.operator_name}</dd>
               </div>
               <div>
-                <dt>创建时间（北京）</dt>
-                <dd>
-                  {new Date(detail.created_at).toLocaleString("zh-CN", {
-                    timeZone: "Asia/Shanghai",
-                    hour12: false,
-                  })}
-                </dd>
+                <dt>最近提交时间（北京）</dt>
+                <dd>{submissionLabel(detail.last_submitted_at)}</dd>
               </div>
             </dl>
             <div className="detail-grid application-review-layout">
@@ -729,25 +847,37 @@ export function ApplicationPanel({
                       }}
                     />
                   )}
-                <Attachments
-                  key={detail.id}
-                  applicationId={detail.id}
-                  version={detail.version}
-                  parentBusy={busy || editorBusy}
-                  onBusy={setMaterialBusy}
-                  editable={
-                    canMaterials &&
-                    !progressOnly &&
-                    role === "operator" &&
-                    ["draft", "rejected"].includes(detail.status)
-                  }
-                  csrf={csrf}
-                  categories={
-                    review?.applicationId === detail.id ? review.categories : {}
-                  }
-                  onChanged={() => setMaterialRevision((old) => old + 1)}
-                  applicationVersion={detail.version}
-                />
+                <div
+                  ref={materialsHeading}
+                  tabIndex={-1}
+                  role="region"
+                  aria-label="申请材料办理"
+                >
+                  <Attachments
+                    key={detail.id}
+                    applicationId={detail.id}
+                    version={detail.version}
+                    parentBusy={busy || editorBusy}
+                    onBusy={setMaterialBusy}
+                    editable={
+                      canMaterials &&
+                      !progressOnly &&
+                      role === "operator" &&
+                      ["draft", "rejected"].includes(detail.status)
+                    }
+                    csrf={csrf}
+                    categories={
+                      review?.applicationId === detail.id
+                        ? review.categories
+                        : {}
+                    }
+                    onChanged={() => {
+                      materialsChanged.current = true;
+                      setMaterialRevision((old) => old + 1);
+                    }}
+                    applicationVersion={detail.version}
+                  />
+                </div>
                 <section className="materials">
                   <h3>提交内容</h3>
                   <p>{text(detail.payload.note, "无申请说明")}</p>

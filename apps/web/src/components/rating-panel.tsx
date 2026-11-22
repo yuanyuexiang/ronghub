@@ -78,11 +78,13 @@ export function RatingPanel({
   csrf,
   onChanged,
   registerLeaveGuard,
+  initialStation,
 }: {
   role: string;
   csrf: string;
   onChanged: () => void;
   registerLeaveGuard?: LeaveGuardRegistrar;
+  initialStation?: { id: number; name: string };
 }) {
   const canStatistics = useCapability("statistics.read");
   const canStations = useCapability("stations.read");
@@ -109,7 +111,7 @@ export function RatingPanel({
   const [intakeReceipt, setIntakeReceipt] = useState<number | null>(null);
   const [intakeMaterialRevision, setIntakeMaterialRevision] = useState(0);
   const [standards, setStandards] = useState<Standard[]>([]),
-    [sid, setSid] = useState(""),
+    [sid, setSid] = useState(initialStation ? String(initialStation.id) : ""),
     [standardId, setStandardId] = useState(""),
     [scores, setScores] = useState<Record<string, string>>({}),
     [note, setNote] = useState(""),
@@ -538,6 +540,7 @@ export function RatingPanel({
                       label="评星场站"
                       value={sid}
                       onChange={setSid}
+                      initialOption={initialStation}
                       status="access_approved,accepted,operating"
                     />
                     <label>

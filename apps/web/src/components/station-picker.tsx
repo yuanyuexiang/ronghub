@@ -12,6 +12,7 @@ export function StationPicker({
   onSource,
   allowAll = false,
   compact = false,
+  initialOption,
 }: {
   label: string;
   value: string;
@@ -21,9 +22,10 @@ export function StationPicker({
   onSource?: (source: string) => void;
   allowAll?: boolean;
   compact?: boolean;
+  initialOption?: Option;
 }) {
   const [items, setItems] = useState<Option[]>([]),
-    [selected, setSelected] = useState<Option | null>(null),
+    [selected, setSelected] = useState<Option | null>(initialOption ?? null),
     [input, setInput] = useState(""),
     [query, setQuery] = useState(""),
     [page, setPage] = useState(1),

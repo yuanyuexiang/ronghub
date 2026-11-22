@@ -436,6 +436,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applications/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Applications */
+        get: operations["export_applications_api_v1_applications_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/applications/{application_id}": {
         parameters: {
             query?: never;
@@ -1112,6 +1129,40 @@ export interface paths {
         };
         /** Export Notice Records */
         get: operations["export_notice_records_api_v1_content_notice_records_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/operator-notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Operator Notices */
+        get: operations["operator_notices_api_v1_content_operator_notices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/operator-notices/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Operator Notices */
+        get: operations["export_operator_notices_api_v1_content_operator_notices_export_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -7126,6 +7177,30 @@ export interface components {
             /** Items */
             items: components["schemas"]["OperatorItem"][];
         };
+        /** OperatorNotice */
+        OperatorNotice: {
+            /** Article Id */
+            article_id: number;
+            /** Latest Reply At */
+            latest_reply_at: string | null;
+            /** Published At */
+            published_at: string;
+            /** Reply Count */
+            reply_count: number;
+            /** Title */
+            title: string;
+        };
+        /** OperatorNoticePage */
+        OperatorNoticePage: {
+            /** Items */
+            items: components["schemas"]["OperatorNotice"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
         /** OrderMetric */
         OrderMetric: {
             /** Known Orders */
@@ -9539,6 +9614,8 @@ export interface components {
         };
         /** StationApplicationDetail */
         StationApplicationDetail: {
+            /** Active Material Count */
+            active_material_count: number;
             /** Created At */
             created_at: string;
             /** History */
@@ -9547,6 +9624,8 @@ export interface components {
             id: number;
             /** Kind */
             kind: string;
+            /** Last Submitted At */
+            last_submitted_at: string | null;
             /** Operator Id */
             operator_id: number;
             /** Operator Name */
@@ -9557,6 +9636,8 @@ export interface components {
             };
             /** Rule Version */
             rule_version: string;
+            /** Station Address */
+            station_address: string;
             /** Station Id */
             station_id: number;
             /** Station Name */
@@ -9588,12 +9669,16 @@ export interface components {
         };
         /** StationApplicationRecord */
         StationApplicationRecord: {
+            /** Active Material Count */
+            active_material_count: number;
             /** Created At */
             created_at: string;
             /** Id */
             id: number;
             /** Kind */
             kind: string;
+            /** Last Submitted At */
+            last_submitted_at: string | null;
             /** Operator Id */
             operator_id: number;
             /** Operator Name */
@@ -9604,6 +9689,8 @@ export interface components {
             };
             /** Rule Version */
             rule_version: string;
+            /** Station Address */
+            station_address: string;
             /** Station Id */
             station_id: number;
             /** Station Name */
@@ -13332,13 +13419,15 @@ export interface operations {
     applications_api_v1_applications_get: {
         parameters: {
             query?: {
+                page?: number;
+                page_size?: number;
                 q?: string;
                 status?: string;
                 kind?: string;
                 application_id?: number | null;
                 station_id?: number | null;
-                page?: number;
-                page_size?: number;
+                submitted_from?: string | null;
+                submitted_to?: string | null;
             };
             header?: never;
             path?: never;
@@ -13433,6 +13522,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StationApplicationRecord"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_applications_api_v1_applications_export_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: string;
+                kind?: string;
+                application_id?: number | null;
+                station_id?: number | null;
+                submitted_from?: string | null;
+                submitted_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
             /** @description Login required or invalid credentials */
@@ -16968,6 +17141,170 @@ export interface operations {
                 state?: string;
                 replied?: boolean | null;
                 article_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    operator_notices_api_v1_content_operator_notices_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                q?: string;
+                published_from?: string | null;
+                published_to?: string | null;
+                replied?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorNoticePage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_operator_notices_api_v1_content_operator_notices_export_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                published_from?: string | null;
+                published_to?: string | null;
+                replied?: boolean | null;
             };
             header?: never;
             path?: never;

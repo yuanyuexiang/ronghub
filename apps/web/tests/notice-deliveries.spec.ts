@@ -31,6 +31,7 @@ test("multi-company notice creates independent records and isolates enterprise r
     await navigateWorkspace(reg, "自定义通知发布");
     await login(own, "operator_a");
     await login(other, "operator_b");
+    for (const page of [own, other]) await navigateWorkspace(page, "通知");
     await reg
       .getByRole("button", { name: "新建内容草稿", exact: true })
       .click();
@@ -90,14 +91,18 @@ test("multi-company notice creates independent records and isolates enterprise r
       .click();
     await expect(reg.getByText("第1页 · 共2条", { exact: true })).toBeVisible();
     for (const page of [own, other]) {
-      await page.getByLabel("搜索内容标题", { exact: true }).fill(fixture.name);
-      await page.getByRole("button", { name: "查询内容", exact: true }).click();
+      await expect(
+        page.getByRole("heading", { name: "逐企业通知记录" }),
+      ).toHaveCount(0);
+      await page.getByLabel("通知标题", { exact: true }).fill(fixture.name);
+      await page.getByRole("button", { name: "查询通知", exact: true }).click();
+      await expect(page.getByRole("table")).toHaveCount(1);
       await page
         .getByRole("row")
         .filter({
           has: page.getByRole("cell", { name: fixture.name, exact: true }),
         })
-        .getByRole("button", { name: "查看内容", exact: true })
+        .getByRole("button", { name: "查看并回复", exact: true })
         .click();
     }
     await own.getByLabel("通知回复", { exact: true }).fill("甲企业独立反馈");
@@ -111,16 +116,34 @@ test("multi-company notice creates independent records and isolates enterprise r
         .locator(".timeline .rich-document, .timeline .article-body")
         .filter({ hasText: "甲企业独立反馈" }),
     ).toBeVisible();
+    await own
+      .getByRole("button", { name: "关闭内容详情", exact: true })
+      .click();
+    await own.getByLabel("回复状态").selectOption("true");
+    await own.getByRole("button", { name: "查询通知", exact: true }).click();
+    await expect(
+      own.getByRole("row").filter({ hasText: fixture.name }),
+    ).toContainText("已回复");
+    const exported = await own.request.get(
+      (await own
+        .getByRole("link", {
+          name: "导出通知清单",
+        })
+        .getAttribute("href"))!,
+    );
+    expect(exported.ok()).toBeTruthy();
+    expect(await exported.text()).toContain(fixture.name);
+    expect(await exported.text()).not.toContain("甲企业独立反馈");
     await other
       .getByRole("button", { name: "关闭内容详情", exact: true })
       .click();
-    await other.getByRole("button", { name: "查询内容", exact: true }).click();
+    await other.getByRole("button", { name: "查询通知", exact: true }).click();
     await other
       .getByRole("row")
       .filter({
         has: other.getByRole("cell", { name: fixture.name, exact: true }),
       })
-      .getByRole("button", { name: "查看内容", exact: true })
+      .getByRole("button", { name: "查看并回复", exact: true })
       .click();
     await expect(
       other.getByText("甲企业独立反馈", { exact: true }),

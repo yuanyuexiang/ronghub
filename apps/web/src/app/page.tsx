@@ -77,6 +77,11 @@ export default function Home() {
       ? "roles"
       : "");
   const [pageRevision, setPageRevision] = useState(0);
+  const [stationEntry, setStationEntry] = useState<{
+    id: number;
+    name: string;
+    kind: string;
+  } | null>(null);
   const setWorkspaceView = (view: string) =>
     setSelectedView({ module: tab, view });
   const [navigationOpen, setNavigationOpen] = useState(false);
@@ -104,6 +109,7 @@ export default function Home() {
     allowed: allowedModules,
     guard: navigationGuard,
     onRestore: (target, alert, view) => {
+      setStationEntry(null);
       setTab(target);
       setAlertView(alert);
       setSelectedView({ module: target, view });
@@ -141,6 +147,7 @@ export default function Home() {
       ++loadSequence.current;
       setMe(null);
       setDetailId(null);
+      setStationEntry(null);
       setSummary(null);
       setPassword("");
       setTab("工作台");
@@ -230,6 +237,7 @@ export default function Home() {
       ++loadSequence.current;
       setMe(null);
       setDetailId(null);
+      setStationEntry(null);
       setSummary(null);
       setUser("");
       setTab("工作台");
@@ -337,6 +345,7 @@ export default function Home() {
     ++loadSequence.current;
     setMe(null);
     setDetailId(null);
+    setStationEntry(null);
     setSummary(null);
     setPassword("");
     setTab("工作台");
@@ -527,7 +536,10 @@ export default function Home() {
       ...(allowedViews.current["公告与通知"] ?? []),
       "protocol",
     ];
-  function navigateWorkspace(item: NavigationItem) {
+  function navigateWorkspace(
+    item: NavigationItem,
+    station: typeof stationEntry = null,
+  ) {
     if (
       item.tab === tab &&
       (item.view ?? "") === workspaceView &&
@@ -537,6 +549,7 @@ export default function Home() {
       return;
     }
     if (navigationGuard.current && !navigationGuard.current()) return false;
+    setStationEntry(station);
     const params = new URLSearchParams({ module: item.tab });
     if (item.view) params.set("view", item.view);
     if (item.alertView && item.alertView !== "events")
@@ -910,6 +923,9 @@ export default function Home() {
                   />
                 ) : tab.startsWith("星级") ? (
                   <RatingPanel
+                    initialStation={
+                      stationEntry?.kind === "rating" ? stationEntry : undefined
+                    }
                     registerLeaveGuard={registerLeaveGuard}
                     role={me.role}
                     csrf={me.csrf_token}
@@ -921,6 +937,11 @@ export default function Home() {
                   <SyncPanel csrf={me.csrf_token} />
                 ) : tab === "场站申请" ? (
                   <ApplicationPanel
+                    initialStation={
+                      stationEntry?.kind !== "rating"
+                        ? (stationEntry ?? undefined)
+                        : undefined
+                    }
                     role={me.role}
                     csrf={me.csrf_token}
                     registerLeaveGuard={registerLeaveGuard}
@@ -931,7 +952,25 @@ export default function Home() {
                   (tab === "工作台" &&
                     me.role !== "operator" &&
                     has("stations.read")) ? (
-                  <StationDirectory onOpen={setDetailId} />
+                  <StationDirectory
+                    onOpen={setDetailId}
+                    actionMode={me.role === "operator" ? "operator" : undefined}
+                    onApplication={
+                      me.role === "operator"
+                        ? (id, name, kind) => {
+                            const item = allNavigation.find((entry) =>
+                              kind === "rating"
+                                ? entry.tab === "星级申报" &&
+                                  entry.view === "create"
+                                : entry.tab === "场站申请" &&
+                                  entry.view === "all",
+                            );
+                            if (item)
+                              navigateWorkspace(item, { id, name, kind });
+                          }
+                        : undefined
+                    }
+                  />
                 ) : null}
               </BusinessViewProvider>
               {detailId !== null && (

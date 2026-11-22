@@ -223,7 +223,7 @@ test("operator progress is read only until explicitly entering application handl
     await page
       .getByRole("row")
       .filter({ hasText: `APP-${record.id}` })
-      .getByRole("button", { name: "查看处理", exact: true })
+      .getByRole("button", { name: "查看进展", exact: true })
       .click();
     await expect(
       page.getByRole("button", { name: "保存申请信息", exact: true }),
@@ -289,4 +289,85 @@ test("operator primary pages replace repeated view tabs with contextual actions"
   await page.screenshot({
     path: "../../.backups/secondary-operator-records.png",
   });
+});
+
+test("operator station rows open the correct intake paths and preserve station selection", async ({
+  page,
+}) => {
+  const pending = createStation();
+  const operating = createStation(true);
+  const showStation = async (name: string) => {
+    await navigateWorkspace(page, "信息推送");
+    await page.getByLabel("搜索场站", { exact: true }).fill(name);
+    await page.getByRole("button", { name: "查询", exact: true }).click();
+    return page.getByRole("row").filter({ hasText: name });
+  };
+
+  try {
+    await login(page, "operator_a");
+    const pendingRow = await showStation(pending.name);
+    await expect(
+      pendingRow.getByRole("button", { name: "星级申报", exact: true }),
+    ).toHaveCount(0);
+    await pendingRow
+      .getByRole("button", { name: "接入申请", exact: true })
+      .click();
+    await expect(page.getByLabel("申请场站", { exact: true })).toHaveValue(
+      String(pending.station_id),
+    );
+    const created = page.waitForResponse(
+      (r) =>
+        r.url().endsWith("/api/v1/applications") &&
+        r.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: "新建草稿", exact: true }).click();
+    const record = await (await created).json();
+    await expect(
+      page.getByRole("heading", { name: `APP-${record.id} · 场站接入` }),
+    ).toBeVisible();
+    await (
+      await showStation(pending.name)
+    )
+      .getByRole("button", { name: "接入申请", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: `APP-${record.id} · 场站接入` }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "关闭详情", exact: true }).click();
+    await expect(
+      page.getByRole("row").filter({ hasText: `APP-${record.id}` }),
+    ).toContainText("无提交记录");
+    await page.getByRole("button", { name: "补充材料", exact: true }).click();
+    await expect(
+      page.getByRole("region", { name: "申请材料办理" }),
+    ).toBeFocused();
+
+    await (
+      await showStation(operating.name)
+    )
+      .getByRole("button", { name: "接入变更", exact: true })
+      .click();
+    await expect(page.getByLabel("申请场站", { exact: true })).toHaveValue(
+      String(operating.station_id),
+    );
+    await expect(page.getByLabel("申请类型", { exact: true })).toHaveValue(
+      "change",
+    );
+
+    await (
+      await showStation(operating.name)
+    )
+      .getByRole("button", { name: "星级申报", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "申报材料填报", level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByLabel("评星场站", { exact: true })).toHaveValue(
+      String(operating.station_id),
+    );
+    expect(new URL(page.url()).searchParams.has("station_id")).toBe(false);
+  } finally {
+    clean(pending.station_id);
+    clean(operating.station_id);
+  }
 });

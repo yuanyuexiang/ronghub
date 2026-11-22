@@ -8,6 +8,7 @@ import {
 } from "./business-workspace";
 import { usePageRefresh } from "./page-refresh";
 import { NoticeRecords } from "./notice-records";
+import { OperatorNotices } from "./operator-notices";
 import { NoticeRecipients } from "./notice-recipients";
 import { apiFetch } from "../lib/api-fetch";
 import { useCapability, useGlobalScope } from "./permissions";
@@ -134,6 +135,7 @@ export function ContentPanel({
   const [contentView] = useBusinessView(
     role === "regulator" ? "information" : "all",
   );
+  const operatorNotice = role === "operator" && contentView === "notice";
   const [kindFilter, setKindFilter] = useState<
     | ""
     | "announcement"
@@ -345,12 +347,21 @@ export function ContentPanel({
     setDetail(null);
   }, [manage, page, appliedQ, includeDeleted, kindFilter]);
   useEffect(() => {
+    if (operatorNotice) return;
     load().catch((e) => setError(e.message));
     return () => {
       ++listSequence.current;
       listController.current?.abort();
     };
-  }, [manage, page, appliedQ, includeDeleted, kindFilter, pageRefreshRevision]);
+  }, [
+    operatorNotice,
+    manage,
+    page,
+    appliedQ,
+    includeDeleted,
+    kindFilter,
+    pageRefreshRevision,
+  ]);
   useEffect(() => {
     if (canManage && role === "regulator")
       typedApi
@@ -766,7 +777,24 @@ export function ContentPanel({
           </button>
         </section>
       )}
-      <section className="panel record-pane" hidden={!!detail || showForm}>
+      {operatorNotice && (
+        <div className="record-pane" hidden={!!detail || showForm}>
+          {error && !detail && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          <OperatorNotices
+            busy={busy}
+            refreshKey={recordsVersion}
+            onOpen={(id) => run(() => open(id))}
+          />
+        </div>
+      )}
+      <section
+        className="panel record-pane"
+        hidden={operatorNotice || !!detail || showForm}
+      >
         <div className="panel-title">
           <h2>{manage ? "发布内容台账" : "公告资讯与通知"}</h2>
           {canManage && role === "regulator" && (
@@ -1012,7 +1040,7 @@ export function ContentPanel({
         </div>
       </section>
       {((canManage && manage && role === "regulator") ||
-        role === "operator") && (
+        (role === "operator" && !operatorNotice)) && (
         <div hidden={!!detail || showForm}>
           <NoticeRecords
             defaultExpanded={contentView === "notice"}
