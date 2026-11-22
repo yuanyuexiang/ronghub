@@ -26,12 +26,13 @@ for (const width of [1440, 768]) {
   }) => {
     await page.setViewportSize({ width, height: 1000 });
     await login(page, "regulator");
-    const navigation = page.getByRole("navigation", { name: "告警工作区" });
-    const choose = (name: string) =>
-      navigation.getByRole("button", { name, exact: true }).click();
+    const choose = (name: string) => navigateWorkspace(page, name);
     await expect(
-      navigation.getByRole("button", { name: "事件跟踪", exact: true }),
-    ).toHaveAttribute("aria-pressed", "true");
+      page.getByRole("heading", { level: 1, name: "告警数据", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "告警工作区" }),
+    ).toHaveCount(0);
     const title = page.getByRole("heading", {
       name: "告警事件跟踪",
       exact: true,
@@ -64,15 +65,18 @@ for (const width of [1440, 768]) {
       .fill("unsaved-layout-draft");
     await choose("通知设置");
     await page
-      .getByRole("button", { name: "管理通知与接收人", exact: true })
-      .click();
-    await page
       .getByRole("button", { name: "新增告警接收人", exact: true })
       .click();
     await page
       .getByLabel("告警接收人姓名", { exact: true })
       .fill("未保存名单草稿");
     await choose("来源与观测");
+    await expect(page).toHaveURL(/alert=sources/);
+    await expect(
+      page
+        .getByRole("navigation", { name: "业务模块导航", includeHidden: true })
+        .locator(".active-group > button"),
+    ).toContainText("预警中心");
     await expect(
       page.getByRole("region", { name: "独立分级告警观测", exact: true }),
     ).toBeVisible();

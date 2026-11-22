@@ -3,8 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
 import { usePageRefresh } from "./page-refresh";
 import { useCapability } from "./permissions";
-import { RuntimePanel } from "./runtime-panel";
-import { SubsidyDeviceDays } from "./subsidy-device-days";
 import { StationMapPanel } from "./station-map-panel";
 import type { NavigationItem } from "./workspace-navigation";
 function useRead<T>(
@@ -324,12 +322,6 @@ export function MonitoringWorkspace() {
           onChange={(page) => setQuery({ ...query, page })}
         />
       </section>
-      <details className="prototype-related">
-        <summary>历史运行与质量观测</summary>
-        <div className="prototype-related-body">
-          <RuntimePanel />
-        </div>
-      </details>
     </div>
   );
 }
@@ -472,12 +464,6 @@ export function DailyEnergyWorkspace() {
           onChange={(page) => setQuery({ ...query, page })}
         />
       </section>
-      <details className="prototype-related">
-        <summary>设备日电量与核算证据</summary>
-        <div className="prototype-related-body">
-          <SubsidyDeviceDays />
-        </div>
-      </details>
     </div>
   );
 }

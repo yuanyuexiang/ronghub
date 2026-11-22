@@ -29,10 +29,7 @@ test("independent periods expose historical coverage and preserve unknown values
     await page.getByLabel("密码", { exact: true }).fill(password);
     await page.getByRole("button", { name: "登录平台", exact: true }).click();
     await navigateWorkspace(page, "告警数据");
-    await page
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "来源与观测", exact: true })
-      .click();
+    await navigateWorkspace(page, "来源与观测");
     const panel = page.getByRole("region", {
       name: "独立周期来源",
       exact: true,

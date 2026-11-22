@@ -90,7 +90,11 @@ export const test = base.extend<{
 });
 
 /** Open the actual canvas menu (desktop flyout/mobile tree), or an auxiliary/page action. */
-export async function navigateWorkspace(page: Page, name: string | RegExp) {
+export async function navigateWorkspace(
+  page: Page,
+  name: string | RegExp,
+  allowParent = true,
+) {
   await expect(
     page.getByRole("button", { name: "退出登录", exact: true }),
   ).toBeVisible();
@@ -102,9 +106,14 @@ export async function navigateWorkspace(page: Page, name: string | RegExp) {
     星级查看: ["企业申报查看"],
     星级评价: ["企业申报管理"],
     星级申报: ["评定进度查询"],
+    新增星级申报: ["申报材料填报"],
     企业申报查看: ["企业申报管理", "评定进度查询"],
     统计分析: ["充电量统计"],
     补贴申报: ["补贴申请管理"],
+    补贴申请记录: ["补贴申请管理"],
+    政策与单站申报: ["新建补贴申请"],
+    规则配置: ["告警配置"],
+    事件跟踪: ["告警数据"],
     补贴管理: ["补贴申请记录"],
     巡检督办: ["巡检任务管理"],
     整改任务: ["巡检任务"],
@@ -213,6 +222,23 @@ export async function navigateWorkspace(page: Page, name: string | RegExp) {
       await local.first().click();
       return;
     }
+  }
+  const parentByAction: Record<string, string> = {
+    评价标准查看: "评定进度查询",
+    评价结果与公示: "评定进度查询",
+    评审过程管理: "评定进度查询",
+    数据支撑评价: "评定进度查询",
+    年度多站申报: "补贴申请管理",
+    政策与单站申报: "补贴申请管理",
+    补贴统计: "补贴申请管理",
+    设备电量数据: "补贴申请管理",
+    电量日汇总: "补贴申请管理",
+  };
+  const parent = typeof name === "string" ? parentByAction[name] : undefined;
+  if (allowParent && parent) {
+    await navigateWorkspace(page, parent, false);
+    await navigateWorkspace(page, name, false);
+    return;
   }
   await page.getByRole("button", { name, exact: true }).click();
 }

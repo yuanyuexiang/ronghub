@@ -249,15 +249,38 @@ test("operator primary pages replace repeated view tabs with contextual actions"
 }) => {
   await login(page, "operator_a");
   await navigateWorkspace(page, "申报材料填报");
-  const context = page.locator(".workspace-related-actions");
-  await expect(context).toBeVisible();
-  await expect(context).not.toHaveAttribute("open");
+  await expect(page.locator(".workspace-related-actions")).toHaveCount(0);
   await expect(
     page.getByRole("navigation", { name: "星级评价业务视图", exact: true }),
-  ).toBeHidden();
-  await navigateWorkspace(page, "企业申报查看");
+  ).toHaveCount(0);
+  await page
+    .getByText("自评与补充说明（可在草稿中继续完善）", { exact: true })
+    .click();
+  const note = page.getByLabel("评星依据说明", { exact: true });
+  await note.fill("尚未保存的申报说明");
+  const back = page.getByRole("button", { name: "返回评定进度", exact: true });
+  await back.click();
   await expect(
     page.getByRole("button", { name: "查询星级记录", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "新增星级申报", exact: true }).click();
+  await expect(note).toHaveValue("尚未保存的申报说明");
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await navigateWorkspace(page, "企业资料");
+  await expect(note).toHaveValue("尚未保存的申报说明");
+  page.once("dialog", (dialog) => dialog.accept());
+  await navigateWorkspace(page, "评定进度查询");
+  await navigateWorkspace(page, "评价标准查看");
+  await expect(page.locator(".active-group > button")).toContainText(
+    "星级站申报",
+  );
+  await expect(
+    page
+      .getByRole("navigation", { name: "辅助功能导航", includeHidden: true })
+      .getByRole("button", { name: "评价标准查看", includeHidden: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "星级评价标准", exact: true }),
   ).toBeVisible();
   await navigateWorkspace(page, "补贴记录查询与导出");
   await expect(

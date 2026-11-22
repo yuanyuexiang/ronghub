@@ -281,12 +281,13 @@ test("regulator refresh reaches mounted view readers without applying search dra
     ["场站数据同步", "/api/v1/sync/tasks"],
     ["充电订单", "/api/v1/orders"],
     ["订单汇总", "/api/v1/orders/summary"],
-    ["告警分析", "/api/v1/statistics/faults"],
+    ["源报故障事件明细", "/api/v1/statistics/faults"],
     ["账号安全", "/api/v1/auth/phone"],
     ["企业申报查看", "/api/v1/ratings/applications"],
     ["补贴申请记录", "/api/v1/subsidy/claims"],
     ["可视化一张图", "/api/v1/map"],
   ]) {
+    if (menu === "源报故障事件明细") await navigateWorkspace(page, "告警分析");
     const first = page.waitForResponse(
       (response) => new URL(response.url()).pathname === path,
     );

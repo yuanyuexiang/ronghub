@@ -91,31 +91,6 @@ export function RatingPublications({
         </div>
         <span className="pill">{total} 个场站</span>
       </div>
-      <div
-        className="prototype-shortcuts"
-        role="tablist"
-        aria-label="公示场站种类"
-      >
-        {[
-          ["", "全部"],
-          ["charging", "充电站"],
-          ["swapping", "换电站"],
-        ].map(([value, label]) => (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={filters.station_type === value}
-            key={value}
-            className="outline"
-            onClick={() => {
-              setPage(1);
-              setFilters({ ...filters, station_type: value });
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
       <form
         className="business-form"
         onSubmit={(e) => {
@@ -124,6 +99,21 @@ export function RatingPublications({
           setFilters({ ...filters, q: query, result_state: state, stars });
         }}
       >
+        <label>
+          场站种类
+          <select
+            aria-label="公示场站种类"
+            value={filters.station_type}
+            onChange={(event) => {
+              setPage(1);
+              setFilters({ ...filters, station_type: event.target.value });
+            }}
+          >
+            <option value="">全部</option>
+            <option value="charging">充电站</option>
+            <option value="swapping">换电站</option>
+          </select>
+        </label>
         <label>
           场站 / 企业
           <input

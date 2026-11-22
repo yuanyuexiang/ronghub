@@ -27,6 +27,19 @@ export async function returnToBusinessList(page: Page, module: string) {
     await expect(list).toBeVisible();
     return;
   }
+  const formReturn =
+    module === "补贴"
+      ? "返回补贴申请管理"
+      : module === "星级"
+        ? "返回评定进度"
+        : "";
+  if (formReturn) {
+    const back = page.getByRole("button", { name: formReturn, exact: true });
+    if (await back.isVisible()) {
+      await back.click();
+      return;
+    }
+  }
   const views: Record<string, [string, string]> = {
     补贴: ["补贴业务视图", "补贴申请记录"],
     星级: ["星级评价业务视图", "企业申报查看"],

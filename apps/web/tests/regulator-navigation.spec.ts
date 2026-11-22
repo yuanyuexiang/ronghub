@@ -176,6 +176,9 @@ test("subsidy statistics keeps only the real third-level menu and station drill-
     path: "../../.backups/canvas-corrected-regulator-third-level.png",
   });
   await panel.getByRole("button", { name: "运营商统计", exact: true }).click();
+  await expect(
+    page.getByRole("navigation", { name: "补贴业务视图" }),
+  ).toHaveCount(0);
   await expect(page.getByLabel("补贴统计维度", { exact: true })).toHaveValue(
     "operator",
   );
@@ -189,4 +192,9 @@ test("subsidy statistics keeps only the real third-level menu and station drill-
   );
   await page.getByRole("button", { name: "查询补贴统计", exact: true }).click();
   expect((await response).status()).toBe(200);
+  await expect(page).toHaveURL(/view=statistics.operator/);
+  await expect(
+    page.getByRole("heading", { name: "运营商统计", level: 1, exact: true }),
+  ).toBeVisible();
+  await expect(nav.locator(".active-group > button")).toContainText("补贴管理");
 });

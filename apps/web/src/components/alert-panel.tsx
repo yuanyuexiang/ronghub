@@ -187,28 +187,27 @@ export function AlertPanel({
   }, [role, pageRefreshRevision]);
   return (
     <section className="business-stack safety-workspace" ref={workspaceRef}>
-      <nav className="alert-workspace-nav" aria-label="告警工作区">
-        {[
-          ["events", "事件跟踪", "查询、处置与导出"],
-          ["rules", "规则配置", "分级、周期与历史版本"],
-          ["sources", "来源与观测", "覆盖依据、回执与演示"],
-          ...(manageNotifications
-            ? [["notifications", "通知设置", "通道、接收人与回执"]]
-            : []),
-        ].map(([key, title, caption]) => (
-          <button
-            key={key}
-            type="button"
-            aria-label={title}
-            aria-pressed={currentView === key}
-            aria-controls={`${workspaceId}-${key}`}
-            onClick={() => setView(key as AlertWorkspaceView)}
-          >
-            <strong>{title}</strong>
-            <span>{caption}</span>
-          </button>
-        ))}
-      </nav>
+      {role !== "regulator" && (
+        <nav className="alert-workspace-nav" aria-label="告警工作区">
+          {[
+            ["events", "事件跟踪", "查询、处置与导出"],
+            ["rules", "规则配置", "分级、周期与历史版本"],
+            ["sources", "来源与观测", "覆盖依据、回执与演示"],
+          ].map(([key, title, caption]) => (
+            <button
+              key={key}
+              type="button"
+              aria-label={title}
+              aria-pressed={currentView === key}
+              aria-controls={`${workspaceId}-${key}`}
+              onClick={() => setView(key as AlertWorkspaceView)}
+            >
+              <strong>{title}</strong>
+              <span>{caption}</span>
+            </button>
+          ))}
+        </nav>
+      )}
       {error && (
         <p role="alert" className="error">
           {error}
@@ -882,7 +881,10 @@ export function AlertPanel({
           className="alert-workspace-pane business-stack"
           hidden={currentView !== "notifications"}
         >
-          <AlertNotifications csrf={csrf} />
+          <AlertNotifications
+            csrf={csrf}
+            active={currentView === "notifications"}
+          />
         </div>
       )}
     </section>

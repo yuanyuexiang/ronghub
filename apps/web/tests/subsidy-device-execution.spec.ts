@@ -158,7 +158,7 @@ test("device claim freezes historical evidence through materials review and disb
       original.snapshot.device_calculation,
     );
     await returnToBusinessList(reg, "补贴");
-    await navigateWorkspace(reg, "补贴统计");
+    await navigateWorkspace(reg, "运营商统计");
     const statistics = reg.getByRole("region", {
       name: "补贴统计",
       exact: true,

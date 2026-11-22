@@ -190,7 +190,7 @@ try {
       const qualitySources=await qualitySourcesResponse.json(); const quality=await qualityResponse.json();
       if(qualitySourcesResponse.status()!==200 || qualitySources.page_size!==1 || qualityResponse.status()!==200 || quality.page_size!==1 || quality.source_completeness_verified!==false || quality.faults_scope!=='all_station_events_started_in_window' || !Array.isArray(quality.items) || !Number.isInteger(quality.summary?.station_count) || !Number.isInteger(quality.summary?.inventory_equipment_count) || !Array.isArray(quality.summary?.streams)) throw new Error('Quality production contract failed');
       await navigateWorkspace(page, username==='regulator'?'动态监控':'运行状态');
-      if(username==='regulator' && await page.getByText('历史运行与质量观测',{exact:true}).locator('..').getAttribute('open')===null) await page.getByText('历史运行与质量观测',{exact:true}).click();
+      if(username==='regulator' && new URL(page.url()).searchParams.get('view')!=='history') await navigateWorkspace(page, '历史运行与质量观测');
       await page.getByRole('button',{name:'区域与企业质量',exact:true}).click();
       await expect(page.getByRole('heading',{name:'区域与企业质量观测',exact:true})).toBeVisible();
       await expect(page.getByRole('button',{name:'查询质量观测',exact:true})).toBeEnabled();
@@ -213,7 +213,7 @@ try {
       const runtimeObjects=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/statistics/runtime/objects?station_id='+runtimeStation.id+'&source=demo&page_size=1');
       if(runtimeObjects.status()!==200 || (await runtimeObjects.json()).page_size!==1) throw new Error('Runtime object pagination failed');
       await navigateWorkspace(page, username==='regulator'?'动态监控':'运行状态');
-      if(username==='regulator' && await page.getByText('历史运行与质量观测',{exact:true}).locator('..').getAttribute('open')===null) await page.getByText('历史运行与质量观测',{exact:true}).click();
+      if(username==='regulator' && new URL(page.url()).searchParams.get('view')!=='history') await navigateWorkspace(page, '历史运行与质量观测');
       await page.getByRole('button',{name:'单对象区间',exact:true}).click();
       await expect(page.getByRole('heading',{name:'历史运行状态与观测覆盖',exact:true})).toBeVisible();
     }
@@ -226,7 +226,7 @@ try {
       const faults=await faultResponse.json(); const faultSummary=await faultSummaryResponse.json();
       if(faultResponse.status()!==200 || faults.page_size!==1 || faults.source_completeness_verified!==false || faultSummaryResponse.status()!==200 || !Array.isArray(faultSummary.streams)) throw new Error('Source fault production contract failed');
       await navigateWorkspace(page, username==='regulator'?'告警分析':'故障分析');
-      if(username==='regulator') await page.getByText('源报故障事件明细',{exact:true}).click();
+      if(username==='regulator') await navigateWorkspace(page, '源报故障事件明细');
       await expect(page.getByRole('heading',{name:'源报故障事件',exact:true})).toBeVisible();
       await expect(page.getByRole('button',{name:'查询故障',exact:true})).toBeEnabled();
       await page.getByLabel('故障检索名称',{exact:true}).fill('production-fault-no-matching-fixture');
@@ -323,6 +323,7 @@ try {
     }
     if (username !== 'association') {
       await navigateWorkspace(page, username==='regulator'?'接入管理':'场站申请');
+      if(username==='regulator') await page.getByRole('button',{name:'接入审核',exact:true}).first().click();
       await expect(page.getByRole('button',{name:'查询申请',exact:true})).toBeEnabled();
       await page.getByLabel('检索申请场站或企业').fill('production-smoke-no-matching-fixture');
       await page.getByRole('button',{name:'查询申请',exact:true}).click();
@@ -343,7 +344,7 @@ try {
       const csv = await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/companies/export?q=production-smoke-no-matching-fixture');
       if(csv.status()!==200 || csv.headers()['cache-control']!=='no-store' || !(await csv.text()).includes('企业名称')) throw new Error('Company CSV boundary failed');
       await navigateWorkspace(page, username==='regulator'?'场站运营商管理':'企业资料');
-      await expect(page.getByText(/CSV每次最多导出10000家/)).toBeVisible();
+      await expect(page.getByRole('link',{name:'导出企业CSV',exact:true})).toBeVisible();
     }
     const ratingMenu = username === 'regulator' ? '企业申报查看' : username === 'association' ? '星级评价' : '星级申报';
     await navigateWorkspace(page, ratingMenu);
@@ -388,7 +389,7 @@ try {
       await expect(workbench.getByRole('button',{name:'预览参与指标与权重',exact:true})).toBeEnabled();
       await expect(workbench.getByRole('button',{name:'暂存标准草稿',exact:true})).toBeEnabled();
       await expect(workbench.getByRole('button',{name:'查询标准草稿',exact:true})).toBeEnabled();
-      await page.getByRole('button',{name:'配置新标准版本',exact:true}).click();
+      await page.getByRole('button',{name:'返回评价标准',exact:true}).click();
     } else await expect(page.getByRole('region',{name:'标准草稿工作区',exact:true})).toHaveCount(0);
     const ratingPage=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/ratings/applications?page_size=1');
     if(ratingPage.status()!==200 || (await ratingPage.json()).page_size!==1) throw new Error('Production rating pagination failed');
@@ -398,7 +399,7 @@ try {
     } else {
       await navigateWorkspace(page, username==='regulator' ? '补贴申请记录' : '补贴申报');
       await expect(page.getByRole('button',{name:'查询补贴记录',exact:true})).toBeEnabled();
-      await navigateWorkspace(page, '补贴统计');
+      await navigateWorkspace(page, username==='regulator' ? '运营商统计' : '补贴统计');
       const subsidyStatistics=page.getByRole('region',{name:'补贴统计',exact:true});
       await expect(subsidyStatistics).toBeVisible();
       await expect(subsidyStatistics.getByRole('button',{name:'导出补贴统计CSV',exact:true})).toBeDisabled();
@@ -411,7 +412,7 @@ try {
       const statisticsCsv=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/subsidy/statistics/export?'+statisticsQuery);
       if(statisticsCsv.status()!==200 || statisticsCsv.headers()['cache-control']!=='no-store') throw new Error('Subsidy aggregate CSV failed');
       await navigateWorkspace(page, username==='regulator'?'电量数据':'设备电量数据');
-      await page.getByText('设备日电量与核算证据',{exact:true}).click();
+      if(username==='regulator') await navigateWorkspace(page, '设备日电量与核算证据');
       const observationRegion=page.getByRole('region',{name:'设备日观测',exact:true});
       await expect(observationRegion).toBeVisible();
       await expect(observationRegion.getByText('选择条件后查询；未上报的设备或日期不按零值补齐。',{exact:true})).toBeVisible();
@@ -437,7 +438,7 @@ try {
       if(username==='operator_a') {
         const annualDefaults=await annualChoices.json();
         if(annualChoices.status()!==200 || annualDefaults.default_year!==annualDefaults.current_year-1) throw new Error('Annual production defaults failed');
-        await page.getByRole('button',{name:'年度多站申报',exact:true}).click();
+        await navigateWorkspace(page, '年度多站申报');
         await expect(annualRegion).toBeVisible();
         await expect(annualRegion.getByLabel('补贴年度',{exact:true})).toHaveValue(String(annualDefaults.default_year));
         await expect(annualRegion.getByRole('button',{name:'暂存年度草稿',exact:true})).toBeDisabled();
@@ -498,7 +499,7 @@ try {
       const hazardCsv=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/hazards/export?q=production-smoke-no-matching-fixture');
       if(hazardCsv.status()!==200 || hazardCsv.headers()['cache-control']!=='no-store' || !hazardCsv.headers()['content-type'].startsWith('text/csv') || !(await hazardCsv.text()).includes('整改进度,跟踪状态')) throw new Error('Independent hazard full-query export failed');
     }
-    await navigateWorkspace(page, '监管协议');
+    await page.goto(env.PUBLIC_ORIGIN+'/?'+new URLSearchParams({module:'监管协议'}));
     const protocolRegion=page.getByRole('region',{name:'监管协议阅读区',exact:true});
     await protocolRegion.getByLabel('监管协议检索',{exact:true}).fill('production-smoke-no-matching-fixture');
     await protocolRegion.getByRole('button',{name:'查询协议',exact:true}).click();
@@ -517,25 +518,23 @@ try {
       const notificationRegion=page.getByRole('region',{name:'告警通知配置',exact:true});
       if(username==='regulator') {
         if(!identity.permissions.includes('alerts.notifications')) throw new Error('Default regulator missing independent notification management capability');
-        await page.getByRole('navigation',{name:'告警工作区'}).getByRole('button',{name:'通知设置',exact:true}).click();
-        await notificationRegion.getByRole('button',{name:'管理通知与接收人',exact:true}).click();
+        await navigateWorkspace(page, '通知设置');
         await expect(notificationRegion.getByRole('button',{name:'新增告警接收人',exact:true})).toBeEnabled();
         const notificationPrefs=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/notifications/preferences');
         const prefData=await notificationPrefs.json();
         if(notificationPrefs.status()!==200 || prefData.items.length!==6 || prefData.sms_mode!=='demo' || notificationPrefs.headers()['cache-control']!=='no-store') throw new Error('Private notification preference contract failed');
         const noContacts=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/notifications/recipients?q=production-smoke-no-matching-recipient');
         if(noContacts.status()!==200 || (await noContacts.json()).total!==0 || noContacts.headers()['cache-control']!=='no-store') throw new Error('Private notification recipient query failed');
-        await notificationRegion.getByRole('button',{name:'收起通知配置',exact:true}).click();
       } else {
         await expect(notificationRegion).toHaveCount(0);
         for(const suffix of ['preferences','recipients','routings','deliveries']) {
           if((await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/notifications/'+suffix)).status()!==403) throw new Error('Operator reached private notification data');
         }
       }
-      await page.getByRole('navigation',{name:'告警工作区'}).getByRole('button',{name:'规则配置',exact:true}).click();
+      await navigateWorkspace(page, '规则配置');
       const configuredRegion=page.getByRole('region',{name:'分级与周期告警配置',exact:true});
       await expect(configuredRegion).toBeVisible();
-      await page.getByRole('navigation',{name:'告警工作区'}).getByRole('button',{name:'来源与观测',exact:true}).click();
+      await navigateWorkspace(page, '来源与观测');
       const observationPanel=page.getByRole('region',{name:'独立分级告警观测',exact:true});
       await expect(observationPanel).toBeVisible();
       const observationResponse=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/configured-observations?station_id=2147483647');
@@ -545,7 +544,7 @@ try {
       if(username==='regulator') await expect(observationPanel.getByRole('button',{name:'提交独立演示观测',exact:true})).toBeDisabled();
       else await expect(observationPanel.getByRole('button',{name:'提交独立演示观测',exact:true})).toHaveCount(0);
 
-      await page.getByRole('navigation',{name:'告警工作区'}).getByRole('button',{name:'规则配置',exact:true}).click();
+      await navigateWorkspace(page, '规则配置');
       const configuredResponse=await page.request.get(env.PUBLIC_ORIGIN+'/api/v1/alerts/configured-rules?page_size=1');
       const configuredPage=await configuredResponse.json();
       if(configuredResponse.status()!==200 || configuredResponse.headers()['cache-control']!=='no-store' || !Array.isArray(configuredPage.items) || configuredPage.page_size!==1) throw new Error('Configured alert read contract failed');
@@ -557,7 +556,7 @@ try {
         await configuredForm.getByRole('button',{name:'取消新增分级规则',exact:true}).click();
       } else await expect(configuredRegion.getByRole('button',{name:'新增分级规则',exact:true})).toHaveCount(0);
 
-      await page.getByRole('navigation',{name:'告警工作区'}).getByRole('button',{name:'事件跟踪',exact:true}).click();
+      await navigateWorkspace(page, '事件跟踪');
       await page.getByLabel('告警检索名称').fill('production-smoke-no-matching-fixture');
       await page.getByLabel('告警筛选状态').selectOption('active');
       await page.getByLabel('告警筛选确认').selectOption('false');

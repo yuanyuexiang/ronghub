@@ -134,9 +134,10 @@ test("annual multi-station form preserves drafts and recovers a lost success res
       exact: true,
     });
     await expect(confirmation).toContainText("确认2026年度 · 2座场站");
-    await expect(
-      page.getByRole("button", { name: "政策与单站申报", exact: true }),
-    ).toBeDisabled();
+    const pendingUrl = page.url();
+    await navigateWorkspace(page, "补贴申请管理");
+    await expect(page).toHaveURL(pendingUrl);
+    await expect(confirmation).toBeVisible();
     await confirmation
       .getByRole("button", { name: "确认办理年度申请", exact: true })
       .click();

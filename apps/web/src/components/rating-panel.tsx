@@ -107,6 +107,7 @@ export function RatingPanel({
     canStandards = useCapability("ratings.standards");
   const [intakeFiles, setIntakeFiles] = useState<Record<string, File>>({});
   const [intakeReceipt, setIntakeReceipt] = useState<number | null>(null);
+  const [intakeMaterialRevision, setIntakeMaterialRevision] = useState(0);
   const [standards, setStandards] = useState<Standard[]>([]),
     [sid, setSid] = useState(""),
     [standardId, setStandardId] = useState(""),
@@ -236,6 +237,9 @@ export function RatingPanel({
   const canLeave = useWorkspaceLeave(
     Boolean(
       dirty ||
+      (!detail &&
+        view === "create" &&
+        (note.trim() || Object.values(scores).some(Boolean))) ||
       Object.keys(intakeFiles).length > 0 ||
       reviewDirty ||
       comment.trim() ||
@@ -264,9 +268,6 @@ export function RatingPanel({
       )}
       <div className="record-pane" hidden={!!detail}>
         <WorkspaceViews
-          secondaryLabel={
-            role === "operator" ? "评价标准与历史结果" : undefined
-          }
           label="星级评价业务视图"
           value={view}
           onChange={setView}
@@ -283,9 +284,6 @@ export function RatingPanel({
             ["publications", "评价结果与公示"],
             ["process", "评审过程管理"],
             ...(canDataSupport ? [["data", "数据支撑评价"] as const] : []),
-            ...(canCreate && role === "operator" && view !== "applications"
-              ? ([["create", "新增星级申报"]] as const)
-              : []),
           ]}
         />
         <section
@@ -300,6 +298,16 @@ export function RatingPanel({
                   ? "配置评价标准"
                   : "星级评价标准"}
             </h2>
+            {view === "create" && role === "operator" && (
+              <button
+                type="button"
+                className="outline"
+                disabled={busy || materialBusy}
+                onClick={() => setView("applications")}
+              >
+                返回评定进度
+              </button>
+            )}
             {view === "standards" &&
               (showBuilder ? (
                 <button
@@ -497,6 +505,8 @@ export function RatingPanel({
                           );
                       }
                     } finally {
+                      if (Object.keys(intakeFiles).length)
+                        setIntakeMaterialRevision((value) => value + 1);
                       setIntakeFiles({});
                       setIntakeReceipt(null);
                       await load();
@@ -953,6 +963,7 @@ export function RatingPanel({
                   key={detail.id}
                   applicationId={detail.id}
                   version={detail.version}
+                  intakeRevision={intakeMaterialRevision}
                   editable={
                     canMaterials &&
                     role === "operator" &&

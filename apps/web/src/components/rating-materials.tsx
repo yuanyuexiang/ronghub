@@ -7,6 +7,7 @@ import { usePageRefresh } from "./page-refresh";
 export function RatingMaterials({
   applicationId,
   version,
+  intakeRevision,
   editable,
   csrf,
   parentBusy,
@@ -14,6 +15,7 @@ export function RatingMaterials({
 }: {
   applicationId: number;
   version: number;
+  intakeRevision: number;
   editable: boolean;
   csrf: string;
   parentBusy: boolean;
@@ -61,7 +63,7 @@ export function RatingMaterials({
     setError("");
     load().catch((error) => setError(error.message));
     return () => controller.current?.abort();
-  }, [applicationId, version, revision]);
+  }, [applicationId, version, intakeRevision, revision]);
   async function run(operation: () => Promise<void>, refresh = true) {
     if (lock.current) return;
     lock.current = true;

@@ -17,6 +17,7 @@ export function SubsidyAnnual({
   canMaterials,
   parentBusy,
   onBusy,
+  onDirty,
   onCreated,
 }: {
   csrf: string;
@@ -25,6 +26,7 @@ export function SubsidyAnnual({
   canMaterials: boolean;
   parentBusy: boolean;
   onBusy: (value: boolean) => void;
+  onDirty: (value: boolean) => void;
   onCreated: () => void;
 }) {
   const revision = usePageRefresh();
@@ -83,6 +85,10 @@ export function SubsidyAnnual({
     onBusy(!!intent || sending);
   }, [intent, sending, onBusy]);
   const selected = Object.values(selection);
+  const dirty = Boolean(selected.length || files.length || note.trim());
+  useEffect(() => {
+    onDirty(dirty);
+  }, [dirty, onDirty]);
   const available = policies.filter(
     (policy) =>
       policy.claim_supported &&
@@ -144,6 +150,7 @@ export function SubsidyAnnual({
       setResult(response.data);
       setIntent(null);
       setSelection({});
+      setNote("");
       setFiles([]);
       if (fileInput.current) fileInput.current.value = "";
       onCreated();

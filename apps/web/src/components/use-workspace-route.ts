@@ -11,6 +11,7 @@ export function useWorkspaceRoute({
   alertView,
   view,
   allowedViews,
+  canManageAlertNotifications,
   allowed,
   guard,
   onRestore,
@@ -21,6 +22,7 @@ export function useWorkspaceRoute({
   alertView: AlertWorkspaceView;
   view: string;
   allowedViews: RefObject<Record<string, string[]>>;
+  canManageAlertNotifications: boolean;
   allowed: RefObject<string[]>;
   guard: RefObject<(() => boolean) | null>;
   onRestore: (tab: string, alertView: AlertWorkspaceView, view: string) => void;
@@ -42,13 +44,14 @@ export function useWorkspaceRoute({
       const target = allowed.current.includes(requested)
         ? requested
         : defaultModule;
-      const rawView = params.get("alert") ?? "events";
-      const view: AlertWorkspaceView =
+      const rawView = params.get("alert");
+      const alertModule = target === "告警中心" || target === "企业告警";
+      const allowedSubview =
         rawView === "rules" ||
         rawView === "sources" ||
-        rawView === "notifications"
-          ? rawView
-          : "events";
+        (rawView === "notifications" && canManageAlertNotifications);
+      const view: AlertWorkspaceView =
+        alertModule && allowedSubview ? rawView : "events";
       const requestedView = params.get("view") ?? "";
       const workspaceView = allowedViews.current[target]?.includes(
         requestedView,
@@ -90,7 +93,7 @@ export function useWorkspaceRoute({
       ready.current = false;
       window.removeEventListener("popstate", pop);
     };
-  }, [identity, allowed, guard, defaultModule]);
+  }, [identity, allowed, guard, defaultModule, canManageAlertNotifications]);
   useEffect(() => {
     if (!ready.current || !allowed.current.includes(tab)) return;
     // The URL already selected a module; do not overwrite it with the initial render's default.
@@ -100,7 +103,7 @@ export function useWorkspaceRoute({
     }
     const params = new URLSearchParams({ module: tab });
     if (view) params.set("view", view);
-    if (tab === "告警中心" && alertView !== "events")
+    if (["告警中心", "企业告警"].includes(tab) && alertView !== "events")
       params.set("alert", alertView);
     const next = `/?${params}`;
     if (window.location.pathname + window.location.search !== next)

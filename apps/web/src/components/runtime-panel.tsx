@@ -58,7 +58,7 @@ function stamp(value: string) {
   }).format(new Date(value));
 }
 
-function SingleRuntimePanel() {
+export function SingleRuntimePanel() {
   const canExport = useCapability("statistics.export");
   const [draft, setDraft] = useState<Filters>(initial),
     [query, setQuery] = useState<{

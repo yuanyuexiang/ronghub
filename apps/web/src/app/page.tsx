@@ -3,8 +3,11 @@ import {
   WorkspaceNavigation,
   AuxiliaryNavigation,
   auxiliaryNavigation,
+  contextualNavigation,
+  currentNavigationGroup,
   type NavigationItem,
   workspaceNavigation,
+  workspaceDefaults,
   flattenNavigation,
   navigationMatches,
   type AlertWorkspaceView,
@@ -81,6 +84,10 @@ export default function Home() {
   const registerLeaveGuard = useCallback((guard: (() => boolean) | null) => {
     navigationGuard.current = guard;
   }, []);
+  const canManageAlertNotifications =
+    me?.role === "regulator" &&
+    (me.allowed_districts ?? null) === null &&
+    me.permissions.includes("alerts.notifications");
   const allowedModules = useRef<string[]>([]);
   const allowedViews = useRef<Record<string, string[]>>({});
   useWorkspaceRoute({
@@ -93,13 +100,17 @@ export default function Home() {
     alertView,
     view: workspaceView,
     allowedViews,
+    canManageAlertNotifications,
     allowed: allowedModules,
     guard: navigationGuard,
     onRestore: (target, alert, view) => {
       setTab(target);
       setAlertView(alert);
       setSelectedView({ module: target, view });
-      if (target !== tab || !["告警中心", "企业告警"].includes(target))
+      if (
+        target !== tab ||
+        !["告警中心", "企业告警", "统计分析"].includes(target)
+      )
         setPageRevision((value) => value + 1);
       setNavigationOpen(false);
     },
@@ -425,14 +436,19 @@ export default function Home() {
     menu.push("操作日志");
   if (has("accounts.manage") || has("roles.manage")) menu.push("权限与账号");
   allowedModules.current = menu;
-  const navigation = workspaceNavigation(
+  const navigation = workspaceNavigation(menu, me.role, me.permissions);
+  const auxiliary = auxiliaryNavigation(menu, me.role, me.permissions);
+  const contextual = contextualNavigation(
     menu,
     me.role,
-    me.permissions.includes("alerts.notifications") && geographicScope === null,
     me.permissions,
+    canManageAlertNotifications,
   );
-  const auxiliary = auxiliaryNavigation(menu, me.role, me.permissions);
-  const allNavigation = [...flattenNavigation(navigation), ...auxiliary];
+  const allNavigation = [
+    ...flattenNavigation(navigation),
+    ...auxiliary,
+    ...contextual,
+  ];
   allowedViews.current = Object.fromEntries(
     menu.map((module) => [
       module,
@@ -445,38 +461,14 @@ export default function Home() {
       ],
     ]),
   );
-  if (me.role !== "regulator")
-    Object.assign(allowedViews.current, {
-      补贴申报: [
-        "claims",
-        "policies",
-        "statistics",
-        "energy",
-        ...(has("subsidy.create") ? ["annual"] : []),
-      ],
-      星级申报: [
-        "applications",
-        "standards",
-        "publications",
-        "process",
-        ...(has("statistics.read") ? ["data"] : []),
-        ...(has("ratings.create") ? ["create"] : []),
-      ],
-      星级评价: [
-        "applications",
-        "standards",
-        "publications",
-        "process",
-        ...(has("statistics.read") ? ["data"] : []),
-      ],
-      统计分析: [
-        "energy",
-        "district",
-        "operator",
-        "power",
-        ...(me.role !== "association" ? ["utilization", "combined"] : []),
-      ],
-    });
+  if (me.role !== "regulator" && menu.includes("统计分析"))
+    allowedViews.current["统计分析"].push(
+      "energy",
+      "district",
+      "operator",
+      "power",
+      ...(me.role === "operator" ? ["utilization"] : []),
+    );
   const internalViews: Record<string, string[]> = {
     场站申请: [
       "all",
@@ -552,7 +544,7 @@ export default function Home() {
     const href = `/?${params}`;
     if (window.location.pathname + window.location.search !== href)
       window.history.pushState(null, "", href);
-    if (item.tab !== tab || !["告警中心", "企业告警"].includes(tab))
+    if (item.tab !== tab || !["告警中心", "企业告警", "统计分析"].includes(tab))
       setPageRevision((value) => value + 1);
     setSelectedView({ module: item.tab, view: item.view ?? "" });
     setTab(item.tab);
@@ -562,9 +554,39 @@ export default function Home() {
   const currentItem = [...allNavigation]
     .reverse()
     .find((item) => navigationMatches(item, tab, alertView, workspaceView));
-  const currentGroup = navigation.find((group) =>
-    flattenNavigation([group]).some((item) => item === currentItem),
+  const currentGroup = currentNavigationGroup(
+    navigation,
+    tab,
+    alertView,
+    workspaceView,
   );
+  const relatedActions = contextual.filter((entry) => {
+    if (entry.tab !== tab) return false;
+    if (tab === "告警中心") return entry.alertView !== alertView;
+    if (tab === "运行状态" || tab === "故障分析") return !workspaceView;
+    if (tab === "统计分析") return workspaceView === "utilization";
+    if (tab === "补贴管理") return workspaceView === "energy";
+    if (tab === "补贴申报" && workspaceView.startsWith("energy"))
+      return entry.view?.startsWith("energy") && entry.view !== workspaceView;
+    return (
+      (!workspaceView || workspaceView === workspaceDefaults[tab]) &&
+      (tab !== "补贴申报" ||
+        entry.view !== "policies" ||
+        !has("subsidy.create"))
+    );
+  });
+  const parentView =
+    me.role === "regulator" && tab === "运行状态" && workspaceView === "history"
+      ? { tab, label: "返回动态监控" }
+      : me.role === "regulator" &&
+          tab === "故障分析" &&
+          workspaceView === "events"
+        ? { tab, label: "返回告警分析" }
+        : tab === "统计分析" && workspaceView === "runtime"
+          ? { tab, view: "utilization", label: "返回利用率统计" }
+          : tab === "补贴管理" && workspaceView === "energy.device"
+            ? { tab, view: "energy", label: "返回电量数据" }
+            : undefined;
   const pageTitle = currentItem?.label ?? (tab === "工作台" ? "运营总览" : tab);
   return (
     <PageRefreshProvider>
@@ -591,6 +613,7 @@ export default function Home() {
             </div>
             <WorkspaceNavigation
               groups={navigation}
+              activeGroup={currentGroup?.label}
               tab={tab}
               alertView={alertView}
               view={workspaceView}
@@ -715,6 +738,23 @@ export default function Home() {
               {tab === "工作台" && summary && me.role === "regulator" && (
                 <DashboardOperations />
               )}
+              {(relatedActions.length > 0 || parentView) && (
+                <nav
+                  className="workspace-context-actions"
+                  aria-label="本页相关功能"
+                >
+                  {(parentView ? [parentView] : relatedActions).map((entry) => (
+                    <button
+                      type="button"
+                      className="outline"
+                      key={entry.label}
+                      onClick={() => navigateWorkspace(entry)}
+                    >
+                      {entry.label}
+                    </button>
+                  ))}
+                </nav>
+              )}
               {["企业台账", "场站台账"].includes(tab) && (
                 <div className="workspace-context-actions">
                   {auxiliary
@@ -752,7 +792,9 @@ export default function Home() {
                 sidebar={
                   (me.role === "regulator" &&
                     ["星级查看", "统计分析", "权限与账号"].includes(tab)) ||
-                  (me.role === "association" && tab === "星级评价")
+                  (me.role === "association" && tab === "星级评价") ||
+                  (me.role === "operator" &&
+                    ["星级申报", "补贴申报"].includes(tab))
                 }
               >
                 {tab === "人员账号申请" ? (
@@ -779,22 +821,14 @@ export default function Home() {
                 ) : ["全域地图", "场站地图"].includes(tab) ? (
                   <StationMapPanel />
                 ) : tab === "运行状态" ? (
-                  me.role === "regulator" ? (
+                  me.role === "regulator" && workspaceView !== "history" ? (
                     <MonitoringWorkspace />
                   ) : (
                     <RuntimePanel />
                   )
                 ) : tab === "故障分析" ? (
-                  me.role === "regulator" ? (
-                    <div className="business-stack">
-                      <QualityPanel purpose="alarm" />
-                      <details className="prototype-related">
-                        <summary>源报故障事件明细</summary>
-                        <div className="prototype-related-body">
-                          <FaultsPanel />
-                        </div>
-                      </details>
-                    </div>
+                  me.role === "regulator" && workspaceView !== "events" ? (
+                    <QualityPanel purpose="alarm" />
                   ) : (
                     <FaultsPanel />
                   )

@@ -21,9 +21,14 @@ function newRecipient() {
     enabled: true,
   };
 }
-export function AlertNotifications({ csrf }: { csrf: string }) {
-  const [open, setOpen] = useState(false),
-    [revision, setRevision] = useState(0),
+export function AlertNotifications({
+  csrf,
+  active,
+}: {
+  csrf: string;
+  active: boolean;
+}) {
+  const [revision, setRevision] = useState(0),
     refresh = usePageRefresh();
   const [preferences, setPreferences] = useState<
       ApiSchemas["PreferenceList"] | null
@@ -59,7 +64,7 @@ export function AlertNotifications({ csrf }: { csrf: string }) {
     preferences?.items.map((row) => [row.category, row.label]) ?? [],
   );
   useEffect(() => {
-    if (!open) return;
+    if (!active) return;
     const controller = new AbortController();
     setPreferenceError("");
     typedApi
@@ -80,9 +85,9 @@ export function AlertNotifications({ csrf }: { csrf: string }) {
           );
       });
     return () => controller.abort();
-  }, [open, revision, refresh]);
+  }, [active, revision, refresh]);
   useEffect(() => {
-    if (!open) return;
+    if (!active) return;
     const controller = new AbortController();
     setContactLoading(true);
     setContactError("");
@@ -116,9 +121,9 @@ export function AlertNotifications({ csrf }: { csrf: string }) {
         if (!controller.signal.aborted) setContactLoading(false);
       });
     return () => controller.abort();
-  }, [open, query, revision, refresh]);
+  }, [active, query, revision, refresh]);
   useEffect(() => {
-    if (!open || !showHistory) return;
+    if (!active || !showHistory) return;
     const controller = new AbortController();
     setHistoryLoading(true);
     setHistoryError("");
@@ -162,7 +167,7 @@ export function AlertNotifications({ csrf }: { csrf: string }) {
         if (!controller.signal.aborted) setHistoryLoading(false);
       });
     return () => controller.abort();
-  }, [open, showHistory, historyQuery, revision, refresh]);
+  }, [active, showHistory, historyQuery, revision, refresh]);
   async function savePreference() {
     if (!preference) return;
     setBusy(true);
@@ -270,15 +275,8 @@ export function AlertNotifications({ csrf }: { csrf: string }) {
           <h3>告警通知配置</h3>
           <p>按类型管理站内通知、短信意图及接收人</p>
         </div>
-        <button
-          className="outline"
-          disabled={busy}
-          onClick={() => setOpen(!open)}
-        >
-          {open ? "收起通知配置" : "管理通知与接收人"}
-        </button>
       </div>
-      {open && (
+      {active && (
         <div className="alert-notifications-body">
           <p className="muted">
             短信接收人仅用于通知，不作为登录手机或身份验证。本环境不会发送真实短信；历史回执按当时名单和配置保存。

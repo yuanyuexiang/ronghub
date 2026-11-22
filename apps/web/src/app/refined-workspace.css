@@ -877,3 +877,16 @@ body.refined-workspace .prototype-workspace .indicator-catalogue-table .indicato
   background: #f0f4fa;
   color: #344964;
 }
+
+body.refined-workspace .prototype-workspace .workspace-context-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body.refined-workspace .prototype-workspace nav.workspace-context-actions {
+  margin-top: 0;
+}
+body.refined-workspace .prototype-workspace nav.workspace-context-actions > button {
+  width: auto;
+  margin: 0;
+}

@@ -37,6 +37,15 @@ test("remaining regulator primary views follow prototype business objects", asyn
   await monitor.getByRole("button", { name: "查询监控", exact: true }).click();
   expect((await response).status()).toBe(200);
   await expect(monitor).toContainText("待接入");
+  await navigateWorkspace(page, "历史运行与质量观测");
+  await expect(page).toHaveURL(/view=history/);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "历史运行与质量观测" }),
+  ).toBeVisible();
+  await expect(monitor).toBeHidden();
+  await navigateWorkspace(page, "返回动态监控");
+  await expect(monitor).toBeVisible();
   for (const leaf of ["接入管理", "投运与核销管理"]) {
     await navigateWorkspace(page, leaf);
     await expect(
@@ -79,14 +88,37 @@ test("remaining regulator primary views follow prototype business objects", asyn
   await expect(
     page.getByRole("columnheader", { name: /补贴/ }).first(),
   ).toBeVisible();
-  for (const [leaf, title] of [
-    ["告警分析", "告警分析汇总"],
-    ["利用率统计", "设备平均利用率统计"],
+  await navigateWorkspace(page, "设备日电量与核算证据");
+  await expect(
+    page.getByRole("region", { name: "设备日观测", exact: true }),
+  ).toBeVisible();
+  await navigateWorkspace(page, "返回电量数据");
+  for (const [leaf, title, action, detailTitle, back] of [
+    [
+      "告警分析",
+      "告警分析汇总",
+      "源报故障事件明细",
+      "源报故障事件",
+      "返回告警分析",
+    ],
+    [
+      "利用率统计",
+      "设备平均利用率统计",
+      "单对象历史运行",
+      "历史运行状态与观测覆盖",
+      "返回利用率统计",
+    ],
   ]) {
     await navigateWorkspace(page, leaf);
+    const overview = page.getByRole("heading", { name: title, exact: true });
+    await expect(overview).toBeVisible();
+    await navigateWorkspace(page, action);
     await expect(
-      page.getByRole("heading", { name: title, exact: true }),
+      page.getByRole("heading", { name: detailTitle, exact: true }),
     ).toBeVisible();
+    await expect(overview).toBeHidden();
+    await navigateWorkspace(page, back);
+    await expect(overview).toBeVisible();
   }
   await navigateWorkspace(page, "用电分析");
   await expect(page.getByText("同比", { exact: false }).first()).toBeVisible();
@@ -132,15 +164,18 @@ test("association indicators and collaboration expose classified standards and a
     path: "../../.backups/remaining-association-collaboration.png",
   });
   await navigateWorkspace(page, "公示查询服务");
-  await expect(
-    page.getByRole("tab", { name: "充电站", exact: true }),
-  ).toBeVisible();
+  const stationType = page.getByLabel("公示场站种类", { exact: true });
+  await expect(stationType).toHaveValue("");
+  await stationType.focus();
+  await expect(stationType).toBeFocused();
+  await stationType.press("Tab");
+  await expect(page.getByLabel("公示场站企业", { exact: true })).toBeFocused();
   const changed = page.waitForResponse(
     (r) =>
       r.url().includes("/ratings/publications?") &&
       r.url().includes("station_type=swapping"),
   );
-  await page.getByRole("tab", { name: "换电站", exact: true }).click();
+  await stationType.selectOption("swapping");
   expect((await changed).status()).toBe(200);
 });
 test("operator dedicated overview exposes map, ranking and scoped shortcuts on desktop and mobile", async ({

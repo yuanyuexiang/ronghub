@@ -17,10 +17,7 @@ async function login(page: Page, name: string) {
     page,
     name === "operator_a" ? "企业告警" : "告警数据",
   );
-  await page
-    .getByRole("navigation", { name: "告警工作区" })
-    .getByRole("button", { name: "规则配置", exact: true })
-    .click();
+  await navigateWorkspace(page, "规则配置");
 }
 test("multi-level rule form previews exact evidence, preserves drafts, copies immutable versions and archives safely", async ({
   browser,
@@ -68,14 +65,8 @@ test("multi-level rule form previews exact evidence, preserves drafts, copies im
     await expect(
       form.getByLabel("分级general阈值", { exact: true }),
     ).toHaveValue("100.000001");
-    await manager
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "事件跟踪", exact: true })
-      .click();
-    await manager
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "规则配置", exact: true })
-      .click();
+    await navigateWorkspace(manager, "事件跟踪");
+    await navigateWorkspace(manager, "规则配置");
     await expect(
       form.getByLabel("分级general阈值", { exact: true }),
     ).toHaveValue("100.000001");

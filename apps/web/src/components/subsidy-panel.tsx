@@ -4,7 +4,6 @@ import { DailyEnergyWorkspace } from "./prototype-read-views";
 import { SubsidyLedger } from "./subsidy-ledger";
 import { useBusinessView } from "./business-view-context";
 import {
-  WorkspaceViews,
   useWorkspaceLeave,
   type LeaveGuardRegistrar,
 } from "./business-workspace";
@@ -94,6 +93,7 @@ export function SubsidyPanel({
     [batchOpen, setBatchOpen] = useState(false),
     [batchBusy, setBatchBusy] = useState(false),
     [annualBusy, setAnnualBusy] = useState(false),
+    [annualDirty, setAnnualDirty] = useState(false),
     [evidenceBusy, setEvidenceBusy] = useState(false),
     [evidenceReady, setEvidenceReady] = useState(false),
     [applicationNote, setApplicationNote] = useState(""),
@@ -108,7 +108,12 @@ export function SubsidyPanel({
   const [evidenceDirty, setEvidenceDirty] = useState(false);
   const workspaceRef = useRecordFocus(detail?.id);
   const canLeave = useWorkspaceLeave(
-    evidenceDirty || Boolean(comment.trim()) || delta !== "0.00" || showPolicy,
+    evidenceDirty ||
+      Boolean(comment.trim()) ||
+      delta !== "0.00" ||
+      showPolicy ||
+      (view === "annual" && annualDirty) ||
+      (!detail && view === "policies" && Boolean(applicationNote.trim())),
     busy,
     registerLeaveGuard,
   );
@@ -206,6 +211,7 @@ export function SubsidyPanel({
       });
       await load();
       queue.reset();
+      setApplicationNote("");
       setEvidenceReady(false);
       setDetail(await api.detail(c.id));
     });
@@ -233,27 +239,6 @@ export function SubsidyPanel({
         </p>
       )}
       <div className="record-pane" hidden={!!detail}>
-        <WorkspaceViews
-          secondaryLabel={
-            role === "operator" ? "补贴政策与电量数据" : undefined
-          }
-          label="补贴业务视图"
-          value={view}
-          onChange={setView}
-          disabled={busy}
-          items={[
-            ["claims", "补贴申请记录"],
-            [
-              "policies",
-              role === "operator" ? "政策与单站申报" : "补贴规则配置",
-            ],
-            ...(canCreate && role === "operator"
-              ? ([["annual", "年度多站申报"]] as const)
-              : []),
-            ["statistics", "补贴统计"],
-            ["energy", "设备电量数据"],
-          ]}
-        />
         <div className="record-pane" hidden={view !== "annual"}>
           {canCreate && role === "operator" && (
             <SubsidyAnnual
@@ -263,6 +248,7 @@ export function SubsidyPanel({
               canMaterials={canMaterials}
               parentBusy={busy}
               onBusy={setAnnualBusy}
+              onDirty={setAnnualDirty}
               onCreated={() => {
                 queue.reset();
                 queue.reload();
@@ -287,6 +273,16 @@ export function SubsidyPanel({
                 onClick={() => setShowPolicy(!showPolicy)}
               >
                 新增政策版本
+              </button>
+            )}
+            {role === "operator" && (
+              <button
+                type="button"
+                className="outline"
+                disabled={busy}
+                onClick={() => setView("claims")}
+              >
+                返回补贴申请管理
               </button>
             )}
           </div>
@@ -431,9 +427,13 @@ export function SubsidyPanel({
         <div className="record-pane" hidden={view !== "statistics"}>
           <SubsidyStatistics />
         </div>
-        <div className="record-pane" hidden={view !== "energy"}>
-          <DailyEnergyWorkspace />
-        </div>
+        {view === "energy" &&
+          (routeView === "energy.device" ||
+          (role === "operator" && routeView === "energy") ? (
+            <SubsidyDeviceDays />
+          ) : (
+            <DailyEnergyWorkspace />
+          ))}
       </div>
       {recordsOnly && (
         <div hidden={!!detail}>

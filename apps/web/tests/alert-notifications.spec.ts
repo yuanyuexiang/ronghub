@@ -20,11 +20,7 @@ async function login(page: Page, user: string) {
     page.getByRole("button", { name: "退出登录", exact: true }),
   ).toBeVisible();
   await navigateWorkspace(page, user === "regulator" ? "告警数据" : "企业告警");
-  if (user === "regulator")
-    await page
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "通知设置", exact: true })
-      .click();
+  if (user === "regulator") await navigateWorkspace(page, "通知设置");
 }
 test("private notification channels and recipients freeze masked simulation history without granting identity", async ({
   browser,
@@ -51,9 +47,6 @@ test("private notification channels and recipients freeze masked simulation hist
       name: "告警通知配置",
       exact: true,
     });
-    await panel
-      .getByRole("button", { name: "管理通知与接收人", exact: true })
-      .click();
     await panel
       .getByRole("button", { name: "配置通知 设备充电告警", exact: true })
       .click();

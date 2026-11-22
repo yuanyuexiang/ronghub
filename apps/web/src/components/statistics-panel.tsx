@@ -1,8 +1,8 @@
 "use client";
 import { useBusinessView } from "./business-view-context";
 import { WorkspaceViews } from "./business-workspace";
+import { SingleRuntimePanel } from "./runtime-panel";
 import { QualityPanel } from "./quality-panel";
-import { RuntimePanel } from "./runtime-panel";
 import { ChargingSubsidyReport } from "./charging-subsidy-report";
 import { usePageRefresh } from "./page-refresh";
 import { typedApi, apiError, type ApiSchemas } from "../lib/typed-api";
@@ -52,6 +52,9 @@ export function StatisticsPanel({ role }: { role: string }) {
   const [view, setView] = useBusinessView("energy");
   const combined = view === "combined" && canCombined;
   const construction = view === "district" || view === "operator";
+  const utilization = view === "utilization" && role !== "association";
+  const runtime = view === "runtime" && role !== "association";
+  const standardReport = !combined && !utilization && !runtime;
   const [draft, setDraft] = useState(initial),
     [filters, setFilters] = useState(initial),
     [data, setData] = useState<Report | null>(null),
@@ -72,6 +75,7 @@ export function StatisticsPanel({ role }: { role: string }) {
   );
   const pageRefreshRevision = usePageRefresh();
   useEffect(() => {
+    if (!standardReport) return;
     const controller = new AbortController();
     typedApi
       .GET("/api/v1/operators", {
@@ -87,8 +91,9 @@ export function StatisticsPanel({ role }: { role: string }) {
         if (!controller.signal.aborted) setError("企业筛选项加载失败");
       });
     return () => controller.abort();
-  }, [pageRefreshRevision]);
+  }, [standardReport, pageRefreshRevision]);
   useEffect(() => {
+    if (!standardReport) return;
     const controller = new AbortController();
     setLoading(true);
     setError("");
@@ -119,7 +124,7 @@ export function StatisticsPanel({ role }: { role: string }) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [filters, view, pageRefreshRevision]);
+  }, [filters, view, standardReport, pageRefreshRevision]);
   const maximum = Math.max(
     1,
     ...(data?.timeline.map((d) => Number(d.kwh || 0)) || []),
@@ -169,43 +174,30 @@ export function StatisticsPanel({ role }: { role: string }) {
   );
   return (
     <div className="business-stack statistics-workspace">
-      <WorkspaceViews
-        label="统计分析视图"
-        value={view}
-        onChange={setView}
-        items={[
-          ["energy", "观测电量分析"],
-          ["district", "建站统计（区域）"],
-          ["operator", "建站统计（运营商）"],
-          ["power", "用电分析"],
-          ...(role !== "association"
-            ? [["utilization", "利用率统计"] as const]
-            : []),
-          ...(canCombined ? [["combined", "充电与补贴报表"] as const] : []),
-        ]}
-      />
-      <div hidden={view !== "utilization"}>
-        {role !== "association" && (
-          <>
-            <QualityPanel purpose="utilization" />
-            <details className="prototype-related">
-              <summary>单对象历史运行</summary>
-              <div className="prototype-related-body">
-                <RuntimePanel />
-              </div>
-            </details>
-          </>
-        )}
-      </div>
-      <div style={{ display: combined ? "block" : "none" }}>
-        <ChargingSubsidyReport />
-      </div>
-      <div
-        className="business-stack"
-        style={{
-          display: combined || view === "utilization" ? "none" : "grid",
-        }}
-      >
+      {!combined && !runtime && (
+        <WorkspaceViews
+          label="统计分析视图"
+          value={view}
+          onChange={setView}
+          items={[
+            ["energy", "观测电量分析"],
+            ["district", "建站统计（区域）"],
+            ["operator", "建站统计（运营商）"],
+            ["power", "用电分析"],
+            ...(role !== "association"
+              ? [["utilization", "利用率统计"] as const]
+              : []),
+          ]}
+        />
+      )}
+      {utilization && <QualityPanel purpose="utilization" />}
+      {runtime && <SingleRuntimePanel />}
+      {canCombined && (
+        <div hidden={!combined}>
+          <ChargingSubsidyReport />
+        </div>
+      )}
+      <div className="business-stack" hidden={!standardReport}>
         <section
           className={construction ? "panel construction-statistics" : "panel"}
         >

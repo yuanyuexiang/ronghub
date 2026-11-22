@@ -667,10 +667,7 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
     await login(reg, "regulator");
     await login(op, "operator_a");
     await navigateWorkspace(reg, "告警数据");
-    await reg
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "规则配置", exact: true })
-      .click();
+    await navigateWorkspace(reg, "规则配置");
     await reg.getByText("历史阈值规则与样本验证", { exact: true }).click();
     await reg
       .getByRole("button", { name: "演示样本验证", exact: true })
@@ -680,10 +677,7 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
       .getByLabel("告警监测对象")
       .fill("browser-target-" + fixture.station_id);
     async function sample(value: string) {
-      await reg
-        .getByRole("navigation", { name: "告警工作区" })
-        .getByRole("button", { name: "规则配置", exact: true })
-        .click();
+      await navigateWorkspace(reg, "规则配置");
       await reg.getByLabel("告警样本值").fill(value);
       const done = reg.waitForResponse(
         (r) =>
@@ -693,10 +687,7 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
       await reg.getByRole("button", { name: "提交演示样本" }).click();
       const response = await done;
       expect(response.status(), await response.text()).toBe(200);
-      await reg
-        .getByRole("navigation", { name: "告警工作区" })
-        .getByRole("button", { name: "事件跟踪", exact: true })
-        .click();
+      await navigateWorkspace(reg, "事件跟踪");
       return response.json();
     }
     const opened = await sample("40");
@@ -733,10 +724,7 @@ test("alert samples merge, recover and remain visible to the owning enterprise",
       }),
     });
     await expect(owned).toContainText("已恢复");
-    await op
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "规则配置", exact: true })
-      .click();
+    await navigateWorkspace(op, "规则配置");
     await op.getByText("历史阈值规则与样本验证", { exact: true }).click();
     await expect(op.getByRole("button", { name: "演示样本验证" })).toHaveCount(
       0,

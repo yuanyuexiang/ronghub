@@ -119,7 +119,6 @@ export function flattenNavigation(groups: NavigationGroup[]) {
 export function workspaceNavigation(
   menu: string[],
   role: string,
-  notifications: boolean,
   permissions: readonly string[] = [],
 ): NavigationGroup[] {
   const has = (p: string) => permissions.includes(p);
@@ -161,7 +160,10 @@ export function workspaceNavigation(
           : []),
         {
           ...item("补贴管理", "补贴统计", undefined, [
-            item("补贴管理", "运营商统计", "statistics.operator"),
+            {
+              ...item("补贴管理", "运营商统计", "statistics.operator"),
+              matchViews: ["statistics", "statistics.station"],
+            },
             item("补贴管理", "补贴明细", "statistics.detail"),
           ]),
           branchOnly: true,
@@ -263,8 +265,6 @@ export function workspaceNavigation(
         ? [{ ...i, ...(i.children ? { children } : {}) }]
         : [];
     });
-  // Notification management remains inside the alert workspace with its independent permission.
-  void notifications;
   return groups
     .map((g) => ({ ...g, items: filter(g.items) }))
     .filter((g) => (g.entry ? menu.includes(g.entry.tab) : g.items.length > 0));
@@ -276,7 +276,7 @@ export function auxiliaryNavigation(
   permissions: readonly string[] = [],
 ): NavigationItem[] {
   const primary = new Set(
-    flattenNavigation(workspaceNavigation(menu, role, false, permissions))
+    flattenNavigation(workspaceNavigation(menu, role, permissions))
       .filter((i) => !i.branchOnly)
       .map((i) => i.tab),
   );
@@ -299,14 +299,87 @@ export function auxiliaryNavigation(
   }
   return entries;
 }
+export function contextualNavigation(
+  menu: string[],
+  role: string,
+  permissions: readonly string[],
+  canManageAlertNotifications: boolean,
+): NavigationItem[] {
+  const entries: NavigationItem[] = [];
+  if (role === "regulator") {
+    if (menu.includes("告警中心")) {
+      entries.push({ ...item("告警中心", "来源与观测"), alertView: "sources" });
+      if (canManageAlertNotifications)
+        entries.push({
+          ...item("告警中心", "通知设置"),
+          alertView: "notifications",
+        });
+    }
+    entries.push(
+      item("运行状态", "历史运行与质量观测", "history"),
+      item("故障分析", "源报故障事件明细", "events"),
+      item("统计分析", "单对象历史运行", "runtime"),
+      item("补贴管理", "设备日电量与核算证据", "energy.device"),
+    );
+  }
+  if (role === "operator") {
+    if (menu.includes("统计分析"))
+      entries.push(item("统计分析", "单对象历史运行", "runtime"));
+    if (menu.includes("星级申报")) {
+      entries.push(
+        item("星级申报", "评价标准查看", "standards"),
+        item("星级申报", "评价结果与公示", "publications"),
+        item("星级申报", "评审过程管理", "process"),
+      );
+      if (
+        permissions.includes("statistics.read") &&
+        permissions.includes("stations.read")
+      )
+        entries.push(item("星级申报", "数据支撑评价", "data"));
+    }
+    if (menu.includes("补贴申报")) {
+      entries.push(
+        item("补贴申报", "政策与单站申报", "policies"),
+        item("补贴申报", "补贴统计", "statistics"),
+        item("补贴申报", "设备电量数据", "energy"),
+        item("补贴申报", "电量日汇总", "energy.daily"),
+      );
+      if (permissions.includes("subsidy.create"))
+        entries.push(item("补贴申报", "年度多站申报", "annual"));
+    }
+  }
+  return entries.filter((entry) => menu.includes(entry.tab));
+}
+
+export function currentNavigationGroup(
+  groups: NavigationGroup[],
+  tab: string,
+  alert: AlertWorkspaceView,
+  view: string,
+) {
+  const exact = groups.find((group) =>
+    flattenNavigation([group]).some((entry) =>
+      navigationMatches(entry, tab, alert, view),
+    ),
+  );
+  if (exact) return exact;
+  return groups.find((group) =>
+    flattenNavigation([group]).some((entry) =>
+      navigationMatches(entry, tab, "events", workspaceDefaults[tab] ?? ""),
+    ),
+  );
+}
+
 export function WorkspaceNavigation({
   groups,
   tab,
   alertView,
   view = "",
   onNavigate,
+  activeGroup,
 }: {
   groups: NavigationGroup[];
+  activeGroup?: string;
   tab: string;
   alertView: AlertWorkspaceView;
   view?: string;
@@ -439,9 +512,7 @@ export function WorkspaceNavigation({
         {matches.map((g) => {
           const expanded = !!search || opened.includes(g.label);
           const Icon = g.icon === Folder && expanded ? FolderOpen : g.icon;
-          const active = flattenNavigation([g]).some((i) =>
-            navigationMatches(i, tab, alertView, view),
-          );
+          const active = g.label === activeGroup;
           if (g.entry)
             return (
               <section
@@ -450,7 +521,11 @@ export function WorkspaceNavigation({
               >
                 <button
                   className={`navigation-group-toggle navigation-top-link ${active ? "selected" : ""}`}
-                  aria-current={active ? "page" : undefined}
+                  aria-current={
+                    navigationMatches(g.entry, tab, alertView, view)
+                      ? "page"
+                      : undefined
+                  }
                   onClick={() => navigate(g.entry!)}
                 >
                   <Icon size={17} aria-hidden="true" />

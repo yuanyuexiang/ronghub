@@ -41,6 +41,9 @@ test("combined report keeps source identities, all-query totals and real Excel d
     await login(own, "operator_a");
     await navigateWorkspace(own, /^(统计分析|充电量统计)$/);
     await navigateWorkspace(own, "充电与补贴报表");
+    await expect(
+      own.getByRole("navigation", { name: "统计分析视图" }),
+    ).toHaveCount(0);
     const section = own.getByLabel("充电与补贴综合报表", { exact: true });
     await own.getByLabel("综合周期日期", { exact: true }).fill("2026-11-15");
     await own.getByLabel("综合场站名称", { exact: true }).fill(fixture.name);

@@ -146,12 +146,9 @@ test("subsidy workspaces separate policy and statistics while protecting the sta
   try {
     await login(page, "operator_a");
     await navigateWorkspace(page, "补贴申报");
-    const navigation = page.getByRole("navigation", {
-      name: "补贴业务视图",
-      exact: true,
-    });
-    await page.locator("details.workspace-related-actions > summary").click();
-    expect((await navigation.boundingBox())!.height).toBeLessThan(80);
+    await expect(
+      page.getByRole("navigation", { name: "补贴业务视图", exact: true }),
+    ).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "查询补贴记录", exact: true }),
     ).toBeEnabled();
@@ -211,7 +208,12 @@ test("subsidy workspaces separate policy and statistics while protecting the sta
     await expect(
       page.getByLabel("补贴检索名称", { exact: true }),
     ).not.toBeVisible();
-    await navigateWorkspace(page, /^(设备电量数据|电量数据)$/);
+    await navigateWorkspace(page, "设备电量数据");
+    await expect(
+      page.getByRole("region", { name: "设备日观测", exact: true }),
+    ).toBeVisible();
+    await navigateWorkspace(page, "电量日汇总");
+    await page.reload();
     await expect(
       page.getByRole("region", { name: "电量与补贴日汇总", exact: true }),
     ).toBeVisible();

@@ -21,10 +21,7 @@ async function login(page: Page, user: string) {
     page.getByRole("button", { name: "退出登录", exact: true }),
   ).toBeVisible();
   await navigateWorkspace(page, user === "regulator" ? "告警数据" : "企业告警");
-  await page
-    .getByRole("navigation", { name: "告警工作区" })
-    .getByRole("button", { name: "来源与观测", exact: true })
-    .click();
+  await navigateWorkspace(page, "来源与观测");
 }
 test("independent observations recover a lost response, freeze event evidence and separate monthly periods", async ({
   browser,
@@ -114,14 +111,8 @@ test("independent observations recover a lost response, freeze event evidence an
     await expect(
       panel.getByLabel("独立观测值", { exact: true }),
     ).toBeDisabled();
-    await manager
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "事件跟踪", exact: true })
-      .click();
-    await manager
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "来源与观测", exact: true })
-      .click();
+    await navigateWorkspace(manager, "事件跟踪");
+    await navigateWorkspace(manager, "来源与观测");
     await expect(
       panel.getByRole("button", { name: "按原编号重试观测", exact: true }),
     ).toBeEnabled();
@@ -168,10 +159,7 @@ test("independent observations recover a lost response, freeze event evidence an
         panel.locator(".configured-observation-receipt"),
       ).toContainText(result);
     }
-    await manager
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "事件跟踪", exact: true })
-      .click();
+    await navigateWorkspace(manager, "事件跟踪");
     await manager
       .getByLabel("告警检索编号", { exact: true })
       .fill(String(receipt.event_id));
@@ -203,10 +191,7 @@ test("independent observations recover a lost response, freeze event evidence an
       await manager.request.get(`/api/v1/alerts/${receipt.event_id}`)
     ).json();
     expect(before.status).toBe("active");
-    await manager
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "来源与观测", exact: true })
-      .click();
+    await navigateWorkspace(manager, "来源与观测");
     await panel.getByLabel("独立观测值", { exact: true }).fill("50");
     await panel
       .getByLabel("独立观测时间", { exact: true })

@@ -42,20 +42,16 @@ export function WorkspaceViews({
   items,
   onChange,
   disabled = false,
-  keepVisible = false,
-  secondaryLabel,
 }: {
   label: string;
   value: string;
   items: readonly (readonly [string, string])[];
   onChange: (value: string) => void;
   disabled?: boolean;
-  keepVisible?: boolean;
-  secondaryLabel?: string;
 }) {
   const sidebar = useSidebarViews();
-  if (sidebar && !keepVisible) return null;
-  const navigation = (
+  if (sidebar) return null;
+  return (
     <nav className="business-view-navigation" aria-label={label}>
       {items.map(([key, name]) => (
         <button
@@ -69,13 +65,5 @@ export function WorkspaceViews({
         </button>
       ))}
     </nav>
-  );
-  return secondaryLabel ? (
-    <details className="workspace-related-actions">
-      <summary>{secondaryLabel}</summary>
-      {navigation}
-    </details>
-  ) : (
-    navigation
   );
 }

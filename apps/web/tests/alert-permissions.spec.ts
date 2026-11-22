@@ -44,10 +44,7 @@ test("alert confirmation staff cannot configure rules or inject observations", a
     await login(observer, staff[0].username);
     await login(confirmer, staff[1].username);
     for (const page of [observer, confirmer]) {
-      await page
-        .getByRole("navigation", { name: "告警工作区" })
-        .getByRole("button", { name: "规则配置", exact: true })
-        .click();
+      await navigateWorkspace(page, "规则配置");
       await page.getByText("历史阈值规则与样本验证", { exact: true }).click();
       await expect(
         page.getByRole("button", { name: "新增规则版本", exact: true }),
@@ -63,15 +60,9 @@ test("alert confirmation staff cannot configure rules or inject observations", a
     await observer
       .getByLabel("告警监测对象")
       .fill("independent-target-" + station.station_id);
-    await confirmer
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "事件跟踪", exact: true })
-      .click();
+    await navigateWorkspace(confirmer, "事件跟踪");
     async function sample(value: string) {
-      await observer
-        .getByRole("navigation", { name: "告警工作区" })
-        .getByRole("button", { name: "规则配置", exact: true })
-        .click();
+      await navigateWorkspace(observer, "规则配置");
       await observer.getByLabel("告警样本值").fill(value);
       const response = observer.waitForResponse(
         (r) =>
@@ -83,10 +74,7 @@ test("alert confirmation staff cannot configure rules or inject observations", a
         .click();
       const done = await response;
       expect(done.status()).toBe(200);
-      await observer
-        .getByRole("navigation", { name: "告警工作区" })
-        .getByRole("button", { name: "事件跟踪", exact: true })
-        .click();
+      await navigateWorkspace(observer, "事件跟踪");
       return done.json();
     }
     const opened = await sample("40");

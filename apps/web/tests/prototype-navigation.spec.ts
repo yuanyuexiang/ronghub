@@ -73,10 +73,8 @@ test("prototype module navigation connects map and alert views without losing fi
   await page.getByLabel("告警检索名称").fill("保留中的查询草稿");
   await navigateWorkspace(page, "告警配置");
   await expect(
-    page
-      .getByRole("navigation", { name: "告警工作区" })
-      .getByRole("button", { name: "规则配置", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+    page.getByRole("heading", { name: "告警配置", level: 1, exact: true }),
+  ).toBeVisible();
   await navigateWorkspace(page, "告警数据");
   await expect(page.getByLabel("告警检索名称")).toHaveValue("保留中的查询草稿");
   const request = page.waitForRequest(
