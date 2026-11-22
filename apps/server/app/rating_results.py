@@ -4,12 +4,20 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
+from sqlalchemy.orm import load_only
 
 from app.models import Operator, RatingAction, RatingApplication, Station, User, now
 
 
 def local_day(at: datetime | None = None):
     return (at or now()).astimezone(ZoneInfo("Asia/Shanghai")).date()
+
+
+def publication_order():
+    return (
+        func.coalesce(RatingApplication.published_at, RatingApplication.created_at).desc(),
+        RatingApplication.id.desc(),
+    )
 
 
 def latest(db, station_id):
@@ -19,12 +27,32 @@ def latest(db, station_id):
             RatingApplication.station_id == station_id,
             RatingApplication.status.in_(["published", "delisted"]),
         )
-        .order_by(
-            func.coalesce(RatingApplication.published_at, RatingApplication.created_at).desc(),
-            RatingApplication.id.desc(),
-        )
+        .order_by(*publication_order())
         .limit(1)
     )
+
+
+def latest_by_station(db, station_ids):
+    if not station_ids:
+        return {}
+    rows = db.scalars(
+        select(RatingApplication)
+        .options(
+            load_only(
+                RatingApplication.station_id,
+                RatingApplication.status,
+                RatingApplication.valid_until,
+                RatingApplication.calculation,
+            )
+        )
+        .where(
+            RatingApplication.station_id.in_(station_ids),
+            RatingApplication.status.in_(["published", "delisted"]),
+        )
+        .distinct(RatingApplication.station_id)
+        .order_by(RatingApplication.station_id, *publication_order())
+    )
+    return {item.station_id: item for item in rows}
 
 
 def effective(a, today=None, station_status=None):
@@ -52,6 +80,15 @@ def effective(a, today=None, station_status=None):
         "result_state": state,
         "effective_stars": stars,
         "show_association_mark": state == "valid" and bool(stars),
+    }
+
+
+def station_result(item, station_status):
+    if item is None:
+        return None
+    return {
+        **effective(item, station_status=station_status),
+        "valid_until": item.valid_until.isoformat() if item.valid_until else None,
     }
 
 

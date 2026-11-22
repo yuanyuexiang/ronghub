@@ -77,14 +77,12 @@ test("multi-company notice creates independent records and isolates enterprise r
     await reg
       .getByRole("button", { name: "关闭内容详情", exact: true })
       .click();
-    if (
-      await reg
-        .getByRole("button", { name: "展开通知记录", exact: true })
-        .isVisible()
-    )
-      await reg
-        .getByRole("button", { name: "展开通知记录", exact: true })
-        .click();
+    await reg
+      .getByRole("button", { name: "查看企业回复记录", exact: true })
+      .click();
+    await expect(
+      reg.getByRole("heading", { name: "发布内容台账", exact: true }),
+    ).toHaveCount(0);
     await reg.getByLabel("通知记录关键词", { exact: true }).fill(fixture.name);
     await reg
       .getByRole("button", { name: "查询通知记录", exact: true })
@@ -171,7 +169,9 @@ test("multi-company notice creates independent records and isolates enterprise r
       records.getByRole("cell", { name: "演示运营商乙", exact: true }),
     ).toHaveCount(0);
 
-    await row.getByRole("button", { name: "查看内容", exact: true }).click();
+    await records
+      .getByRole("button", { name: "查看通知正文", exact: true })
+      .click();
     await expect(
       reg
         .locator(".timeline .rich-document, .timeline .article-body")

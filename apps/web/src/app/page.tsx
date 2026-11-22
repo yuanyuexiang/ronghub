@@ -488,6 +488,7 @@ export default function Home() {
       "decommission",
       "change",
     ],
+    人员账号申请: ["pending"],
     巡检督办: [
       "tasks",
       ...(has("inspections.assign") ? ["plans", "quick"] : []),
@@ -578,6 +579,8 @@ export default function Home() {
     if (tab === "告警中心") return entry.alertView !== alertView;
     if (tab === "运行状态" || tab === "故障分析") return !workspaceView;
     if (tab === "统计分析") return workspaceView === "utilization";
+    if (entry.view === "applications.publication")
+      return workspaceView === "results";
     if (tab === "补贴管理") return workspaceView === "energy";
     if (tab === "补贴申报" && workspaceView.startsWith("energy"))
       return entry.view?.startsWith("energy") && entry.view !== workspaceView;
@@ -597,7 +600,9 @@ export default function Home() {
           ? { tab, view: "utilization", label: "返回利用率统计" }
           : tab === "补贴管理" && workspaceView === "energy.device"
             ? { tab, view: "energy", label: "返回电量数据" }
-            : undefined;
+            : tab === "星级评价" && workspaceView === "applications.publication"
+              ? { tab, view: "results", label: "返回评价结果管理" }
+              : undefined;
   const pageTitle = currentItem?.label ?? (tab === "工作台" ? "运营总览" : tab);
   return (
     <PageRefreshProvider>
@@ -701,24 +706,42 @@ export default function Home() {
                             "接入管理",
                             "接入待审",
                             summary.applications_pending,
+                            "queue",
                           ],
                           [
                             "补贴申请记录",
                             "补贴待审",
                             summary.subsidies_pending,
+                            "claims.pending",
                           ],
-                          ["企业申报查看", "星级申报", summary.rating_pending],
+                          [
+                            "企业申报查看",
+                            "星级待审",
+                            summary.rating_pending,
+                            "applications.pending",
+                          ],
                           [
                             "人员账号申请",
                             "人员账号待审",
                             summary.staff_applications_pending,
+                            "pending",
                           ],
                         ] as const)
                       : ([
-                          ["企业申报管理", "待评审", summary.rating_pending],
-                          ["评价结果管理", "待公示", summary.rating_reviewed],
+                          [
+                            "企业申报管理",
+                            "待评审",
+                            summary.rating_pending,
+                            "applications.pending",
+                          ],
+                          [
+                            "待公示申报",
+                            "待公示",
+                            summary.rating_reviewed,
+                            "applications.publication",
+                          ],
                         ] as const)
-                    ).map(([target, label, count]) => {
+                    ).map(([target, label, count, view]) => {
                       const entry = allNavigation.find(
                         (entry) => entry.label === target,
                       );
@@ -728,12 +751,9 @@ export default function Home() {
                             type="button"
                             key={target}
                             className="outline"
+                            aria-label={label}
                             onClick={() =>
-                              navigateWorkspace(
-                                target === "接入管理"
-                                  ? { ...entry, view: "queue" }
-                                  : entry,
-                              )
+                              navigateWorkspace({ ...entry, view })
                             }
                           >
                             {label}
@@ -810,6 +830,7 @@ export default function Home() {
               >
                 {tab === "人员账号申请" ? (
                   <StaffApplicationsPanel
+                    initialStatus={workspaceView === "pending" ? "pending" : ""}
                     csrf={me.csrf_token}
                     registerLeaveGuard={registerLeaveGuard}
                   />

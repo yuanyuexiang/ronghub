@@ -114,14 +114,18 @@ test("content batch keeps cross-page versions, preserves deleted history and exp
     expect(exported.status()).toBe(200);
     expect((await exported.text()).trim().split(/\r?\n/)).toHaveLength(27);
     expect(await exported.text()).not.toContain("通知批量流程核查正文");
-    if (
-      await page
-        .getByRole("button", { name: "展开通知记录", exact: true })
-        .isVisible()
-    )
-      await page
-        .getByRole("button", { name: "展开通知记录", exact: true })
-        .click();
+    await page
+      .getByRole("button", { name: "查看企业回复记录", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "发布内容台账", exact: true }),
+    ).toHaveCount(0);
+    const beijingDay = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: "Asia/Shanghai",
+      dateStyle: "short",
+    }).format(new Date());
+    await page.getByLabel("计划生效日期起（北京）").fill(beijingDay);
+    await page.getByLabel("计划生效日期止（北京）").fill(beijingDay);
     await page.getByLabel("通知记录关键词", { exact: true }).fill(fixture.name);
     await page
       .getByRole("button", { name: "查询通知记录", exact: true })
@@ -137,6 +141,9 @@ test("content batch keeps cross-page versions, preserves deleted history and exp
         .getByRole("link", { name: "导出当前查询通知记录", exact: true })
         .getAttribute("href"))!,
     );
+    await expect(
+      records.getByRole("columnheader", { name: "最近回复时间（北京时间）" }),
+    ).toBeVisible();
     expect(recordsExport.status()).toBe(200);
     expect((await recordsExport.text()).trim().split(/\r?\n/)).toHaveLength(3);
     await page.screenshot({

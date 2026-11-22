@@ -13,11 +13,17 @@ const statuses = { pending: "待审核", approved: "已开通", rejected: "已�
 export function StaffApplicationsPanel({
   csrf,
   registerLeaveGuard,
+  initialStatus = "",
 }: {
   csrf: string;
   registerLeaveGuard?: LeaveGuardRegistrar;
+  initialStatus?: string;
 }) {
-  const [draft, setDraft] = useState({ q: "", status: "", requested_role: "" }),
+  const [draft, setDraft] = useState({
+      q: "",
+      status: initialStatus,
+      requested_role: "",
+    }),
     [query, setQuery] = useState({ ...draft, page: 1 });
   const [data, setData] = useState<ApiSchemas["StaffApplicationPage"] | null>(
       null,

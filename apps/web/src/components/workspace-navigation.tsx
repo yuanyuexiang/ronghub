@@ -152,7 +152,10 @@ export function workspaceNavigation(
         item("隐患督办", "隐患督办管理"),
       ]),
       group("补贴管理", [
-        item("补贴管理", "补贴申请记录", "claims"),
+        {
+          ...item("补贴管理", "补贴申请记录", "claims"),
+          matchViews: ["claims.pending"],
+        },
         item("补贴管理", "补贴规则配置", "policies"),
         item("补贴管理", "电量数据", "energy"),
         ...(has("orders.read") && has("statistics.read")
@@ -176,7 +179,10 @@ export function workspaceNavigation(
       ]),
       group("星级评价管理", [
         item("星级查看", "评价标准查看", "standards"),
-        item("星级查看", "企业申报查看", "applications"),
+        {
+          ...item("星级查看", "企业申报查看", "applications"),
+          matchViews: ["applications.pending"],
+        },
         ...(data ? [item("星级查看", "数据支撑查看", "data")] : []),
         item("星级查看", "评审过程查看", "process"),
         item("星级查看", "评审结果查看", "results"),
@@ -213,7 +219,10 @@ export function workspaceNavigation(
       ]),
       group("星级评价管理", [
         item("星级评价", "评价标准管理", "standards"),
-        item("星级评价", "企业申报管理", "applications"),
+        {
+          ...item("星级评价", "企业申报管理", "applications"),
+          matchViews: ["applications.pending", "applications.publication"],
+        },
         ...(data ? [item("星级评价", "数据支撑评价", "data")] : []),
         item("星级评价", "评审过程管理", "process"),
         item("星级评价", "评价结果管理", "results"),
@@ -306,6 +315,9 @@ export function contextualNavigation(
   canManageAlertNotifications: boolean,
 ): NavigationItem[] {
   const entries: NavigationItem[] = [];
+  if (role === "association") {
+    entries.push(item("星级评价", "待公示申报", "applications.publication"));
+  }
   if (role === "regulator") {
     if (menu.includes("告警中心")) {
       entries.push({ ...item("告警中心", "来源与观测"), alertView: "sources" });

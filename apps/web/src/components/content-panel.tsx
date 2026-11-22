@@ -119,6 +119,7 @@ export function ContentPanel({
     } | null>(null),
     [batchAt, setBatchAt] = useState(""),
     [recordsVersion, setRecordsVersion] = useState(0),
+    [showRecipientRecords, setShowRecipientRecords] = useState(false),
     [listLoading, setListLoading] = useState(false),
     [detail, setDetail] = useState<Detail | null>(null),
     [draftAssets, setDraftAssets] = useState<ApiSchemas["ContentAttachment"][]>(
@@ -136,6 +137,8 @@ export function ContentPanel({
     role === "regulator" ? "information" : "all",
   );
   const operatorNotice = role === "operator" && contentView === "notice";
+  const noticeManagement =
+    role === "regulator" && canManage && manage && contentView === "notice";
   const [kindFilter, setKindFilter] = useState<
     | ""
     | "announcement"
@@ -450,7 +453,10 @@ export function ContentPanel({
   useEffect(() => {
     if (showForm) draftBaseline.current = JSON.stringify(draft);
   }, [showForm]);
-  const workspaceRef = useRecordFocus(showForm ? -1 : detail?.id);
+  const workspaceRef = useRecordFocus(
+    showForm ? -1 : detail?.id,
+    showRecipientRecords ? "notice-replies" : undefined,
+  );
   const canLeave = useWorkspaceLeave(
     (showForm && JSON.stringify(draft) !== draftBaseline.current) ||
       !!reply.trim() ||
@@ -793,7 +799,12 @@ export function ContentPanel({
       )}
       <section
         className="panel record-pane"
-        hidden={operatorNotice || !!detail || showForm}
+        hidden={
+          operatorNotice ||
+          (noticeManagement && showRecipientRecords) ||
+          !!detail ||
+          showForm
+        }
       >
         <div className="panel-title">
           <h2>{manage ? "发布内容台账" : "公告资讯与通知"}</h2>
@@ -811,6 +822,18 @@ export function ContentPanel({
                   }}
                 >
                   新建内容草稿
+                </button>
+              )}
+              {noticeManagement && (
+                <button
+                  type="button"
+                  className="outline"
+                  onClick={() => {
+                    setError("");
+                    setShowRecipientRecords(true);
+                  }}
+                >
+                  查看企业回复记录
                 </button>
               )}
               <button
@@ -1039,13 +1062,33 @@ export function ContentPanel({
           </button>
         </div>
       </section>
-      {((canManage && manage && role === "regulator") ||
-        (role === "operator" && !operatorNotice)) && (
+      {noticeManagement && (
+        <div
+          className="record-pane"
+          hidden={!showRecipientRecords || !!detail || showForm}
+        >
+          {showRecipientRecords && !detail && error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
+          <NoticeRecords
+            active={showRecipientRecords}
+            onBack={() => {
+              setShowRecipientRecords(false);
+              setError("");
+            }}
+            refreshKey={recordsVersion}
+            manage
+            onOpen={(id) => run(() => open(id))}
+          />
+        </div>
+      )}
+      {role === "operator" && !operatorNotice && (
         <div hidden={!!detail || showForm}>
           <NoticeRecords
-            defaultExpanded={contentView === "notice"}
             refreshKey={recordsVersion}
-            manage={manage && role === "regulator"}
+            manage={false}
             onOpen={(id) => run(() => open(id))}
           />
         </div>

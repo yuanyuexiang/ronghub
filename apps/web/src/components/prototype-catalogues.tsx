@@ -263,7 +263,7 @@ export function RatingCollaboration({
                     }
                   />
                 </td>
-                <td>{row.station_id}</td>
+                <td>{row.station_code || "未提供"}</td>
                 <td>
                   {row.station_name}
                   <small>{row.operator_name}</small>
@@ -289,9 +289,9 @@ export function RatingCollaboration({
                   }[row.status] ?? row.status}
                 </td>
                 <td className="numeric-cell">
-                  {row.effective_stars ?? "未确认"}
+                  {row.current_station_result?.effective_stars ?? "未确认"}
                 </td>
-                <td>{row.valid_until ?? "未确认"}</td>
+                <td>{row.current_station_result?.valid_until ?? "未确认"}</td>
                 <td>
                   <button
                     className="outline"

@@ -13,23 +13,32 @@ export function NoticeRecords({
   manage,
   onOpen,
   refreshKey = 0,
-  defaultExpanded = false,
+  onBack,
+  active = true,
 }: {
   manage: boolean;
   refreshKey?: number;
-  defaultExpanded?: boolean;
+  onBack?: () => void;
+  active?: boolean;
   onOpen: (id: number) => void;
 }) {
   const canExport = useCapability("content.export");
-  const [expanded, setExpanded] = useState(defaultExpanded);
-  const [draft, setDraft] = useState({ q: "", state: "", replied: "" });
+  const [expanded, setExpanded] = useState(false);
+  const showList = Boolean(onBack) || expanded;
+  const [draft, setDraft] = useState({
+    q: "",
+    state: "",
+    replied: "",
+    scheduled_from: "",
+    scheduled_to: "",
+  });
   const [query, setQuery] = useState({ ...draft, page: 1 });
   const [data, setData] = useState<ApiSchemas["NoticeRecordPage"] | null>(null);
   const [loading, setLoading] = useState(false),
     [error, setError] = useState("");
   const pageRefreshRevision = usePageRefresh();
   useEffect(() => {
-    if (!expanded) return;
+    if (!active || !showList) return;
     const controller = new AbortController();
     setLoading(true);
     setError("");
@@ -42,6 +51,8 @@ export function NoticeRecords({
             q: query.q,
             state: query.state,
             replied: query.replied ? query.replied === "true" : undefined,
+            scheduled_from: query.scheduled_from || undefined,
+            scheduled_to: query.scheduled_to || undefined,
             page: query.page,
             page_size: 20,
           },
@@ -66,7 +77,11 @@ export function NoticeRecords({
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [manage, expanded, query, refreshKey, pageRefreshRevision]);
+  }, [active, manage, showList, query, refreshKey, pageRefreshRevision]);
+  const { page: _page, ...filters } = query;
+  const exportFilters = new URLSearchParams(
+    Object.entries(filters).filter(([, value]) => value),
+  );
   return (
     <section className="panel notice-records">
       <div className="panel-title">
@@ -79,12 +94,12 @@ export function NoticeRecords({
         <button
           type="button"
           className="outline"
-          onClick={() => setExpanded(!expanded)}
+          onClick={onBack ?? (() => setExpanded(!expanded))}
         >
-          {expanded ? "收起通知记录" : "展开通知记录"}
+          {onBack ? "返回通知发布" : expanded ? "收起通知记录" : "展开通知记录"}
         </button>
       </div>
-      {expanded && (
+      {showList && (
         <>
           <form
             className="application-filters"
@@ -131,6 +146,33 @@ export function NoticeRecords({
                 <option value="false">尚未回复</option>
               </select>
             </label>
+            {manage && (
+              <>
+                <label>
+                  计划生效日期起（北京）
+                  <input
+                    type="date"
+                    value={draft.scheduled_from}
+                    max={draft.scheduled_to || "9999-12-30"}
+                    onChange={(e) =>
+                      setDraft({ ...draft, scheduled_from: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  计划生效日期止（北京）
+                  <input
+                    type="date"
+                    value={draft.scheduled_to}
+                    min={draft.scheduled_from || undefined}
+                    max="9999-12-30"
+                    onChange={(e) =>
+                      setDraft({ ...draft, scheduled_to: e.target.value })
+                    }
+                  />
+                </label>
+              </>
+            )}
             <button className="primary" disabled={loading}>
               查询通知记录
             </button>
@@ -138,7 +180,7 @@ export function NoticeRecords({
           {manage && canExport && data && !loading && (
             <a
               className="outline notice-export-link"
-              href={`/api/v1/content/notice-records/export?${new URLSearchParams({ q: query.q, state: query.state, ...(query.replied ? { replied: query.replied } : {}) })}`}
+              href={`/api/v1/content/notice-records/export?${exportFilters}`}
             >
               导出当前查询通知记录
             </a>
@@ -160,6 +202,7 @@ export function NoticeRecords({
                       <th>计划生效时间（北京时间）</th>
                       <th>站内状态</th>
                       <th className="numeric-cell">企业回复</th>
+                      <th>最近回复时间（北京时间）</th>
                       <th>操作</th>
                     </tr>
                   </thead>
@@ -178,6 +221,17 @@ export function NoticeRecords({
                         </td>
                         <td>{states[row.state]}</td>
                         <td className="numeric-cell">{row.reply_count}条</td>
+                        <td>
+                          {row.latest_reply_at
+                            ? new Date(row.latest_reply_at).toLocaleString(
+                                "zh-CN",
+                                {
+                                  timeZone: "Asia/Shanghai",
+                                  hour12: false,
+                                },
+                              )
+                            : "—"}
+                        </td>
                         <td>
                           <button
                             type="button"

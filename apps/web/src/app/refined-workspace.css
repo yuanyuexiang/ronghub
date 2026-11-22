@@ -1034,3 +1034,30 @@ body.refined-workspace .prototype-workspace
     grid-column: 1 / -1;
   }
 }
+
+.rating-workspace .rating-station-code {
+  display: block;
+  margin-top: 4px;
+}
+.rating-workspace .record-row-actions button {
+  white-space: nowrap;
+}
+
+@media (min-width: 850px) {
+  .staff-rating-queue :is(th, td):last-child {
+    position: sticky;
+    inset-inline-end: 0;
+    background: inherit;
+    box-shadow: -1px 0 var(--civic-border);
+  }
+  .staff-rating-queue thead tr {
+    background: #f5f7fb;
+  }
+  .staff-rating-queue tbody tr {
+    background: #fff;
+  }
+  .staff-rating-queue .record-row-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

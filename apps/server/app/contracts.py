@@ -212,8 +212,16 @@ class RatingCalculationSummary(BaseModel):
     formula: str | None = None
 
 
+class StationRatingResult(BaseModel):
+    result_state: str
+    effective_stars: int | None
+    valid_until: str | None
+
+
 class RatingQueueItem(BaseModel):
     last_submitted_at: str | None
+    station_code: str
+    current_station_result: StationRatingResult | None
     id: int
     station_id: int
     operator_id: int

@@ -187,13 +187,21 @@ def rating_list(user: SnapshotActor, db: SnapshotDB, params: Filters):
             a.version,
             a.is_demo,
             Station.status.label("current_station_status"),
+            Station.external_id.label("station_code"),
         )
         .order_by(a.id.desc())
         .limit(LIMIT + 1)
     )
     day = rating_results.local_day()
+    records = db.execute(stmt).all()
+    if len(records) > LIMIT:
+        raise HTTPException(422, "单次最多导出10000条，请缩小查询范围；未截断导出")
+    staff = user.role in {"regulator", "association"}
+    current_results = (
+        rating_results.latest_by_station(db, {row.station_id for row in records}) if staff else {}
+    )
     rows = []
-    for row in db.execute(stmt):
+    for row in records:
         effective = rating_results.effective(
             SimpleNamespace(
                 status=row.status,
@@ -203,7 +211,23 @@ def rating_list(user: SnapshotActor, db: SnapshotDB, params: Filters):
             today=day,
             station_status=row.current_station_status,
         )
-        rows.append([*tuple(row)[:-1], effective["result_state"], effective["effective_stars"]])
+        values = [*tuple(row)[:-2], effective["result_state"], effective["effective_stars"]]
+        if staff:
+            current = (
+                rating_results.station_result(
+                    current_results.get(row.station_id), row.current_station_status
+                )
+                or {}
+            )
+            values.extend(
+                [
+                    row.station_code,
+                    current.get("result_state"),
+                    current.get("effective_stars"),
+                    current.get("valid_until"),
+                ]
+            )
+        rows.append(values)
     return response(
         db,
         user,
@@ -229,6 +253,11 @@ def rating_list(user: SnapshotActor, db: SnapshotDB, params: Filters):
             "演示标识",
             "当前结果状态",
             "当前有效星级",
+            *(
+                ["来源场站编号", "场站当前结果状态", "场站当前有效星级", "场站当前结果有效期"]
+                if staff
+                else []
+            ),
         ],
         rows,
     )

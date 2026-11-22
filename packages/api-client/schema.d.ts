@@ -8419,6 +8419,7 @@ export interface components {
             calculation: components["schemas"]["RatingCalculationSummary"];
             /** Created At */
             created_at: string;
+            current_station_result: components["schemas"]["StationRatingResult"] | null;
             /** Effective Stars */
             effective_stars: number | null;
             /** Evidence Note */
@@ -8447,6 +8448,8 @@ export interface components {
             show_association_mark: boolean;
             /** Standard Id */
             standard_id: number;
+            /** Station Code */
+            station_code: string;
             /** Station Id */
             station_id: number;
             /** Station Name */
@@ -9932,6 +9935,15 @@ export interface components {
             page_size: number;
             /** Total */
             total: number;
+        };
+        /** StationRatingResult */
+        StationRatingResult: {
+            /** Effective Stars */
+            effective_stars: number | null;
+            /** Result State */
+            result_state: string;
+            /** Valid Until */
+            valid_until: string | null;
         };
         /** StationSubsidy */
         StationSubsidy: {
@@ -17058,6 +17070,8 @@ export interface operations {
                 state?: string;
                 replied?: boolean | null;
                 article_id?: number | null;
+                scheduled_from?: string | null;
+                scheduled_to?: string | null;
                 page?: number;
                 page_size?: number;
             };
@@ -17141,6 +17155,8 @@ export interface operations {
                 state?: string;
                 replied?: boolean | null;
                 article_id?: number | null;
+                scheduled_from?: string | null;
+                scheduled_to?: string | null;
             };
             header?: never;
             path?: never;

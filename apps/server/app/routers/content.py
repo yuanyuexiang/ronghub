@@ -333,10 +333,13 @@ def notice_records(
     state: str = Query("", pattern="^(|scheduled|visible|withdrawn)$"),
     replied: bool | None = None,
     article_id: int | None = Query(None, gt=0),
+    scheduled_from: date | None = None,
+    scheduled_to: date | None = None,
     page: int = Query(1, ge=1, le=2147483647),
     page_size: int = Query(20, ge=1, le=100),
 ):
     stmt, stamp = notice_statement(db, user, manage, q, state, replied, article_id)
+    stmt = apply_beijing_days(stmt, NoticeDelivery.scheduled_at, scheduled_from, scheduled_to)
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     rows = db.execute(
         stmt.order_by(NoticeDelivery.id.desc()).offset((page - 1) * page_size).limit(page_size)
@@ -465,11 +468,14 @@ def export_notice_records(
     state: str = Query("", pattern="^(|scheduled|visible|withdrawn)$"),
     replied: bool | None = None,
     article_id: int | None = Query(None, gt=0),
+    scheduled_from: date | None = None,
+    scheduled_to: date | None = None,
 ):
     from sqlalchemy.orm import load_only
 
     export_guard(db, user)
     stmt, stamp = notice_statement(db, user, True, q, state, replied, article_id)
+    stmt = apply_beijing_days(stmt, NoticeDelivery.scheduled_at, scheduled_from, scheduled_to)
     rows = list(
         db.execute(
             stmt.options(

@@ -126,6 +126,37 @@ test("association process shows real frozen actions and results manage station p
       expect(response.status()).toBe(200);
       record = await response.json();
     }
+    await navigateWorkspace(assoc, "企业申报管理");
+    await assoc.getByLabel("星级检索名称", { exact: true }).fill(fixture.name);
+    await assoc
+      .getByRole("button", { name: "查询星级记录", exact: true })
+      .click();
+    const submittedRow = assoc.getByRole("row").filter({
+      has: assoc.getByRole("cell", { name: `RATE-${record.id}`, exact: true }),
+    });
+    await expect(submittedRow).toContainText("2027-12-31");
+    await expect(
+      assoc.getByRole("columnheader", {
+        name: "场站当前有效星级",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await submittedRow
+      .getByRole("button", { name: "场站运营数据", exact: true })
+      .click();
+    await expect(assoc.getByLabel("评价数据场站", { exact: true })).toHaveValue(
+      String(fixture.station_id),
+    );
+    await expect(
+      assoc.getByRole("region", { name: "评价支撑场站概况" }),
+    ).toContainText(fixture.name);
+    await assoc
+      .getByRole("button", { name: "返回申报列表", exact: true })
+      .click();
+    await expect(assoc.getByLabel("星级检索名称", { exact: true })).toHaveValue(
+      fixture.name,
+    );
+    await expect(submittedRow).toBeVisible();
     await navigateWorkspace(assoc, "评审过程管理");
     await assoc
       .getByLabel("评审过程场站企业", { exact: true })

@@ -127,6 +127,19 @@ def test_rating_export_uses_real_transition_not_parent_or_current_value(
             {},
             rating_results.local_day() + timedelta(days=30),
         )
+        pending = rating.create(
+            db,
+            owner,
+            sid,
+            standard_id,
+            {"service": "95"},
+            "申请复评",
+            "reassessment",
+            aid,
+            4,
+        )
+        pending_id = pending.id
+        rating.act(db, owner, pending_id, "submit", 1, "", {})
         rating.act(db, reviewer, aid, "delist", 4, "delist", {})
     client = login(staff[0][1], accounts[1])
     other = login(accounts[0][1], accounts[1])
@@ -136,6 +149,16 @@ def test_rating_export_uses_real_transition_not_parent_or_current_value(
     assert exported[0]["评审星级(非当前有效星级)"] == "3"
     assert exported[0]["当前有效星级"] == "0"
     assert exported[0]["当前结果状态"] == "delisted"
+    pending_query = {"record_id": pending_id}
+    record = client.get(path, params=pending_query).json()["items"][0]
+    assert record["status"] == "submitted" and record["effective_stars"] is None
+    assert record["current_station_result"]["result_state"] == "delisted"
+    assert record["current_station_result"]["effective_stars"] == 0
+    assert record["station_code"]
+    assert other.get(path, params=pending_query).json()["items"] == []
+    pending_export = rows(client.get(path + "/export", params=pending_query))[0]
+    assert pending_export["场站当前有效星级"] == "0"
+    assert pending_export["来源场站编号"] == record["station_code"]
     history = rows(client.get(path + "/process/export", params={"record_id": aid}))
     review = next(row for row in history if row["动作"] == "review")
     assert review["变更前评审分数"] == "暂无数据" and review["变更后评审分数"] == "90.00"

@@ -9,9 +9,19 @@ import { EnergyHistory } from "./station-observations";
 import { StationDetail } from "./station-detail";
 
 /** Reuse the source-separated, authorized station history rather than estimating daily facts. */
-export function RatingDataSupport() {
-  const [draft, setDraft] = useState("");
-  const [stationId, setStationId] = useState<number | null>(null);
+export function RatingDataSupport({
+  initialStation,
+  onReturn,
+}: {
+  initialStation?: { id: number; name: string };
+  onReturn?: () => void;
+}) {
+  const [draft, setDraft] = useState(
+    initialStation ? String(initialStation.id) : "",
+  );
+  const [stationId, setStationId] = useState<number | null>(
+    initialStation?.id ?? null,
+  );
   const [showProfile, setShowProfile] = useState(false);
   return (
     <section
@@ -23,15 +33,22 @@ export function RatingDataSupport() {
           <h2>数据支撑评价</h2>
           <p>选择授权场站，核对基本档案和独立来源的每日观测。</p>
         </div>
-        {stationId !== null && (
-          <button
-            type="button"
-            className="outline"
-            onClick={() => setShowProfile(true)}
-          >
-            查看场站档案
-          </button>
-        )}
+        <div className="action-row view-heading-actions">
+          {onReturn && (
+            <button className="outline" type="button" onClick={onReturn}>
+              返回申报列表
+            </button>
+          )}
+          {stationId !== null && (
+            <button
+              type="button"
+              className="outline"
+              onClick={() => setShowProfile(true)}
+            >
+              查看场站档案
+            </button>
+          )}
+        </div>
       </div>
       <form
         className="business-form"
@@ -40,7 +57,12 @@ export function RatingDataSupport() {
           setStationId(Number(draft));
         }}
       >
-        <StationPicker label="评价数据场站" value={draft} onChange={setDraft} />
+        <StationPicker
+          label="评价数据场站"
+          value={draft}
+          onChange={setDraft}
+          initialOption={initialStation}
+        />
         <button className="primary" disabled={!draft}>
           查询评价支撑数据
         </button>

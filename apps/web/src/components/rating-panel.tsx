@@ -73,6 +73,30 @@ const kinds: Record<string, string> = {
   reassessment: "复评 / 升降级",
   appeal: "异议申诉",
 };
+function reviewStars(row: ApiSchemas["RatingQueueItem"], operator: boolean) {
+  const stars = row.calculation.stars;
+  if (!operator) {
+    if (stars == null) return "未定级";
+    return ["draft", "submitted", "rejected", "withdrawn"].includes(row.status)
+      ? `${stars} 星（建议）`
+      : `${stars} 星`;
+  }
+  if (row.status === "superseded")
+    return `原评定${stars ?? "待核实"}星 · 已替代`;
+  if (row.status !== "published" && row.status !== "delisted")
+    return stars == null ? "待核实" : `${stars}星（建议）`;
+  if (row.effective_stars == null) return "有效星级待确认";
+  return row.result_state === "valid"
+    ? `有效${row.effective_stars}星`
+    : `${resultStates[row.result_state]} · 当前${row.effective_stars}星`;
+}
+
+function stationStars(current: ApiSchemas["StationRatingResult"] | null) {
+  if (!current) return "暂无公示结果";
+  if (current.effective_stars) return `${current.effective_stars} 星`;
+  return resultStates[current.result_state] ?? "待确认";
+}
+
 export function RatingPanel({
   role,
   csrf,
@@ -93,9 +117,25 @@ export function RatingPanel({
   const [view, setView] = useBusinessView("applications");
   const queue = useBusinessQueue(
     loadRatingQueue,
-    view === "results" ? { status: "reviewed" } : {},
+    view === "applications.pending"
+      ? { status: "submitted" }
+      : view === "applications.publication" || view === "results"
+        ? { status: "reviewed" }
+        : {},
   );
+  const showQueue =
+    [
+      "applications",
+      "applications.pending",
+      "applications.publication",
+    ].includes(view) ||
+    (role === "operator" && ["process", "results"].includes(view));
   const apps = queue.rows;
+  const [dataEntry, setDataEntry] = useState<{
+    id: number;
+    name: string;
+    returnView: string;
+  } | null>(null);
 
   const globalScope = useGlobalScope();
   const canCreate = useCapability("ratings.create"),
@@ -674,37 +714,34 @@ export function RatingPanel({
           <RatingCollaboration onOpen={open} busy={busy || materialBusy} />
         )}
       </div>
-      <div className="record-pane" hidden={!!detail || view !== "data"}>
-        {canDataSupport && <RatingDataSupport />}
-      </div>
-      <section
-        className="panel"
-        hidden={
-          (!detail && !["applications", "process", "results"].includes(view)) ||
-          (!detail &&
-            role !== "operator" &&
-            ["process", "results"].includes(view))
-        }
-      >
+      {canDataSupport && !detail && view === "data" && (
+        <div className="record-pane">
+          <RatingDataSupport
+            initialStation={dataEntry ?? undefined}
+            onReturn={
+              dataEntry
+                ? () => {
+                    setView(dataEntry.returnView);
+                    setDataEntry(null);
+                  }
+                : undefined
+            }
+          />
+        </div>
+      )}
+      <section className="panel" hidden={!detail && !showQueue}>
         <div className="record-pane" hidden={!!detail}>
           <div className="panel-title">
             <div>
               <h2>
-                {view === "results"
-                  ? role === "association"
-                    ? "评价结果管理"
-                    : "评审结果查看"
-                  : view === "process"
-                    ? "评审过程管理"
-                    : view === "data"
-                      ? "数据支撑评价"
-                      : role === "association"
-                        ? "星级申报与评审"
-                        : "星级申报及结果"}
+                {role === "association"
+                  ? "星级申报与评审"
+                  : role === "regulator"
+                    ? "企业申报记录"
+                    : view === "process"
+                      ? "评审过程管理"
+                      : "星级申报及结果"}
               </h2>
-              {view === "results" && (
-                <p>默认显示已复核待公示记录，可按状态查询。</p>
-              )}
             </div>
             <div className="action-row">
               <button
@@ -740,7 +777,13 @@ export function RatingPanel({
             busy={queue.loading || busy}
           />
           <div className="table-wrap">
-            <table className="aligned-records">
+            <table
+              className={
+                role === "operator"
+                  ? "aligned-records"
+                  : "aligned-records staff-rating-queue"
+              }
+            >
               <thead>
                 <tr>
                   {[
@@ -749,7 +792,8 @@ export function RatingPanel({
                     "场站 / 企业",
                     "最近提交（北京时间）",
                     "评审分数",
-                    "星级",
+                    role === "operator" ? "星级" : "本次评审星级",
+                    ...(role !== "operator" ? ["场站当前有效星级"] : []),
                     "状态 / 有效期",
                     "操作",
                   ].map((h) => (
@@ -771,26 +815,30 @@ export function RatingPanel({
                       {a.station_name}
                       <br />
                       <small className="muted">
-                        {a.operator_name} · 场站 #{a.station_id}
+                        {a.operator_name}
+                        {role === "operator" ? ` · 场站 #${a.station_id}` : ""}
                       </small>
+                      {role !== "operator" && (
+                        <small className="muted rating-station-code">
+                          场站编号 {a.station_code || "未提供"}
+                        </small>
+                      )}
                     </td>
                     <td>{submissionTime(a.last_submitted_at)}</td>
                     <td className="numeric-cell">
-                      {a.calculation.total ?? "数据未齐"}
+                      {a.calculation.total ?? "待核实"}
                     </td>
-                    <td>
-                      {a.status === "superseded"
-                        ? `原评定${a.calculation.stars ?? "待核实"}星 · 已替代`
-                        : ["published", "delisted"].includes(a.status)
-                          ? a.effective_stars === null
-                            ? "有效星级待确认"
-                            : a.result_state === "valid"
-                              ? `有效${a.effective_stars}星`
-                              : `${resultStates[a.result_state]} · 当前${a.effective_stars}星`
-                          : a.calculation.stars === null
-                            ? "待核实"
-                            : `${a.calculation.stars}星（建议）`}
-                    </td>
+                    <td>{reviewStars(a, role === "operator")}</td>
+                    {role !== "operator" && (
+                      <td>
+                        {stationStars(a.current_station_result)}
+                        {a.current_station_result?.valid_until && (
+                          <small className="muted rating-station-code">
+                            有效期至 {a.current_station_result.valid_until}
+                          </small>
+                        )}
+                      </td>
+                    )}
                     <td>
                       <em
                         className={a.status === "published" ? "green" : "amber"}
@@ -802,13 +850,32 @@ export function RatingPanel({
                       </small>
                     </td>
                     <td>
-                      <button
-                        className="outline"
-                        disabled={busy || materialBusy}
-                        onClick={() => open(a.id)}
-                      >
-                        评星详情
-                      </button>
+                      <div className="record-row-actions">
+                        <button
+                          className="outline"
+                          disabled={busy || materialBusy}
+                          onClick={() => open(a.id)}
+                        >
+                          评星详情
+                        </button>
+                        {role !== "operator" && canDataSupport && (
+                          <button
+                            type="button"
+                            className="outline"
+                            disabled={busy || materialBusy}
+                            onClick={() => {
+                              setDataEntry({
+                                id: a.station_id,
+                                name: a.station_name,
+                                returnView: view,
+                              });
+                              setView("data");
+                            }}
+                          >
+                            场站运营数据
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

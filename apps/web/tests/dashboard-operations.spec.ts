@@ -118,7 +118,41 @@ test("workbench shows scoped stock and independent periods while refresh keeps a
     await expect(panel).toContainText("2024-02-01 至 2024-02-29");
     await login(reg, "regulator");
     await expect(reg.getByLabel("运营周期总览", { exact: true })).toBeVisible();
+    for (const [shortcut, control, status] of [
+      ["补贴待审", "补贴筛选状态", "submitted"],
+      ["星级待审", "星级筛选状态", "submitted"],
+      ["人员账号待审", "人员申请状态筛选", "pending"],
+    ] as const) {
+      await reg.getByRole("button", { name: shortcut, exact: true }).click();
+      await expect(reg.getByLabel(control, { exact: true })).toHaveValue(
+        status,
+      );
+      await reg.goBack();
+      await expect(
+        reg.getByRole("heading", { name: "运营总览", level: 1 }),
+      ).toBeVisible();
+    }
     await login(association, "association");
+    await navigateWorkspace(association, "运营总览");
+    await association
+      .getByRole("button", { name: "待评审", exact: true })
+      .click();
+    await expect(
+      association.getByLabel("星级筛选状态", { exact: true }),
+    ).toHaveValue("submitted");
+    await association.goBack();
+    await association
+      .getByRole("button", { name: "待公示", exact: true })
+      .click();
+    await expect(
+      association.getByLabel("星级筛选状态", { exact: true }),
+    ).toHaveValue("reviewed");
+    await association
+      .getByRole("button", { name: "返回评价结果管理", exact: true })
+      .click();
+    await expect(
+      association.getByRole("heading", { name: "评价结果管理", level: 1 }),
+    ).toBeVisible();
     await expect(
       association.getByLabel("运营周期总览", { exact: true }),
     ).toHaveCount(0);

@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 
-from app import rating
+from app import rating, rating_results
 from app.authorization import RATING_ACTIONS, authorize_business_write
 from app.business_contracts import (
     RatingApplicationDetail,
@@ -430,17 +430,29 @@ def applications(
     stmt = applications_statement(user, q, status, record_id, kind, dates)
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     rows = db.execute(
-        stmt.order_by(RatingApplication.id.desc()).offset((page - 1) * page_size).limit(page_size)
+        stmt.add_columns(Station.external_id)
+        .order_by(RatingApplication.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
+    current_results = (
+        rating_results.latest_by_station(db, {row[0].station_id for row in rows})
+        if user.role in {"regulator", "association"}
+        else {}
     )
     return {
         "items": [
             {
                 **rating.output(c, station_status),
                 "station_name": station_name,
+                "station_code": station_code,
                 "operator_name": operator_name,
                 "last_submitted_at": submitted_at.isoformat() if submitted_at else None,
+                "current_station_result": rating_results.station_result(
+                    current_results.get(c.station_id), station_status
+                ),
             }
-            for c, station_name, operator_name, station_status, submitted_at in rows
+            for c, station_name, operator_name, station_status, submitted_at, station_code in rows
         ],
         "total": total,
         "page": page,

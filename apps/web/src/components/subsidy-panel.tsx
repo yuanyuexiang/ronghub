@@ -69,7 +69,12 @@ export function SubsidyPanel({
   const [routeView, setView] = useBusinessView("claims");
   const recordsOnly = role === "operator" && routeView === "records";
   const api = subsidyApi(csrf, onChanged);
-  const queue = useBusinessQueue(loadSubsidyQueue);
+  const queue = useBusinessQueue(
+    loadSubsidyQueue,
+    routeView === "claims.pending" && role === "regulator"
+      ? { status: "submitted" }
+      : {},
+  );
   const claims = queue.rows;
   const globalScope = useGlobalScope();
   const canPickStation = useCapability("stations.read");
