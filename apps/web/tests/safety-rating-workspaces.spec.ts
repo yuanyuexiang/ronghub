@@ -152,6 +152,41 @@ test("subsidy workspaces separate policy and statistics while protecting the sta
     await expect(
       page.getByRole("button", { name: "查询补贴记录", exact: true }),
     ).toBeEnabled();
+    const main = page.locator("main.content");
+    const tools = ["政策与单站申报", "补贴统计", "设备电量数据", "电量日汇总"];
+    for (const name of tools)
+      await expect(main.getByRole("button", { name, exact: true })).toHaveCount(
+        0,
+      );
+    const more = page.getByRole("button", { name: "更多功能", exact: true });
+    await more.click();
+    const auxiliary = page.getByRole("navigation", {
+      name: "辅助功能导航",
+      exact: true,
+    });
+    for (const name of tools)
+      await expect(
+        auxiliary.getByRole("button", { name, exact: true }),
+      ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(more).toBeFocused();
+    const desktop = page.viewportSize()!;
+    await page.setViewportSize({ width: 390, height: 900 });
+    await more.click();
+    const policyLink = auxiliary.getByRole("button", {
+      name: "政策与单站申报",
+      exact: true,
+    });
+    await expect(policyLink).toHaveCSS("font-size", "13px");
+    await page.keyboard.press("Escape");
+    const station = await page
+      .getByLabel("补贴申请场站", { exact: true })
+      .boundingBox();
+    const year = await page
+      .getByLabel("补贴申请年度筛选", { exact: true })
+      .boundingBox();
+    expect(station!.x + station!.width).toBeLessThanOrEqual(year!.x);
+    await page.setViewportSize(desktop);
     await page.screenshot({
       path: "../../.backups/batch34-current-subsidy-list.png",
       fullPage: true,

@@ -888,21 +888,26 @@ body.refined-workspace .prototype-workspace .indicator-catalogue-table .indicato
   color: #344964;
 }
 
-body.refined-workspace .prototype-workspace .workspace-context-actions {
+.workspace-page-actions {
+  display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
   gap: 8px;
 }
-
-body.refined-workspace .prototype-workspace nav.workspace-context-actions {
-  margin-top: 0;
-}
-body.refined-workspace .prototype-workspace nav.workspace-context-actions > button {
-  width: auto;
-  margin: 0;
+.workspace-page-actions > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 body.refined-workspace .prototype-workspace .subsidy-operator-filters {
   align-items: start;
+}
+.subsidy-operator-filters > .station-picker {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  max-width: none;
 }
 body.refined-workspace .prototype-workspace .subsidy-operator-filters .queue-query-actions {
   display: flex;

@@ -610,6 +610,7 @@ export function AuxiliaryNavigation({
   return (
     <div ref={root} className="auxiliary-navigation">
       <button
+        type="button"
         aria-expanded={open}
         aria-controls="auxiliary-menu"
         onClick={() => setOpen(!open)}
@@ -619,7 +620,8 @@ export function AuxiliaryNavigation({
       <nav id="auxiliary-menu" aria-label="辅助功能导航" hidden={!open}>
         {items.map((i) => (
           <button
-            key={i.tab + ":" + (i.view ?? "")}
+            type="button"
+            key={`${i.tab}:${i.view ?? ""}:${i.alertView ?? ""}`}
             onClick={() => {
               if (onNavigate(i) !== false) setOpen(false);
             }}

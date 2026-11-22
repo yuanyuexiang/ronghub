@@ -5969,11 +5969,45 @@ select {
 .navigation-searching .navigation-flyout { position:static; width:auto; box-shadow:none; border:0; padding:0 0 0 10px; max-height:none; overflow:visible; }
 .auxiliary-navigation { position:relative; }
 .auxiliary-navigation > button { font-size:12px; color:inherit; }
-.auxiliary-navigation > nav { position:absolute; right:0; top:calc(100% + 12px); width:230px; max-height:70dvh; overflow:auto; background:#fff; border:1px solid #e4e9f0; border-radius:7px; box-shadow:0 8px 28px #193d6b24; padding:6px; z-index:1600; }
-.auxiliary-navigation > nav[hidden] { display:none; }
-.prototype-workspace .auxiliary-navigation nav button { color:#455468; display:block; width:100%; text-align:left; padding:10px 12px; }
-.workspace-context-actions:empty { display:none; }
-.workspace-context-actions { display:flex; gap:10px; margin-bottom:12px; }
+.auxiliary-navigation > nav {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 12px);
+  width: 230px;
+  max-height: 70dvh;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #e4e9f0;
+  border-radius: 7px;
+  box-shadow: 0 8px 28px #193d6b24;
+  padding: 6px;
+  margin: 0;
+  z-index: 1600;
+}
+.auxiliary-navigation > nav[hidden] { display: none; }
+.prototype-workspace .auxiliary-navigation > nav > button {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
+  padding: 10px 12px;
+  color: #455468;
+  font-size: 13px;
+  text-align: start;
+}
+.prototype-workspace .auxiliary-navigation > nav > button:not(:disabled):hover {
+  background: #f1f5fb;
+}
+@media (max-width: 600px) {
+  .auxiliary-navigation {
+    position: static;
+  }
+  .auxiliary-navigation > nav {
+    inset-inline-end: 14px;
+    top: calc(100% + 4px);
+    max-width: calc(100vw - 28px);
+  }
+}
 @media(max-width:800px) {
  .navigation-flyout { position:static; width:auto; border:0; border-left:1px solid #e4e9f0; border-radius:0; box-shadow:none; margin-left:12px; padding:0; overflow:visible; max-height:none; }
  .prototype-workspace .workspace > header > div { gap:8px; }

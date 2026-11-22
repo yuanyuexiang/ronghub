@@ -54,7 +54,14 @@ import { StationDetail } from "../components/station-detail";
 import { SyncPanel } from "../components/sync-panel";
 import { ApplicationPanel } from "../components/application-panel";
 import { useCallback, useEffect, useState, useRef, FormEvent } from "react";
-import { ChevronRight, LogOut, ShieldCheck, Zap, Bell } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronRight,
+  LogOut,
+  ShieldCheck,
+  Zap,
+  Bell,
+} from "lucide-react";
 type Me = ApiSchemas["CurrentUser"];
 type Summary = ApiSchemas["DashboardSummary"];
 const roles: Record<string, string> = {
@@ -602,7 +609,12 @@ export default function Home() {
             ? { tab, view: "energy", label: "返回电量数据" }
             : tab === "星级评价" && workspaceView === "applications.publication"
               ? { tab, view: "results", label: "返回评价结果管理" }
-              : undefined;
+              : tab === "补贴申报" &&
+                  ["statistics", "energy", "energy.daily"].includes(
+                    workspaceView,
+                  )
+                ? { tab, view: "claims", label: "返回补贴申请管理" }
+                : undefined;
   const pageTitle = currentItem?.label ?? (tab === "工作台" ? "运营总览" : tab);
   return (
     <PageRefreshProvider>
@@ -662,7 +674,7 @@ export default function Home() {
               </span>
               <div>
                 <AuxiliaryNavigation
-                  items={auxiliary}
+                  items={[...relatedActions, ...auxiliary]}
                   onNavigate={navigateWorkspace}
                 />
                 <Bell size={17} />
@@ -679,13 +691,25 @@ export default function Home() {
                     ? "运营总览"
                     : pageTitle}
                 </h1>
-                <PageRefreshButton
-                  scope={tab}
-                  onRefresh={async () => {
-                    setError("");
-                    await loadSummary();
-                  }}
-                />
+                <div className="workspace-page-actions">
+                  {parentView && (
+                    <button
+                      type="button"
+                      className="outline"
+                      onClick={() => navigateWorkspace(parentView)}
+                    >
+                      <ArrowLeft size={14} aria-hidden="true" />
+                      {parentView.label}
+                    </button>
+                  )}
+                  <PageRefreshButton
+                    scope={tab}
+                    onRefresh={async () => {
+                      setError("");
+                      await loadSummary();
+                    }}
+                  />
+                </div>
               </div>
               {error && (
                 <p className="error" role="alert">
@@ -768,42 +792,6 @@ export default function Home() {
               )}
               {tab === "工作台" && summary && me.role === "regulator" && (
                 <DashboardOperations />
-              )}
-              {(relatedActions.length > 0 || parentView) && (
-                <nav
-                  className="workspace-context-actions"
-                  aria-label="本页相关功能"
-                >
-                  {(parentView ? [parentView] : relatedActions).map((entry) => (
-                    <button
-                      type="button"
-                      className="outline"
-                      key={entry.label}
-                      onClick={() => navigateWorkspace(entry)}
-                    >
-                      {entry.label}
-                    </button>
-                  ))}
-                </nav>
-              )}
-              {["企业台账", "场站台账"].includes(tab) && (
-                <div className="workspace-context-actions">
-                  {auxiliary
-                    .filter(
-                      (i) =>
-                        (tab === "企业台账" && i.tab === "注册审核") ||
-                        (tab === "场站台账" && i.tab === "数据同步"),
-                    )
-                    .map((i) => (
-                      <button
-                        className="outline"
-                        key={i.tab}
-                        onClick={() => navigateWorkspace(i)}
-                      >
-                        {i.label}
-                      </button>
-                    ))}
-                </div>
               )}
               {tab === "工作台" &&
                 summary &&
