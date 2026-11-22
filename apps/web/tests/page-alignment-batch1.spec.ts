@@ -360,6 +360,25 @@ test("operator finalized ledger excludes pending applications, exports applied f
       "ronghub-subsidy-ledger.csv",
     );
     await ledger.getByRole("button", { name: "补贴明细", exact: true }).click();
+    const detail = op.getByRole("region", { name: "补贴明细", exact: true });
+    await expect(detail.getByRole("table")).toContainText(fixture.name);
+    const exportedDetail = op.waitForEvent("download");
+    await detail
+      .getByRole("button", { name: "导出补贴明细", exact: true })
+      .click();
+    expect((await exportedDetail).suggestedFilename()).toBe(
+      `SUB-${cid}-补贴明细.csv`,
+    );
+    await detail.getByRole("button", { name: "订单明细", exact: true }).click();
+    const orders = op.getByRole("region", { name: "订单明细", exact: true });
+    await expect(orders).toContainText("当前无补贴与订单的逐笔关联");
+    await expect(orders).toContainText("该场站在此核算周期内暂无源报订单");
+    await orders
+      .getByRole("button", { name: "返回补贴明细", exact: true })
+      .click();
+    await detail
+      .getByRole("button", { name: "查看申请核算依据", exact: true })
+      .click();
     await expect(
       op.getByRole("button", { name: "前往补贴申请办理", exact: true }),
     ).toBeVisible();
@@ -367,6 +386,9 @@ test("operator finalized ledger excludes pending applications, exports applied f
       0,
     );
     await op.getByRole("button", { name: "关闭补贴详情", exact: true }).click();
+    await detail
+      .getByRole("button", { name: "返回补贴台账", exact: true })
+      .click();
     await expect(op.getByLabel("补贴台账名称", { exact: true })).toHaveValue(
       "unapplied-draft",
     );

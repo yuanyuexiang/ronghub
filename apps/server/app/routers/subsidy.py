@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -201,7 +201,9 @@ def create_claim(body: ClaimInput, user: Actor, db: DB, request: Request):
     return result
 
 
-def claims_statement(user, q="", status="", record_id=None, dates=None):
+def claims_statement(
+    user, q="", status="", record_id=None, dates=None, *, station_id=None, application_year=None
+):
     if status not in {"", "draft", "submitted", "approved", "rejected", "withdrawn", "disbursed"}:
         raise HTTPException(422, "不支持的办理状态")
     stmt = scoped_records(
@@ -232,6 +234,12 @@ def claims_statement(user, q="", status="", record_id=None, dates=None):
         stmt = stmt.where(SubsidyClaim.status == status)
     if record_id is not None:
         stmt = stmt.where(SubsidyClaim.id == record_id)
+    if station_id is not None:
+        stmt = stmt.where(SubsidyClaim.station_id == station_id)
+    if application_year is not None:
+        stmt = stmt.where(
+            SubsidyClaim.snapshot["application_year"].as_integer() == application_year
+        )
     return apply_dates(stmt, SubsidyClaim, dates)
 
 
@@ -243,10 +251,20 @@ def claims(
     q: str = Query("", max_length=150),
     status: str = Query("", max_length=30),
     record_id: int | None = Query(None, ge=1, le=9223372036854775807),
+    station_id: int | None = Query(None, ge=1, le=2147483647),
+    application_year: int | None = Query(None, ge=2000, le=9998),
     page: int = Query(1, ge=1, le=2147483647),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    stmt = claims_statement(user, q, status, record_id, dates)
+    stmt = claims_statement(
+        user,
+        q,
+        status,
+        record_id,
+        dates,
+        station_id=station_id,
+        application_year=application_year,
+    )
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     rows = db.execute(
         stmt.order_by(SubsidyClaim.id.desc()).offset((page - 1) * page_size).limit(page_size)
@@ -258,6 +276,7 @@ def claims(
                 "station_name": station_name,
                 "operator_name": operator_name,
                 "last_submitted_at": submitted_at.isoformat() if submitted_at else None,
+                "application_year": (c.snapshot or {}).get("application_year"),
             }
             for c, station_name, operator_name, station_status, submitted_at in rows
         ],
@@ -334,18 +353,53 @@ def detail(claim_id: int, user: Actor, db: DB):
     }
 
 
+def device_line_filters(
+    equipment_type: Literal["", "dc", "ac", "swapping", "unknown"] = "",
+    equipment_code: str = Query("", max_length=100),
+    eligibility: Literal["", "eligible", "excluded"] = "",
+):
+    return {
+        "equipment_type": equipment_type,
+        "equipment_code": equipment_code,
+        "eligibility": eligibility,
+    }
+
+
+DeviceLineFilters = Annotated[dict, Depends(device_line_filters)]
+
+
+def device_lines_statement(db, user, claim_id, filters):
+    claim = subsidy.claim_access(db, user, claim_id)
+    if (claim.snapshot or {}).get("device_calculation") is None:
+        raise HTTPException(409, "该申请未留存设备核算依据；未将旧站级明细补成设备数据")
+    stmt = select(SubsidyDeviceLine).where(SubsidyDeviceLine.claim_id == claim_id)
+    source = SubsidyDeviceLine.snapshot["source"]
+    if filters["equipment_type"]:
+        stmt = stmt.where(source["equipment_type"].as_string() == filters["equipment_type"])
+    if filters["equipment_code"].strip():
+        stmt = stmt.where(
+            source["equipment_external_id"]
+            .as_string()
+            .icontains(filters["equipment_code"].strip(), autoescape=True)
+        )
+    if filters["eligibility"]:
+        stmt = stmt.where(
+            SubsidyDeviceLine.snapshot["eligible"].as_boolean()
+            == (filters["eligibility"] == "eligible")
+        )
+    return claim, stmt
+
+
 @router.get("/claims/{claim_id}/device-lines", response_model=DeviceLinePage)
 def device_lines(
     claim_id: int,
     user: SnapshotActor,
     db: SnapshotDB,
+    filters: DeviceLineFilters,
     page: int = Query(1, ge=1, le=2147483647),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    claim = subsidy.claim_access(db, user, claim_id)
-    if (claim.snapshot or {}).get("device_calculation") is None:
-        raise HTTPException(409, "该申请未留存设备核算依据；未将旧站级明细补成设备数据")
-    stmt = select(SubsidyDeviceLine).where(SubsidyDeviceLine.claim_id == claim_id)
+    _, stmt = device_lines_statement(db, user, claim_id, filters)
     rows = db.scalars(
         stmt.order_by(SubsidyDeviceLine.fact_id).offset((page - 1) * page_size).limit(page_size)
     )

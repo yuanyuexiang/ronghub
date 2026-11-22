@@ -1,9 +1,9 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 from app.decimal_contracts import DecimalText
-from app.subsidy_device_days import SourceDeviceDay
+from app.subsidy_device_days import SourceDeviceDay, ratio
 from app.subsidy_rules import DeviceExecutableRules
 
 
@@ -63,6 +63,16 @@ class DeviceLineResponse(BaseModel):
     claim_id: int
     fact_id: int
     snapshot: DeviceLineCalculation
+
+    @computed_field
+    @property
+    def fault_pct(self) -> DecimalText | None:
+        return ratio(self.snapshot.source, "fault")[0]
+
+    @computed_field
+    @property
+    def offline_pct(self) -> DecimalText | None:
+        return ratio(self.snapshot.source, "offline")[0]
 
 
 class DeviceLinePage(BaseModel):

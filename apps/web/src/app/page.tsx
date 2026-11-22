@@ -570,9 +570,7 @@ export default function Home() {
       return entry.view?.startsWith("energy") && entry.view !== workspaceView;
     return (
       (!workspaceView || workspaceView === workspaceDefaults[tab]) &&
-      (tab !== "补贴申报" ||
-        entry.view !== "policies" ||
-        !has("subsidy.create"))
+      (tab !== "补贴申报" || entry.view !== "annual")
     );
   });
   const parentView =

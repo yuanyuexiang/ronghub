@@ -173,6 +173,7 @@ class StationApplicationPage(BaseModel):
 
 
 class SubsidyQueueItem(BaseModel):
+    application_year: int | None = None
     last_submitted_at: str | None
     id: int
     station_id: int

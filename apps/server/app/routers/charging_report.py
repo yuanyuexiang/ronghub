@@ -15,11 +15,18 @@ router = APIRouter(prefix="/api/v1/statistics/charging-subsidy", tags=["charging
 
 def filters(
     period_date: date,
+    period_end_date: date | None = None,
     period: charging_report.Period = "month",
     dimension: charging_report.Dimension = "station",
     q: str = Query("", max_length=150),
 ):
-    return {"period_date": period_date, "period": period, "dimension": dimension, "q": q}
+    return {
+        "period_date": period_date,
+        "period_end_date": period_end_date,
+        "period": period,
+        "dimension": dimension,
+        "q": q,
+    }
 
 
 Filters = Annotated[dict, Depends(filters)]

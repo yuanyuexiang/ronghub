@@ -22,13 +22,15 @@ from app.models import (
     Station,
     SubsidyAction,
     SubsidyClaim,
+    SubsidyDeviceLine,
     SubsidyPolicy,
     User,
 )
 from app.reporting import SnapshotDB
 from app.routers.rating import applications_statement
 from app.routers.statistics import csv_cell
-from app.routers.subsidy import claims_statement
+from app.routers.subsidy import DeviceLineFilters, claims_statement, device_lines_statement
+from app.subsidy_execution_contracts import DeviceLineResponse
 
 router = APIRouter(tags=["business reports"])
 CSV = {200: {"content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}}}}
@@ -48,12 +50,29 @@ def filters(
 Filters = Annotated[dict, Depends(filters)]
 
 
+def subsidy_filters(
+    params: Filters,
+    station_id: int | None = Query(None, ge=1, le=2147483647),
+    application_year: int | None = Query(None, ge=2000, le=9998),
+):
+    return {**params, "station_id": station_id, "application_year": application_year}
+
+
+SubsidyFilters = Annotated[dict, Depends(subsidy_filters)]
+
+
 def statement(user, params, module):
     if module == "subsidy":
         if params["kind"]:
             raise HTTPException(422, "补贴导出不支持评星类型条件")
         return claims_statement(
-            user, params["q"], params["status"], params["record_id"], params["dates"]
+            user,
+            params["q"],
+            params["status"],
+            params["record_id"],
+            params["dates"],
+            station_id=params["station_id"],
+            application_year=params["application_year"],
         )
     return applications_statement(
         user, params["q"], params["status"], params["record_id"], params["kind"], params["dates"]
@@ -85,7 +104,7 @@ def guard(db, user, module):
 
 
 @router.get("/api/v1/subsidy/claims/export", response_class=Response, responses=CSV)
-def subsidy_list(user: SnapshotActor, db: SnapshotDB, params: Filters):
+def subsidy_list(user: SnapshotActor, db: SnapshotDB, params: SubsidyFilters):
     guard(db, user, "subsidy")
     c = SubsidyClaim
     stmt = (
@@ -108,6 +127,7 @@ def subsidy_list(user: SnapshotActor, db: SnapshotDB, params: Filters):
             submission_time(SubsidyClaim).label("last_submitted_at"),
             c.version,
             c.is_demo,
+            c.snapshot["application_year"].as_integer(),
         )
         .join(SubsidyPolicy, SubsidyPolicy.id == c.policy_id)
         .order_by(c.id.desc())
@@ -136,6 +156,7 @@ def subsidy_list(user: SnapshotActor, db: SnapshotDB, params: Filters):
             "最近提交时间(带时区，缺失不以创建时间代替)",
             "记录版本",
             "演示标识",
+            "申请年度",
         ],
         list(db.execute(stmt)),
     )
@@ -302,10 +323,67 @@ def process(user, db, params, module):
 
 
 @router.get("/api/v1/subsidy/claims/process/export", response_class=Response, responses=CSV)
-def subsidy_process(user: SnapshotActor, db: SnapshotDB, params: Filters):
+def subsidy_process(user: SnapshotActor, db: SnapshotDB, params: SubsidyFilters):
     return process(user, db, params, "subsidy")
 
 
 @router.get("/api/v1/ratings/applications/process/export", response_class=Response, responses=CSV)
 def rating_process(user: SnapshotActor, db: SnapshotDB, params: Filters):
     return process(user, db, params, "ratings")
+
+
+@router.get(
+    "/api/v1/subsidy/claims/{claim_id}/device-lines/export", response_class=Response, responses=CSV
+)
+def subsidy_device_lines_export(
+    claim_id: int, user: SnapshotActor, db: SnapshotDB, filters: DeviceLineFilters
+):
+    guard(db, user, "subsidy")
+    claim, statement = device_lines_statement(db, user, claim_id, filters)
+    if claim.status not in {"approved", "rejected", "disbursed"}:
+        raise HTTPException(409, "审核完成后可导出设备核算结果")
+    rows = []
+    for record in db.scalars(statement.order_by(SubsidyDeviceLine.fact_id).limit(LIMIT + 1)):
+        line = DeviceLineResponse(
+            claim_id=claim_id, fact_id=record.fact_id, snapshot=record.snapshot
+        )
+        source = line.snapshot.source
+        rows.append(
+            [
+                claim_id,
+                claim.status,
+                source.day.isoformat(),
+                source.equipment_name,
+                source.equipment_external_id,
+                source.equipment_type,
+                source.power_kw,
+                source.production_date.isoformat() if source.production_date else None,
+                source.energy_kwh,
+                line.fault_pct,
+                line.offline_pct,
+                line.snapshot.amount,
+                "达标" if line.snapshot.eligible else "未达标",
+            ]
+        )
+    return response(
+        db,
+        user,
+        "subsidy",
+        "device-review",
+        [
+            "申请编号",
+            "申请审核状态",
+            "观测日期",
+            "设备名称",
+            "设备编码",
+            "设备类型",
+            "功率(kW)",
+            "生产日期",
+            "冻结日计量(kWh)",
+            "故障率(%)",
+            "离线率(%)",
+            "设备日汇算金额(元，系数前)",
+            "设备日核算结论",
+        ],
+        rows,
+    )

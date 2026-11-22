@@ -16,8 +16,8 @@ async function login(page: Page) {
       exact: true,
     }),
   ).toBeVisible();
-  await navigateWorkspace(page, "补贴申报");
-  await navigateWorkspace(page, "年度多站申报");
+  await navigateWorkspace(page, "补贴申请管理");
+  await navigateWorkspace(page, "新建补贴申请");
 }
 function fixtures(
   count: number,
@@ -172,6 +172,24 @@ test("annual multi-station form preserves drafts and recovers a lost success res
       path: "test-results/subsidy-annual-receipt.png",
       fullPage: true,
     });
+    await panel
+      .getByRole("button", { name: "返回补贴申请管理", exact: true })
+      .click();
+    await page.getByLabel("补贴申请年度筛选", { exact: true }).fill("2026");
+    await page.getByLabel("补贴检索名称", { exact: true }).fill(group);
+    const filtered = page.waitForResponse(
+      (r) =>
+        new URL(r.url()).pathname === "/api/v1/subsidy/claims" &&
+        new URL(r.url()).searchParams.get("application_year") === "2026",
+    );
+    await page
+      .getByRole("button", { name: "查询补贴记录", exact: true })
+      .click();
+    expect(
+      (await (await filtered).json()).items.map(
+        (item: { application_year: number }) => item.application_year,
+      ),
+    ).toEqual([2026, 2026]);
   } finally {
     clean(items);
   }

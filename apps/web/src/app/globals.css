@@ -2967,25 +2967,49 @@ select {
 }
 
 .combined-report table {
-  min-width: 1000px;
-  table-layout: fixed;
+  min-width: 1020px;
+  table-layout: auto;
 }
 .combined-report td {
   vertical-align: top;
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.combined-report th:nth-child(1) {
-  width: 20%;
+.combined-report th[scope="colgroup"] {
+  text-align: center;
 }
-.combined-report th:nth-child(2) {
-  width: 18%;
+.combined-report th[scope="col"],
+.combined-report td.numeric-cell {
+  white-space: nowrap;
 }
-.combined-report th:nth-child(3) {
-  width: 32%;
+.combined-report td small,
+.ledger-detail td small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
 }
-.combined-report th:nth-child(4) {
-  width: 30%;
+.report-metric-value {
+  display: block;
+  min-height: 23px;
+  white-space: nowrap;
+}
+.combined-dimensions {
+  display: flex;
+  gap: 8px;
+  margin: 0 var(--panel-content-inset, 24px) 16px;
+}
+.combined-dimensions button[aria-pressed="true"] {
+  color: var(--brand);
+  background: #edf2fe;
+  border-color: #aec3f4;
+  font-weight: 650;
+}
+.ledger-detail table {
+  min-width: 690px;
+}
+.ledger-detail .inline-note {
+  margin: 0 var(--panel-content-inset, 24px) 12px;
+  padding-inline: 0;
 }
 .combined-overview {
   margin: 20px 24px;
@@ -3039,10 +3063,8 @@ select {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
-.combined-report .application-filters > button {
+.combined-report .application-filters > .action-row {
   grid-column: 1 / -1;
-  justify-self: start;
-  min-width: 150px;
 }
 @media (max-width: 1000px) {
   .combined-report .application-filters {

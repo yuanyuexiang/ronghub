@@ -1,4 +1,5 @@
 "use client";
+import { StationPicker } from "./station-picker";
 import { usePageRefresh } from "./page-refresh";
 import {
   Dispatch,
@@ -25,6 +26,8 @@ export type QueueQuery = {
   status: string;
   kind: string;
   record_id: string;
+  station_id?: string;
+  application_year?: string;
   overdue?: string;
   acknowledged?: string;
   start_at?: string;
@@ -53,6 +56,15 @@ export function businessDateParams(query: QueueQuery, subsidy: boolean) {
     period_to: subsidy ? query.period_to || undefined : undefined,
   };
 }
+export function subsidyQueueParams(query: QueueQuery) {
+  return {
+    station_id: query.station_id ? Number(query.station_id) : undefined,
+    application_year: query.application_year
+      ? Number(query.application_year)
+      : undefined,
+  };
+}
+
 export function submissionTime(value: string | null) {
   return value
     ? new Date(value).toLocaleString("zh-CN", {
@@ -74,7 +86,13 @@ export async function loadSubsidyQueue(query: QueueQuery, signal: AbortSignal) {
   const { data, error } = await typedApi.GET("/api/v1/subsidy/claims", {
     cache: "no-store",
     signal,
-    params: { query: { ...params(query), ...businessDateParams(query, true) } },
+    params: {
+      query: {
+        ...params(query),
+        ...businessDateParams(query, true),
+        ...subsidyQueueParams(query),
+      },
+    },
   });
   if (!data) throw new Error(apiError(error, "补贴记录加载失败"));
   return data;
@@ -254,6 +272,8 @@ export function QueueFilters({
   busy,
   onSearch,
   period = false,
+  stationSelection = false,
+  applicationYear = false,
 }: {
   queue: Controls;
   label: string;
@@ -262,11 +282,40 @@ export function QueueFilters({
   busy: boolean;
   onSearch: () => void;
   period?: boolean;
+  stationSelection?: boolean;
+  applicationYear?: boolean;
 }) {
+  const { setDraft } = queue;
+  const selectStation = useCallback(
+    (value: string) => setDraft((draft) => ({ ...draft, station_id: value })),
+    [setDraft],
+  );
+  const queryActions = (
+    <>
+      <button className="primary" disabled={busy || queue.loading}>
+        查询{label}记录
+      </button>
+      <button
+        className="outline"
+        type="button"
+        disabled={busy || queue.loading}
+        onClick={() => {
+          onSearch();
+          queue.reset();
+        }}
+      >
+        重置{label}筛选
+      </button>
+    </>
+  );
   return (
     <>
       <form
-        className="application-filters"
+        className={
+          applicationYear
+            ? "application-filters subsidy-operator-filters"
+            : "application-filters"
+        }
         onSubmit={(event) => {
           event.preventDefault();
           if (busy) return;
@@ -274,6 +323,34 @@ export function QueueFilters({
           queue.apply();
         }}
       >
+        {stationSelection && (
+          <StationPicker
+            label="补贴申请场站"
+            allowAll
+            compact
+            value={queue.draft.station_id || ""}
+            onChange={selectStation}
+          />
+        )}
+        {applicationYear && (
+          <label>
+            申请年度
+            <input
+              aria-label="补贴申请年度筛选"
+              type="number"
+              min={2000}
+              max={9998}
+              placeholder="全部年度"
+              value={queue.draft.application_year || ""}
+              onChange={(event) =>
+                setDraft({
+                  ...queue.draft,
+                  application_year: event.target.value,
+                })
+              }
+            />
+          </label>
+        )}
         <label>
           场站或企业名称
           <input
@@ -396,20 +473,11 @@ export function QueueFilters({
             </label>
           </fieldset>
         )}
-        <button className="primary" disabled={busy || queue.loading}>
-          查询{label}记录
-        </button>
-        <button
-          className="outline"
-          type="button"
-          disabled={busy || queue.loading}
-          onClick={() => {
-            onSearch();
-            queue.reset();
-          }}
-        >
-          重置{label}筛选
-        </button>
+        {applicationYear ? (
+          <div className="queue-query-actions">{queryActions}</div>
+        ) : (
+          queryActions
+        )}
       </form>
       {queue.error && (
         <p className="error" role="alert">

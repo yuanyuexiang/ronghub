@@ -128,6 +128,17 @@ def test_combined_report_keeps_sources_flags_missing_metrics_cross_period_and_de
             == "2024-02-29"
         )
 
+        ranged = owner.get(
+            BASE, params={**query, "period_date": "2026-10-19", "period_end_date": "2026-12-01"}
+        )
+        assert ranged.status_code == 200, ranged.text
+        ranged_body = ranged.json()
+        assert ranged_body["start_date"] == "2026-10-01"
+        assert ranged_body["end_date"] == "2026-12-31"
+        assert ranged_body["cross_period_claim_count"] == 0
+        assert owner.get(BASE, params={**query, "period_end_date": "2026-11-01"}).status_code == 422
+        assert owner.get(BASE, params={**query, "period_end_date": "2027-11-01"}).status_code == 422
+
 
 def test_export_is_real_excel_with_literal_names_and_unallocated_money_not_duplicated(
     data, accounts, tmp_path

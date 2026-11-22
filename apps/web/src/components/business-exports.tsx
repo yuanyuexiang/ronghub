@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { apiError, typedApi } from "../lib/typed-api";
 import { useCapability } from "./permissions";
-import { businessDateParams, type QueueQuery } from "./business-queue";
+import {
+  businessDateParams,
+  subsidyQueueParams,
+  type QueueQuery,
+} from "./business-queue";
 
 export function BusinessExports({
   module,
@@ -36,6 +40,7 @@ export function BusinessExports({
         params: {
           query: {
             ...businessDateParams(query, module === "subsidy"),
+            ...(module === "subsidy" ? subsidyQueueParams(query) : {}),
             q: query.q,
             status: query.status,
             record_id: query.record_id ? Number(query.record_id) : undefined,

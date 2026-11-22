@@ -56,11 +56,15 @@ test("combined report keeps source identities, all-query totals and real Excel d
     await expect(summary).toContainText("消费 1");
     await expect(section).toContainText("2026-11-01 至 2026-11-30");
     await own
-      .getByLabel("综合汇总维度", { exact: true })
-      .selectOption("equipment");
-    await own
-      .getByRole("button", { name: "查询综合报表", exact: true })
+      .getByRole("group", { name: "综合汇总维度", exact: true })
+      .getByRole("button", { name: "电桩汇总", exact: true })
       .click();
+    await expect(
+      section.getByRole("columnheader", {
+        name: "充电时长（小时）",
+        exact: true,
+      }),
+    ).toBeVisible();
     await expect(section).toContainText("综合第1页 · 共26个对象");
     await own.getByRole("button", { name: "综合下一页", exact: true }).click();
     await expect(section).toContainText("综合第2页 · 共26个对象");

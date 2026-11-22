@@ -5,6 +5,23 @@ import { useCapability } from "./permissions";
 import { usePageRefresh } from "./page-refresh";
 type Report = ApiSchemas["ChargingReport"];
 type Subsidy = ApiSchemas["SubsidyStream"];
+type Order = ApiSchemas["OrderStream"];
+const orderColumns = [
+  [
+    "订单来源",
+    (order: Order) => `${order.source} · ${order.is_demo ? "演示" : "源报"}`,
+  ],
+  ["充电量（度）", (order: Order) => order.kwh.value],
+  ["充电次数", (order: Order) => order.completed_orders],
+  ["充电时长（小时）", (order: Order) => order.duration_hours],
+  ["用户消费（元）", (order: Order) => order.amount.value],
+] as const;
+const subsidyColumns = [
+  ["汇算补贴", (item: Subsidy) => item.base_amount],
+  ["核定补贴", (item: Subsidy) => item.adjusted_amount],
+  ["登记发放", (item: Subsidy) => item.disbursed_amount],
+] as const;
+
 const today = () =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Shanghai",
@@ -12,6 +29,21 @@ const today = () =>
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
+function initialFilters(): {
+  period: Report["period"];
+  period_date: string;
+  period_end_date: string;
+  dimension: Report["dimension"];
+  q: string;
+} {
+  return {
+    period: "month",
+    period_date: today(),
+    period_end_date: "",
+    dimension: "station",
+    q: "",
+  };
+}
 function Subsidies({ values }: { values: Subsidy[] }) {
   return values.length ? (
     values.map((stream) => (
@@ -46,17 +78,7 @@ export function ChargingSubsidyReport() {
   const exportStats = useCapability("statistics.export"),
     exportOrders = useCapability("orders.export");
   const allowed = statistics && orders && subsidies;
-  const [draft, setDraft] = useState<{
-    period: Report["period"];
-    period_date: string;
-    dimension: Report["dimension"];
-    q: string;
-  }>(() => ({
-    period: "month",
-    period_date: today(),
-    dimension: "station",
-    q: "",
-  }));
+  const [draft, setDraft] = useState(() => initialFilters());
   const [query, setQuery] = useState<
     (typeof draft & { page: number; refresh: number }) | null
   >(null);
@@ -77,6 +99,7 @@ export function ChargingSubsidyReport() {
           query: {
             period: query.period,
             period_date: query.period_date,
+            period_end_date: query.period_end_date || undefined,
             dimension: query.dimension,
             q: query.q,
             page: query.page,
@@ -117,6 +140,7 @@ export function ChargingSubsidyReport() {
             query: {
               period: data.period,
               period_date: data.period_date,
+              period_end_date: data.end_date,
               dimension: data.dimension,
               q: data.q,
             },
@@ -153,7 +177,7 @@ export function ChargingSubsidyReport() {
     <section className="panel combined-report" aria-label="充电与补贴综合报表">
       <div className="panel-title">
         <div>
-          <h2>充电与补贴数据统计</h2>
+          <h2>统计条件</h2>
           <p>按同一自然周期核对订单观测与补贴核算，来源和金额分别保留</p>
         </div>
         {exportStats && exportOrders && (
@@ -174,23 +198,6 @@ export function ChargingSubsidyReport() {
         }}
       >
         <label>
-          汇总维度
-          <select
-            aria-label="综合汇总维度"
-            value={draft.dimension}
-            onChange={(e) => {
-              if (
-                e.target.value === "station" ||
-                e.target.value === "equipment"
-              )
-                setDraft({ ...draft, dimension: e.target.value });
-            }}
-          >
-            <option value="station">场站汇总</option>
-            <option value="equipment">电桩汇总</option>
-          </select>
-        </label>
-        <label>
           统计周期
           <select
             aria-label="综合统计周期"
@@ -210,7 +217,7 @@ export function ChargingSubsidyReport() {
           </select>
         </label>
         <label>
-          周期内日期（北京）
+          开始日期（北京）
           <input
             type="date"
             aria-label="综合周期日期"
@@ -224,6 +231,19 @@ export function ChargingSubsidyReport() {
           />
         </label>
         <label>
+          结束日期（北京，可选）
+          <input
+            type="date"
+            aria-label="综合周期结束日期"
+            min={draft.period_date || "1900-01-01"}
+            max="9998-12-31"
+            value={draft.period_end_date}
+            onChange={(e) =>
+              setDraft({ ...draft, period_end_date: e.target.value })
+            }
+          />
+        </label>
+        <label>
           场站名称
           <input
             aria-label="综合场站名称"
@@ -232,10 +252,54 @@ export function ChargingSubsidyReport() {
             onChange={(e) => setDraft({ ...draft, q: e.target.value })}
           />
         </label>
-        <button className="primary" disabled={busy}>
-          查询综合报表
-        </button>
+        <div className="action-row">
+          <button className="primary" disabled={busy}>
+            查询综合报表
+          </button>
+          <button
+            className="outline"
+            type="button"
+            disabled={busy || exporting}
+            onClick={() => {
+              setDraft(initialFilters());
+              setQuery(null);
+              setData(null);
+              setError("");
+            }}
+          >
+            重置统计条件
+          </button>
+        </div>
       </form>
+      <div
+        className="combined-dimensions"
+        role="group"
+        aria-label="综合汇总维度"
+      >
+        {(
+          [
+            ["station", "场站汇总"],
+            ["equipment", "电桩汇总"],
+          ] as const
+        ).map(([dimension, label]) => (
+          <button
+            key={dimension}
+            type="button"
+            className="outline"
+            aria-pressed={draft.dimension === dimension}
+            onClick={() => {
+              setDraft((current) => ({ ...current, dimension }));
+              setQuery((current) =>
+                current && current.dimension !== dimension
+                  ? { ...current, dimension, page: 1 }
+                  : current,
+              );
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       {error && (
         <p className="error application-list-note" role="alert">
           {error}
@@ -317,13 +381,30 @@ export function ChargingSubsidyReport() {
               role="region"
               aria-label="综合报表明细，可横向滚动"
             >
-              <table>
+              <table className="aligned-records">
                 <thead>
                   <tr>
-                    <th>场站 / 运营商</th>
-                    <th>设备身份</th>
-                    <th>充电业务（分来源）</th>
-                    <th>运营补贴核算</th>
+                    <th rowSpan={2} scope="col">
+                      场站 / 运营商
+                    </th>
+                    {data.dimension === "equipment" && (
+                      <th rowSpan={2} scope="col">
+                        电桩名称 / 编码
+                      </th>
+                    )}
+                    <th colSpan={orderColumns.length} scope="colgroup">
+                      充电业务
+                    </th>
+                    <th colSpan={subsidyColumns.length} scope="colgroup">
+                      运营补贴（元）
+                    </th>
+                  </tr>
+                  <tr>
+                    {[...orderColumns, ...subsidyColumns].map(([label]) => (
+                      <th key={label} scope="col">
+                        {label}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -335,51 +416,58 @@ export function ChargingSubsidyReport() {
                           {row.operator_name} · {row.district}
                         </span>
                       </td>
-                      <td>
-                        {row.kind === "station"
-                          ? "场站汇总"
-                          : row.kind === "equipment"
+                      {data.dimension === "equipment" && (
+                        <td>
+                          {row.kind === "equipment"
                             ? row.equipment_name
-                            : "未匹配台账的源桩引用"}
-                        <span>
-                          {row.equipment_external_id ??
-                            (row.kind === "station" ? "" : "来源未提供编码")}
-                        </span>
-                        {row.reference_source && (
-                          <span>来源：{row.reference_source}</span>
-                        )}
-                      </td>
-                      <td>
-                        {row.orders.map((stream) => (
-                          <div
-                            className="combined-stream"
-                            key={JSON.stringify([
-                              stream.source,
-                              stream.is_demo,
-                            ])}
-                          >
-                            <strong>
-                              {stream.source} ·{" "}
-                              {stream.is_demo ? "演示" : "源报"}
-                            </strong>
-                            <span>
-                              已完成 {stream.completed_orders} 单 · 已知{" "}
-                              {stream.kwh.value ?? "暂无数据"} kWh
-                            </span>
-                            <span>
-                              源报时长 {stream.duration_hours ?? "暂无数据"}{" "}
-                              小时
-                            </span>
-                            <span>
-                              源报消费 {stream.amount.value ?? "暂无数据"} 元
-                            </span>
-                          </div>
-                        ))}
-                        {!row.orders.length && "暂无来源订单"}
-                      </td>
-                      <td>
-                        <Subsidies values={row.subsidies} />
-                      </td>
+                            : "未匹配台账的源桩"}
+                          <small>
+                            {row.equipment_external_id ?? "来源未提供编码"}
+                          </small>
+                          {row.reference_source && (
+                            <small>来源：{row.reference_source}</small>
+                          )}
+                        </td>
+                      )}
+                      {orderColumns.map(([label, value]) => (
+                        <td
+                          key={label}
+                          className={
+                            label === "订单来源" ? undefined : "numeric-cell"
+                          }
+                        >
+                          {row.orders.length
+                            ? row.orders.map((stream) => (
+                                <div
+                                  className="report-metric-value"
+                                  key={JSON.stringify([
+                                    stream.source,
+                                    stream.is_demo,
+                                  ])}
+                                >
+                                  {value(stream) ?? "未上报"}
+                                </div>
+                              ))
+                            : "—"}
+                        </td>
+                      ))}
+                      {subsidyColumns.map(([label, value]) => (
+                        <td key={label} className="numeric-cell">
+                          {row.subsidies.length
+                            ? row.subsidies.map((stream) => (
+                                <div
+                                  className="report-metric-value"
+                                  key={String(stream.is_demo)}
+                                >
+                                  {value(stream) ?? "未分摊"}
+                                  <small>
+                                    {stream.is_demo ? "演示核算" : "登记核算"}
+                                  </small>
+                                </div>
+                              ))
+                            : "—"}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>

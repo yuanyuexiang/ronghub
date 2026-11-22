@@ -11,6 +11,7 @@ export function StationPicker({
   kind = "inventory",
   onSource,
   allowAll = false,
+  compact = false,
 }: {
   label: string;
   value: string;
@@ -19,6 +20,7 @@ export function StationPicker({
   kind?: "inventory" | "runtime" | "alerts" | "inspection";
   onSource?: (source: string) => void;
   allowAll?: boolean;
+  compact?: boolean;
 }) {
   const [items, setItems] = useState<Option[]>([]),
     [selected, setSelected] = useState<Option | null>(null),
@@ -94,32 +96,8 @@ export function StationPicker({
     allowAll,
     pageRefreshRevision,
   ]);
-  return (
-    <div className="station-picker">
-      <label>
-        {label}
-        <select
-          aria-label={label}
-          value={value}
-          disabled={busy}
-          onChange={(e) => {
-            const found = items.find((s) => String(s.id) === e.target.value);
-            if (found) setSelected(found);
-            onChange(e.target.value);
-            if (found?.source !== undefined) onSource?.(found.source);
-          }}
-        >
-          <option value="">{allowAll ? "全部授权场站" : "请选择场站"}</option>
-          {selected && !items.some((s) => s.id === selected.id) && (
-            <option value={selected.id}>{selected.name}</option>
-          )}
-          {items.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </label>
+  const search = (
+    <>
       <div className="picker-search">
         <input
           aria-label={`${label}名称筛选`}
@@ -166,6 +144,42 @@ export function StationPicker({
           →
         </button>
       </div>
+    </>
+  );
+  return (
+    <div className="station-picker">
+      <label>
+        {label}
+        <select
+          aria-label={label}
+          value={value}
+          disabled={busy}
+          onChange={(e) => {
+            const found = items.find((s) => String(s.id) === e.target.value);
+            if (found) setSelected(found);
+            onChange(e.target.value);
+            if (found?.source !== undefined) onSource?.(found.source);
+          }}
+        >
+          <option value="">{allowAll ? "全部授权场站" : "请选择场站"}</option>
+          {selected && !items.some((s) => s.id === selected.id) && (
+            <option value={selected.id}>{selected.name}</option>
+          )}
+          {items.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {compact ? (
+        <details className="station-search-options">
+          <summary>搜索或翻页</summary>
+          {search}
+        </details>
+      ) : (
+        search
+      )}
       {error && (
         <p className="error" role="alert">
           {error}

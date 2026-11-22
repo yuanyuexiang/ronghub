@@ -890,3 +890,44 @@ body.refined-workspace .prototype-workspace nav.workspace-context-actions > butt
   width: auto;
   margin: 0;
 }
+
+body.refined-workspace .prototype-workspace .subsidy-operator-filters {
+  align-items: start;
+}
+body.refined-workspace .prototype-workspace .subsidy-operator-filters .queue-query-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+body.refined-workspace .prototype-workspace :is(.queue-query-actions, .combined-report .application-filters > .action-row) > button.primary {
+  width: auto;
+  margin: 0;
+}
+body.refined-workspace .prototype-workspace .station-search-options > summary {
+  padding: 4px 0;
+  width: fit-content;
+  font-size: 12px;
+  color: var(--muted);
+}
+@media (min-width: 1300px) {
+  body.refined-workspace .prototype-workspace .subsidy-operator-filters {
+    grid-template-columns: minmax(180px, 1.25fr) repeat(4, minmax(115px, 1fr));
+  }
+}
+
+body.refined-workspace .prototype-workspace .subsidy-claims-table
+  :is(th:nth-child(2), td.numeric-cell) {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+body.refined-workspace .prototype-workspace .subsidy-claims-table td.numeric-cell {
+  padding-inline: 10px;
+}
+body.refined-workspace .prototype-workspace .combined-report thead tr:first-child th[scope="col"] {
+  min-width: 126px;
+}
+body.refined-workspace .prototype-workspace .combined-report thead th:first-child[scope="col"][rowspan] {
+  min-width: 164px;
+}

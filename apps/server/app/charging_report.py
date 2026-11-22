@@ -180,10 +180,28 @@ def sum_subsidies(values):
     return [SubsidyStream.model_validate(groups[key]) for key in sorted(groups)]
 
 
-def collect(db, user, period, period_date, dimension, q, page, page_size, *, exporting=False):
+def collect(
+    db,
+    user,
+    period,
+    period_date,
+    dimension,
+    q,
+    page,
+    page_size,
+    *,
+    exporting=False,
+    period_end_date=None,
+):
     if user.role not in {"regulator", "operator"}:
         raise HTTPException(403, "仅监管及所属企业可查看充电与补贴报表")
     first, last, start, end = window(period, period_date)
+    if period_end_date is not None:
+        if period_end_date < period_date:
+            raise HTTPException(422, "结束日期须等于或晚于开始日期")
+        _, last, _, end = window(period, period_end_date)
+        if (last - first).days >= 366:
+            raise HTTPException(422, "按自然周期计算后，最长可查询366天")
     stmt = station_scope(
         select(Station, Operator).join(Operator, Operator.id == Station.operator_id), user
     )

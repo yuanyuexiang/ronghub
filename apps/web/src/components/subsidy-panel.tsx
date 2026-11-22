@@ -72,6 +72,7 @@ export function SubsidyPanel({
   const queue = useBusinessQueue(loadSubsidyQueue);
   const claims = queue.rows;
   const globalScope = useGlobalScope();
+  const canPickStation = useCapability("stations.read");
   const canCreate = useCapability("subsidy.create"),
     canEdit = useCapability("subsidy.edit") && !recordsOnly,
     canMaterials = useCapability("subsidy.materials") && !recordsOnly,
@@ -112,7 +113,7 @@ export function SubsidyPanel({
       Boolean(comment.trim()) ||
       delta !== "0.00" ||
       showPolicy ||
-      (view === "annual" && annualDirty) ||
+      annualDirty ||
       (!detail && view === "policies" && Boolean(applicationNote.trim())),
     busy,
     registerLeaveGuard,
@@ -249,6 +250,7 @@ export function SubsidyPanel({
               parentBusy={busy}
               onBusy={setAnnualBusy}
               onDirty={setAnnualDirty}
+              onReturn={() => setView("claims")}
               onCreated={() => {
                 queue.reset();
                 queue.reload();
@@ -467,7 +469,7 @@ export function SubsidyPanel({
                   type="button"
                   className="primary"
                   disabled={busy}
-                  onClick={() => setView("policies")}
+                  onClick={() => setView("annual")}
                 >
                   新建补贴申请
                 </button>
@@ -477,6 +479,8 @@ export function SubsidyPanel({
           <QueueFilters
             queue={queue}
             label="补贴"
+            stationSelection={role === "operator" && canPickStation}
+            applicationYear={role === "operator"}
             period
             statuses={statuses}
             busy={busy}
@@ -526,12 +530,23 @@ export function SubsidyPanel({
               </div>
             </>
           )}
-          <div className="table-wrap">
+          <div
+            className="table-wrap"
+            role="region"
+            aria-label="补贴申请列表，可横向滚动"
+            tabIndex={0}
+          >
             <table className="aligned-records subsidy-claims-table">
               <colgroup>
                 {canBatch && <col style={{ width: "5%" }} />}
                 <col style={{ width: "9%" }} />
-                <col style={{ width: canBatch ? "17%" : "22%" }} />
+                {role === "operator" && <col style={{ width: "7%" }} />}
+                <col
+                  style={{
+                    width:
+                      role === "operator" ? "15%" : canBatch ? "17%" : "22%",
+                  }}
+                />
                 <col style={{ width: "11%" }} />
                 <col style={{ width: "14%" }} />
                 <col style={{ width: "8%" }} />
@@ -545,6 +560,7 @@ export function SubsidyPanel({
                   {canBatch && <th>选择</th>}
                   {[
                     "编号",
+                    ...(role === "operator" ? ["申请年度"] : []),
                     "场站 / 企业",
                     "周期",
                     "最近提交（北京时间）",
@@ -590,6 +606,9 @@ export function SubsidyPanel({
                       </td>
                     )}
                     <td>SUB-{c.id}</td>
+                    {role === "operator" && (
+                      <td>{c.application_year ?? "—"}</td>
+                    )}
                     <td>
                       {c.station_name}
                       <br />
@@ -662,6 +681,12 @@ export function SubsidyPanel({
               </button>
             </div>
             <dl className="station-facts claim-summary">
+              {role === "operator" && (
+                <div>
+                  <dt>申请年度</dt>
+                  <dd>{detail.snapshot?.application_year ?? "未留存"}</dd>
+                </div>
+              )}
               <div>
                 <dt>申请场站</dt>
                 <dd>
@@ -714,7 +739,11 @@ export function SubsidyPanel({
             />
             {detail.snapshot?.device_calculation && (
               <SubsidyDeviceCalculation
+                key={detail.id}
                 claimId={detail.id}
+                reviewed={["approved", "rejected", "disbursed"].includes(
+                  detail.status,
+                )}
                 calculation={detail.snapshot.device_calculation}
               />
             )}
@@ -725,30 +754,35 @@ export function SubsidyPanel({
                 </p>
               )}
             {!detail.snapshot?.device_calculation && (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>电量记录</th>
-                      <th>日期</th>
-                      <th>kWh</th>
-                      <th>单价</th>
-                      <th>金额</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.snapshot?.details?.map((d) => (
-                      <tr key={d.energy_id}>
-                        <td>{d.energy_id}</td>
-                        <td>{d.day}</td>
-                        <td>{d.kwh}</td>
-                        <td>{d.rate}</td>
-                        <td>{d.amount}</td>
+              <>
+                {role === "operator" && (
+                  <p className="inline-note">该申请未留存设备级审核结果。</p>
+                )}
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>电量记录</th>
+                        <th>日期</th>
+                        <th>kWh</th>
+                        <th>单价</th>
+                        <th>金额</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {detail.snapshot?.details?.map((d) => (
+                        <tr key={d.energy_id}>
+                          <td>{d.energy_id}</td>
+                          <td>{d.day}</td>
+                          <td>{d.kwh}</td>
+                          <td>{d.rate}</td>
+                          <td>{d.amount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
             <div className="detail-grid">
               <div>

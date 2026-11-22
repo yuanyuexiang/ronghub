@@ -19,6 +19,7 @@ export function SubsidyAnnual({
   onBusy,
   onDirty,
   onCreated,
+  onReturn,
 }: {
   csrf: string;
   policies: ApiSchemas["SubsidyPolicyResponse"][];
@@ -28,6 +29,7 @@ export function SubsidyAnnual({
   onBusy: (value: boolean) => void;
   onDirty: (value: boolean) => void;
   onCreated: () => void;
+  onReturn: () => void;
 }) {
   const revision = usePageRefresh();
   const [q, setQ] = useState(""),
@@ -170,7 +172,17 @@ export function SubsidyAnnual({
           <h2>年度补贴申报</h2>
           <p>选择年度和场站，一次生成每站独立申请，全部成功或全部回滚</p>
         </div>
-        <span className="tag">已选 {selected.length} / 20 座</span>
+        <div className="action-row">
+          <span className="tag">已选 {selected.length} / 20 座</span>
+          <button
+            type="button"
+            className="outline"
+            disabled={locked}
+            onClick={onReturn}
+          >
+            返回补贴申请管理
+          </button>
+        </div>
       </div>
       <div className="business-form">
         <label>

@@ -3352,6 +3352,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subsidy/claims/{claim_id}/device-lines/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subsidy Device Lines Export */
+        get: operations["subsidy_device_lines_export_api_v1_subsidy_claims__claim_id__device_lines_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subsidy/device-days": {
         parameters: {
             query?: never;
@@ -3429,6 +3446,57 @@ export interface paths {
         };
         /** Export */
         get: operations["export_api_v1_subsidy_ledger_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subsidy/ledger/{claim_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Detail */
+        get: operations["export_detail_api_v1_subsidy_ledger__claim_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subsidy/ledger/{claim_id}/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reference Orders */
+        get: operations["reference_orders_api_v1_subsidy_ledger__claim_id__orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subsidy/ledger/{claim_id}/orders/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Reference Orders */
+        get: operations["export_reference_orders_api_v1_subsidy_ledger__claim_id__orders_export_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4880,6 +4948,10 @@ export interface components {
             claim_id: number;
             /** Fact Id */
             fact_id: number;
+            /** Fault Pct */
+            readonly fault_pct: string | null;
+            /** Offline Pct */
+            readonly offline_pct: string | null;
             snapshot: components["schemas"]["DeviceLineCalculation"];
         };
         /** DeviceSubsidyRules */
@@ -6297,6 +6369,8 @@ export interface components {
         LedgerItem: {
             /** Adjusted Amount */
             adjusted_amount: string;
+            /** Application Year */
+            application_year?: number | null;
             /** Approved At */
             approved_at: string | null;
             /** Base Amount */
@@ -6319,6 +6393,8 @@ export interface components {
             station_name: string;
             /** Status */
             status: string;
+            /** Total Kwh */
+            total_kwh: string;
         };
         /** LedgerPage */
         LedgerPage: {
@@ -10344,6 +10420,8 @@ export interface components {
         SubsidyQueueItem: {
             /** Adjusted Amount */
             adjusted_amount: string;
+            /** Application Year */
+            application_year?: number | null;
             /** Base Amount */
             base_amount: string;
             /** Created At */
@@ -27031,6 +27109,7 @@ export interface operations {
                 page?: number;
                 page_size?: number;
                 period_date: string;
+                period_end_date?: string | null;
                 period?: "day" | "month" | "year";
                 dimension?: "station" | "equipment";
                 q?: string;
@@ -27112,6 +27191,7 @@ export interface operations {
         parameters: {
             query: {
                 period_date: string;
+                period_end_date?: string | null;
                 period?: "day" | "month" | "year";
                 dimension?: "station" | "equipment";
                 q?: string;
@@ -28284,6 +28364,8 @@ export interface operations {
                 q?: string;
                 status?: string;
                 record_id?: number | null;
+                station_id?: number | null;
+                application_year?: number | null;
                 page?: number;
                 page_size?: number;
                 submitted_from?: string | null;
@@ -28527,6 +28609,8 @@ export interface operations {
     subsidy_list_api_v1_subsidy_claims_export_get: {
         parameters: {
             query?: {
+                station_id?: number | null;
+                application_year?: number | null;
                 q?: string;
                 status?: string;
                 record_id?: number | null;
@@ -28612,6 +28696,8 @@ export interface operations {
     subsidy_process_api_v1_subsidy_claims_process_export_get: {
         parameters: {
             query?: {
+                station_id?: number | null;
+                application_year?: number | null;
                 q?: string;
                 status?: string;
                 record_id?: number | null;
@@ -29261,6 +29347,9 @@ export interface operations {
             query?: {
                 page?: number;
                 page_size?: number;
+                equipment_type?: "" | "dc" | "ac" | "swapping" | "unknown";
+                equipment_code?: string;
+                eligibility?: "" | "eligible" | "excluded";
             };
             header?: never;
             path: {
@@ -29277,6 +29366,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeviceLinePage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    subsidy_device_lines_export_api_v1_subsidy_claims__claim_id__device_lines_export_get: {
+        parameters: {
+            query?: {
+                equipment_type?: "" | "dc" | "ac" | "swapping" | "unknown";
+                equipment_code?: string;
+                eligibility?: "" | "eligible" | "excluded";
+            };
+            header?: never;
+            path: {
+                claim_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
             /** @description Login required or invalid credentials */
@@ -29674,6 +29845,243 @@ export interface operations {
             };
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_detail_api_v1_subsidy_ledger__claim_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    reference_orders_api_v1_subsidy_ledger__claim_id__orders_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                claim_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargingOrderPage"];
+                };
+            };
+            /** @description Login required or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Capability, scope, CSRF or origin rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Missing or inaccessible resource */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description State/version conflict or unconfirmed production rule */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input; validation details omit submitted values */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limit; observe Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds before retry */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_reference_orders_api_v1_subsidy_ledger__claim_id__orders_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: number;
+            };
             cookie?: never;
         };
         requestBody?: never;

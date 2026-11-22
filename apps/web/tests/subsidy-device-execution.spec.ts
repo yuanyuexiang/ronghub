@@ -153,6 +153,28 @@ test("device claim freezes historical evidence through materials review and disb
     const final = await (
       await reg.request.get(`/api/v1/subsidy/claims/${claim.id}`)
     ).json();
+    const reviewed = reg.getByRole("region", {
+      name: "冻结设备核算依据",
+      exact: true,
+    });
+    await reviewed
+      .getByLabel("设备编码", { exact: true })
+      .fill("no-such-device");
+    await reviewed
+      .getByRole("button", { name: "查询设备结果", exact: true })
+      .click();
+    await expect(reviewed).toContainText("当前条件没有设备核算结果");
+    await reviewed
+      .getByRole("button", { name: "重置设备筛选", exact: true })
+      .click();
+    await expect(reviewed.getByRole("row")).toHaveCount(3);
+    const exported = reg.waitForEvent("download");
+    await reviewed
+      .getByRole("button", { name: "导出设备审核明细", exact: true })
+      .click();
+    expect((await exported).suggestedFilename()).toBe(
+      `SUB-${claim.id}-设备审核明细.csv`,
+    );
     expect(final.status).toBe("disbursed");
     expect(final.snapshot.device_calculation).toEqual(
       original.snapshot.device_calculation,
